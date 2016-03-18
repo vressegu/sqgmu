@@ -166,9 +166,6 @@ spectrum_sigma = 1/prod(model.grid.MX)^2 * spectrum_sigma;
 % Division by the wave number step
 spectrum_sigma = spectrum_sigma / d_kappa;
 
-% Draft
-mean_space_sigmadBt_by_spectr = sum(spectrum_sigma) * d_kappa
-
 %% Plot spectrum
 taille_police = 12;
 X0 = [10 20];
