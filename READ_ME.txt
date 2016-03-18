@@ -1,8 +1,8 @@
-This project provides Matlab codes to simulate a randomized version of the Surface Quasi-Geostrophic (SQG) model.
-The random dynamics is based on the transport under location uncertainty.
-The following paper describes the method:
-Geophysical flows under location uncertainty, Resseguier V., Mémin E., Chapron B. 2016
+This MATLAB codes simulates deterministic or randomized version of the Surface Quasi-Geostrophic (SQG) model.
+The random dynamics is based on the transport under location uncertainty. The ensuing model is referred to as SQG model under moderate uncertainty (SQG_MU).
 
 This codes needs the MATLAB image processing toolbox.
 Launch the script main.m to execute the algorithm.
-Plots and temporary files are saved each day of simulation in the folder images.
+Plots and MAT-files are saved each day of simulation in the folder images.
+
+Several parameters can be changed easily in the beginning of the script main.m.
