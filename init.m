@@ -3,7 +3,8 @@
 %%%%%%%%%%%%%%%%%%
 
 % Cleaning
-clear all;close all;clc;
+clear all;
+close all;clc;
 
 % Debug
 dbstop if error;

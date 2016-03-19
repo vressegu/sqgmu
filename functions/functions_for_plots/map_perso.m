@@ -1,3 +1,16 @@
+function maptot = map_perso()
+% This function uses the codes of Kenneth Moreland for greating Diverging
+% Colormaps and Andy Stein.
+%
+
+rgb1 = [0.230, 0.299, 0.754];
+rgb2 = [0.706, 0.016, 0.150];
+s = 0:0.01:1;
+maptot = diverging_map(s,rgb1,rgb2);
+
+
+end
+
 function[map] = diverging_map(s,rgb1,rgb2)
 %This function is based on Kenneth Moreland's code for greating Diverging
 %Colormaps.  Created by Andy Stein.
@@ -23,15 +36,13 @@ end
         % If the endpoints are distinct saturated colors, then place white in between
         % them.
         if msh1(2) > 0.05 && msh2(2) > 0.05 && AngleDiff(msh1(3),msh2(3)) > 0.33*pi    
-            % Insert the white midpoint by setting one end to white and adjusting the
-            % scalar value.
-            Mmid = max(msh1(1), msh2(1));
-            Mmid = max(88.0, Mmid);
+%             Insert the white midpoint
+            white_color = [100 0 0];
             if (s < 0.5)
-                msh2(1) = Mmid;  msh2(2) = 0.0;  msh2(3) = 0.0;
+                msh2 = white_color;
                 s = 2.0*s;
             else
-                msh1(1) = Mmid;  msh1(2) = 0.0;  msh1(3) = 0.0;
+                msh1 = white_color;
                 s = 2.0*s - 1.0;
             end
         end
