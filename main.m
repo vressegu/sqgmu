@@ -6,7 +6,7 @@ init;
 %% Main parameters to choose
 
 % Deterministic or random model
-stochastic_simulation = false ;
+stochastic_simulation = true ;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
 

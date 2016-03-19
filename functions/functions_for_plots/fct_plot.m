@@ -15,6 +15,7 @@ id_part=1;
 type_data = model.type_data;
 folder_simu = model.folder.folder_simu;
 plot_moments = model.advection.plot_moments;
+map = model.folder.colormap;
 
 %% One particle
 X0=[0 0];
@@ -114,6 +115,7 @@ else
         'FontSize',12,...
         'FontName','Times')
 end
+colormap(map)
 colorbar
 drawnow
 eval( ['print -depsc ' folder_simu '/one_realization/'...
