@@ -77,8 +77,6 @@ else
         'PaperPositionMode','auto');
     imagesc(x,y,T_adv_part');
 end
-axis xy;
-axis equal
 caxis([-1 1]*1e-3);
 set(gca,...
     'Units','normalized',...
@@ -97,14 +95,14 @@ xlabel('x(m)',...
     'FontWeight','normal',...
     'FontSize',taille_police,...
     'FontName','Times')
-    title({'One realization', ...
-        ['\hspace{0.5cm} $t=' num2str(day) '$ day ']},...
-        'FontUnits','points',...
-        'FontWeight','normal',...
-        'interpreter','latex',...
-        'FontSize',12,...
-        'FontName','Times')
-
+title({'One realization', ...
+    ['\hspace{0.5cm} $t=' num2str(day) '$ day ']},...
+    'FontUnits','points',...
+    'FontWeight','normal',...
+    'interpreter','latex',...
+    'FontSize',12,...
+    'FontName','Times')
+axis xy; axis equal
 colormap(map)
 colorbar
 drawnow
@@ -176,14 +174,21 @@ if plot_moments
     set(figure2,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
         'PaperPositionMode','auto');
-    
     subplot(1,2,1)
     subimage(x,y,mean_T');axis xy;
     imagesc(x,y,mean_T');axis xy;
     axis equal
     caxis([-1 1]*1e-3);
-    colormap(gca,map);
-    colorbar; cbfreeze;
+    if model.folder.colormap_freeze
+        colormap(map);
+        colorbar;
+        cbfreeze;
+    else
+        colormap(map);
+        ax1 = gca;
+        colorbar('peer',ax1);
+        colormap(ax1,map);
+    end
     set(gca,...
         'Units','normalized',...
         'FontUnits','points',...
@@ -216,7 +221,14 @@ if plot_moments
     if strcmp(type_data,'Spectrum')
         caxis([0 1e-3]);
     end
-    colormap 'jet'; colorbar;
+    if model.folder.colormap_freeze
+        colormap('default');
+        colorbar;
+    else
+        ax2 = gca;
+        colorbar('peer',ax2);
+        colormap(ax2,'default');
+    end
     set(gca,...
         'Units','normalized',...
         'FontUnits','points',...
@@ -282,7 +294,16 @@ if plot_moments
     if strcmp(type_data,'Spectrum')
         caxis(0.5*[-1 1]);
     end
-    colormap(map); colorbar; cbfreeze;
+    if model.folder.colormap_freeze
+        colormap(map);
+        colorbar;
+        cbfreeze;
+    else
+        colormap(map);
+        ax1 = gca;
+        colorbar('peer',ax1);
+        colormap(ax1,map);
+    end
     set(gca,...
         'Units','normalized',...
         'FontUnits','points',...
@@ -311,7 +332,14 @@ if plot_moments
     subimage(x,y,log(m4'-3));
     imagesc(x,y,log(m4'-3));axis xy;
     axis equal
-    colormap jet; colorbar;
+    if model.folder.colormap_freeze
+        colormap('default');
+        colorbar;
+    else
+        ax2 = gca;
+        colorbar('peer',ax2);
+        colormap(ax2,'default');
+    end
     set(gca,...
         'Units','normalized',...
         'FontUnits','points',...

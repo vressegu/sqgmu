@@ -6,7 +6,7 @@ init;
 %% Main parameters to choose
 
 % Deterministic or random model
-stochastic_simulation = true ;
+stochastic_simulation = false ;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
 
@@ -14,7 +14,7 @@ stochastic_simulation = true ;
 advection_duration = 3600*24*20; % 20 days
 
 % Number of realizations in the ensemble
-N_ech=2;
+N_ech=10;
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )

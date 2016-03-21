@@ -10,9 +10,17 @@ else % Stochastic case
 end
 % Create the folders
 fct_create_folder_plots(model)
+
 % Colormap
 load('BuYlRd.mat');
 model.folder.colormap = BuYlRd; clear BuYlRd
+
+% Version of matlab
+vers = version;
+year = str2double(vers(end-5:end-2));
+subvers = vers(end-1);
+model.folder.colormap_freeze = ...
+    (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
 
 %% Grid
 
