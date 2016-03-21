@@ -11,7 +11,8 @@ end
 % Create the folders
 fct_create_folder_plots(model)
 % Colormap
-model.folder.colormap = map_perso();
+load('BuYlRd.mat');
+model.folder.colormap = BuYlRd; clear BuYlRd
 
 %% Grid
 
