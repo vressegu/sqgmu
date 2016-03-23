@@ -96,22 +96,25 @@ end
 model.advection.dt_adv = dt;
 
 %% Fourier transform of the kernel \tilde sigma
-
-% Fourier transform of the kernel \tilde sigma up to a multiplicative
-% constant
-[sigma_on_sq_dt, ~, missed_var_small_scale_spectrum ] ...
-    = fct_sigma_spectrum(model,fft_w);
-% sigma_on_sq_dt will be used to simulate sigma d B_t
-% missed_var_small_scale_spectrum will be used to set the mulitplicative
-% constant
-
-% Muliplicative constant of the kernel \tilde sigma
-model.sigma.a0_on_dt = model.sigma.a0 / dt;
-sigma_on_sq_dt = sqrt(2*model.sigma.a0_on_dt/missed_var_small_scale_spectrum) ...
-    * sigma_on_sq_dt;
-% the factor d=2 is for the dimension d of the space R^d
-% the variance of sigma_dBt/dt is tr(a)/dt = 2 a0 /dt
-clear missed_var_small_scale_spectrum
+if ~isinf(model.sigma.k_c)
+    % Fourier transform of the kernel \tilde sigma up to a multiplicative
+    % constant
+    [sigma_on_sq_dt, ~, missed_var_small_scale_spectrum ] ...
+        = fct_sigma_spectrum(model,fft_w);
+    % sigma_on_sq_dt will be used to simulate sigma d B_t
+    % missed_var_small_scale_spectrum will be used to set the mulitplicative
+    % constant
+    
+    % Muliplicative constant of the kernel \tilde sigma
+    model.sigma.a0_on_dt = model.sigma.a0 / dt;
+    sigma_on_sq_dt = sqrt(2*model.sigma.a0_on_dt/missed_var_small_scale_spectrum) ...
+        * sigma_on_sq_dt;
+    % the factor d=2 is for the dimension d of the space R^d
+    % the variance of sigma_dBt/dt is tr(a)/dt = 2 a0 /dt
+    clear missed_var_small_scale_spectrum
+else
+    sigma_on_sq_dt = 0;
+end
 
 %% Loop on time
 
