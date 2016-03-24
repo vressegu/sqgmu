@@ -1,0 +1,6 @@
+{
+  "name": "Surface Quasi-Geostrophic model under Moderate Uncertainty",
+  "tagline": "",
+  "body": "This MATLAB codes simulates deterministic or randomized version of the Surface Quasi-Geostrophic (SQG) model in geophysical fluid dynamics.\r\nThe random dynamics is based on the transport under location uncertainty. The ensuing model is referred to as SQG model under moderate uncertainty (SQG_MU).",
+  "note": "Don't delete this file! It's used internally to help with page regeneration."
+}
