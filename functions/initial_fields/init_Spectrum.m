@@ -4,9 +4,6 @@ function buoy_init = init_Spectrum(model)
 
 % Get parameters
 slope = model.slope_b_ini;
-if nargin < 2
-    slope = - 5/3;
-end
 odg_b = model.odg_b;
 MX=model.grid.MX;
 dX=model.grid.dX;
