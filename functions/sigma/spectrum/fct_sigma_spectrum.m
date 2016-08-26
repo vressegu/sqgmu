@@ -226,10 +226,15 @@ title('Initial spectrum of $w$ and $\sigma dB_t$',...
 
 %% Save plot
 drawnow
-
-folder_simu = model.folder.folder_simu;
-eval( ['print -depsc ' folder_simu '/spectrum_sigma_dB_t.eps']);
-
+format = sprintf('-d%s', model.output.image_format); %argument for print command
+resolution = sprintf('-r%d', model.output.image_dpi); %argument for print command
+folder_simu = model.output.folder_simu; %output directory
+output_file = fullfile(folder_simu, 'spectrum_sigma_dB_t');
+print(figure10, output_file, format, resolution);
+if model.verbose
+    fprintf(1, 'Spectrum noise initialization:\n\tsaved %s image: %s\n', ...
+            model.output.image_format, output_file);
+end
 end
 
 function t = fct_unity_approx_(N_t)

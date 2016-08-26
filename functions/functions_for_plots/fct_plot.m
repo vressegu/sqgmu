@@ -1,6 +1,9 @@
 function fct_plot(model,fft_b_adv_part,day)
 % This function creates some plot online and save it
 %
+% Modified by P. DERIAN 2016-08-19
+%   - improved output files for cross-platform compatibility;
+%   - improved printing command (resolution, format).
 
 %% Get paramters
 
@@ -13,15 +16,18 @@ My = model.grid.MX(2);
 taille_police = 12;
 id_part=1;
 type_data = model.type_data;
-folder_simu = model.folder.folder_simu;
-plot_moments = model.advection.plot_moments;
-map = model.folder.colormap;
+folder_simu = model.output.folder_simu;
+plot_moments = model.output.plot_moments;
+map = model.output.colormap;
+format = sprintf('-d%s', model.output.image_format); %argument for print command
+resolution = sprintf('-r%d', model.output.image_dpi); %argument for print command
+
 
 %% One particle
 X0=[0 0];
 T_adv_part = real(ifft2( fft_b_adv_part(:,:,1,id_part) ));
 
-if ( (eval(day) == 0) && ...
+if (strcmp(day,'0') && ...
         strcmp(model.type_data,'Perturbed_vortices') )
     width = 3.2;
     height = 3.2;
@@ -96,7 +102,7 @@ xlabel('x(m)',...
     'FontSize',taille_police,...
     'FontName','Times')
 title({'One realization', ...
-    ['\hspace{0.5cm} $t=' num2str(day) '$ day ']},...
+    ['\hspace{0.5cm} $t=' day '$ day ']},...
     'FontUnits','points',...
     'FontWeight','normal',...
     'interpreter','latex',...
@@ -106,8 +112,11 @@ axis xy; axis equal
 colormap(map)
 colorbar
 drawnow
-eval( ['print -depsc ' folder_simu '/one_realization/'...
-    num2str(day) '.eps']);       
+output_file = fullfile(folder_simu, 'one_realization', day);
+print(figure1, output_file, format, resolution);
+if model.verbose
+    fprintf(1, '\tsaved %s image: %s\n', model.output.image_format, output_file);
+end
 
 %% Spectrum
 X0=[3.3 1];
@@ -153,7 +162,11 @@ title({'Spectrum of' ...
     'FontSize',12,...
     'FontName','Times')
 drawnow
-eval( ['print -depsc ' folder_simu '/Spectrum/' day '.eps']);
+output_file = fullfile(folder_simu, 'Spectrum', day);
+print(figure4, output_file, format, resolution);
+if model.verbose
+    fprintf(1, '\tsaved %s image: %s\n', model.output.image_format, output_file);
+end
 
 %% Moments
 if plot_moments
@@ -167,10 +180,10 @@ if plot_moments
     odg_b = sqrt( mean(mean_T(:).^2) );
     
     % First and second order moments
-    X0=[0 4.2];
+    X0 = [0 4.2];
     width = 3.65;
     height = 3;
-    figure2=figure(2);
+    figure2 = figure(2);
     set(figure2,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
         'PaperPositionMode','auto');
@@ -179,7 +192,7 @@ if plot_moments
     imagesc(x,y,mean_T');axis xy;
     axis equal
     caxis([-1 1]*1e-3);
-    if model.folder.colormap_freeze
+    if model.output.colormap_freeze
         colormap(map);
         colorbar;
         cbfreeze;
@@ -221,7 +234,7 @@ if plot_moments
     if strcmp(type_data,'Spectrum')
         caxis([0 1e-3]);
     end
-    if model.folder.colormap_freeze
+    if model.output.colormap_freeze
         colormap('default');
         colorbar;
     else
@@ -253,24 +266,29 @@ if plot_moments
         'FontSize',12,...
         'FontName','Times')
     drawnow;
-    eval( ['print -depsc ' folder_simu '/1st_2nd_order_moments/' day '.eps']);
+    output_file = fullfile(folder_simu, '1st_2nd_order_moments', day);
+    print(figure2, output_file, format, resolution);
+    if model.verbose
+        fprintf(1, '\tsaved %s image: %s\n', model.output.image_format, ...
+                output_file);
+    end
     
     % Third and fourth order moments
-    X0=[0 8.2];
-    figure3=figure(3);
+    X0 = [0 8.2];
+    figure3 = figure(3);
     set(figure3,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
         'PaperPositionMode','auto');
     % These moments are shown only where the variance is large enough
     jjj = ( std_T < tol *odg_b );
-    s=size(std_T);
-    std_T=std_T(:);
+    s = size(std_T);
+    std_T = std_T(:);
     % The standard deviation used to compute skewness and kurtosis is set 
     % to infinity when this standard deviation is too low
     % As such, skewness and kurtosis are equal to zero when this standard 
     % deviation is too low
-    std_T(jjj(:))=inf;
-    std_T=reshape(std_T,s);
+    std_T(jjj(:)) = inf;
+    std_T = reshape(std_T,s);
     
     % Centering
     T_prime = bsxfun(@plus,  real(ifft2( fft_b_adv_part)) , - mean_T);
@@ -281,10 +299,10 @@ if plot_moments
     m4 = T_prime.^4 ;
     m4 = mean(m4,4);
     
-    sm4=size(m4);
-    m4=m4(:);
-    m4(m4<3)=3;
-    m4=reshape(m4,sm4);
+    sm4 = size(m4);
+    m4 = m4(:);
+    m4(m4<3) = 3;
+    m4 = reshape(m4,sm4);
     
     subplot(1,2,1)
     subimage(x,y,m3');
@@ -294,7 +312,7 @@ if plot_moments
     if strcmp(type_data,'Spectrum')
         caxis(0.5*[-1 1]);
     end
-    if model.folder.colormap_freeze
+    if model.output.colormap_freeze
         colormap(map);
         colorbar;
         cbfreeze;
@@ -332,7 +350,7 @@ if plot_moments
     subimage(x,y,log(m4'-3));
     imagesc(x,y,log(m4'-3));axis xy;
     axis equal
-    if model.folder.colormap_freeze
+    if model.output.colormap_freeze
         colormap('default');
         colorbar;
     else
@@ -367,7 +385,12 @@ if plot_moments
         caxis([-5 3]);
     end
     drawnow
-    eval( ['print -depsc ' folder_simu '/3rd_4th_order_moments/' day '.eps']);
+    output_file = fullfile(folder_simu, '3rd_4th_order_moments', day);
+    print(figure3, output_file, format, resolution);
+    if model.verbose
+        fprintf(1, '\tsaved %s image: %s\n', model.output.image_format, ...
+                output_file);
+    end
 end
 
 
