@@ -42,6 +42,11 @@ if ~isscalar(A)
     d2_a12 = reshape(model.sigma.D2*a12(:), model.grid.MX);
     w(:,:,1) = w(:,:,1) - 0.5*(d1_a11 + d2_a12);
     w(:,:,2) = w(:,:,2) - 0.5*(d1_a12 + d2_a22);
+    % remove the irrotational (i.e. with divergence) component
+    if model.sigma.divfree_projection
+        wir = helmholtz_decomp(model, w, 'irr');
+        w = w - wir;
+    end;
 end
 % Advective term in physical space -(w* + sigma_dBt/dt).grad(b)
 % NB : in the stochastic case, w included both continuous (w*) and
@@ -66,9 +71,8 @@ if model.is_stochastic
         %   0.5*div(a.grad(b)), with a tensor.
         % Here we compute a.grad(b) in the physical space
         % then move to the spectral space for the div.
-        a11 = A(:,:,1);
-        a22 = A(:,:,2);
-        a12 = A(:,:,3);
+        % Note: a11, a22 and a12 already available from the advection term
+        % computation above.
         a_dot_gradb_1 = a11.*gradb(:,:,1) + a12.*gradb(:,:,2); % first component
         a_dot_gradb_2 = a12.*gradb(:,:,1) + a22.*gradb(:,:,2); % second component
         adv2 = (0.5*1i)*( kx.*fft2(a_dot_gradb_1) + ky.*fft2(a_dot_gradb_2) );
@@ -110,7 +114,7 @@ if model.is_stochastic
                        'Expecting scalar A with "Spectrum" noise model');
             end
         % SVD: A [Mx Mx 3] matrix
-        case 'SVD'
+        case {'SVD', 'Learning_SVD'}
             % make sure its size is correct
             if any(size(A)~=[model.grid.MX(1) model.grid.MX(2) 3])
                 error('SQGMU:deriv_fft_advection:InvalidInputs', ...

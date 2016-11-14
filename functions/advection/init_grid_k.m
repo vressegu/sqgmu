@@ -36,6 +36,10 @@ model.grid.k.ky=ky;
 model.grid.k.k2=k2;
 model.grid.k.k=k;
 model.grid.k.on_k=on_k;
+%%% [DEV]
+model.grid.k.kx_over_ksqr = kx.*(on_k.^2);
+model.grid.k.ky_over_ksqr = ky.*(on_k.^2);
+%%% [/DEV]
 clear k kx ky
 
 %% Unstable Fourier grid for Hyper-viscosity

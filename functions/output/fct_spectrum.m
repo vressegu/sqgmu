@@ -1,10 +1,13 @@
-function [spectrum,name_plot] = fct_spectrum(model,ft,color)
+function [spectrum,name_plot] = fct_spectrum(model,ft,color,with_slope)
 % Compute the spectrum of a function and superimposed a slope -5/3
 %
 
 % Color by default
 if nargin < 3
-    color='b';
+    color = 'b';
+end
+if nargin<4
+    with_slope = 1;
 end
 
 % Square modulus of the Fourier transform
@@ -79,9 +82,11 @@ line1= -5/3 * log10(kidx(2:end))  ;
 offset = -1 + mean(  log10(spectrum(idx_not_inf)')  - line1(idx_not_inf));
 line1 = line1 + offset;
 ref=10.^line1;
-loglog(kidx(2:end),ref,'--k');
+if with_slope
+    loglog(kidx(2:end), ref,'--k');
+end    
 hold on;
-name_plot = loglog(kidx(2:end) , spectrum(2:end) ,color);
+name_plot = loglog(kidx(2:end), spectrum(2:end), 'Color', color);
 ax=axis;
 ax(4)=max([spectrum(2:end); ref']);
 min_ax= 10 ^(-5/3 * log10(kidx(2)*512/2) + offset) ;

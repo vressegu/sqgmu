@@ -1,9 +1,11 @@
-function [fft_sst,model] = fct_buoyancy_init(model,resolution)
-% Create an initial buoyancy field
+function [fft_sst,model] = fct_buoyancy_init(model)
+%% Create an initial buoyancy field
 %
+% Modified by P. DERIAN 2016-10-12: resolution is a member of model.
+
 
 %% Grid
-n=resolution;
+n=model.resolution;
 m=n;
 Lx=1e6;
 dx=Lx/n;
@@ -22,6 +24,8 @@ model.grid.MX=MX;
 switch model.type_data
     case 'Vortices'
         b_S = init_Vortices(model,x,y);
+    case 'Vortices2' % [DEV] periodized vortices
+        b_S = init_Vortices2(model,x,y);
     case 'Perturbed_vortices'
         b_S = init_Perturbed_vortices(model,x,y);
     case 'Spectrum'

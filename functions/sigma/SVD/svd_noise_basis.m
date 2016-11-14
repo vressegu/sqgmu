@@ -1,19 +1,19 @@
-function [U, S, A, shape] = svd_noise_basis(u, v, sizep, nobs, varargin)
-%% function [U, S, A, shape] = svd_noise_basis(u, v, sizep, nobs [, scaling])
+function [U, S, C, shape] = svd_noise_basis(u, v, sizep, nobs, varargin)
+%% function [U, S, C, shape] = svd_noise_basis(u, v, sizep, nobs [, scaling])
 %
 % Arguments:
 %
 % * u, v: the velocity components (2D arrays);
-% * psize: the size of a patch (psize x psize in 2D);
+% * sizep: the size of a patch (sizep x sizep in 2D);
 % * nobs: the number of pseudo-observations to generate.
 % * [optional] scaling=1.: if provided, scales the singular values S by "scaling"
 %       and therefore the (co)variance A by "scaling^2". 
 %
 % Outputs:
 %
-% * U: the left eigenvectors of the SVD decomposition (nobs-1 columns);
-% * S: a nobs-1 vector associated singular values;
-% * A: the one-point (co)variance data;
+% * U: the left eigenvectors of the SVD decomposition (nobs columns);
+% * S: a nobs vector associated singular values;
+% * C: the one-point (co)variance data;
 % * shape: the shape of the subsampled space.
 %
 % Written by P. DERIAN - 2016-08-18
@@ -24,8 +24,7 @@ scaling = parse_inputs(varargin);
 %% dimensions
 % check dimensions match
 if ~sameshape(u, v)
-    ME = MException('noiseBasis:RuntimeError', 'u and v shapes do not match');
-    throw(ME)
+    error('noiseBasis:RuntimeError', 'u and v shapes do not match');
 end;
 [ydim, xdim] = size(u);
 % compute patch size and subsampled dimensions
@@ -81,23 +80,23 @@ psobs = bsxfun(@minus, psobs, mean(psobs,2));
 % so we leave out the last value/column
 % [TODO] check if it slows down, otherwise we might as well let it be.
 S = diag(S);
-S = S(1:end-1);
-U = U(:,1:end-1);
+%S = S(1:end-1);
+%U = U(:,1:end-1);
 % Normalize S to get the proper variance
-% Note: the covariance matrix is (F.F^T)/nobs
-% i.e. (U.S.S^T.U^T)/nobs (with S a diagonal matrix)
-% so we spread the 1/nobs factor over Sigma.
+% Note: the covariance matrix is (F.F^T)/(nobs - 1)
+% i.e. (U.S.S^T.U^T)/(nobs - 1) (with S a diagonal matrix)
+% so we spread the 1/(nobs - 1) factor over Sigma.
 % Here we also add the optional scaling. 
-S = S.*(scaling/sqrt(double(nobs)));
+S = S.*(scaling/sqrt(double(nobs) - 1.));
 % finally write down the shape of the subsampled space
 shape = [ydim_s, xdim_s, 2];
 
 %% computing the variance matrices
 S2 = (S.^2)';
 % upper half of a_xxyy is a_xx, lower half is a_yy
-a_xxyy = sum(bsxfun(@times, U.^2, S2), 2);
-a_xy = sum(bsxfun(@times, U(1:length_s,:).*U(length_s+1:end,:), S2), 2);
-A = reshape([a_xxyy; a_xy], [ydim_s, xdim_s, 3]);
+c_xxyy = sum(bsxfun(@times, U.^2, S2), 2);
+c_xy = sum(bsxfun(@times, U(1:length_s,:).*U(length_s+1:end,:), S2), 2);
+C = reshape([c_xxyy; c_xy], [ydim_s, xdim_s, 3]);
 
 return
 end
