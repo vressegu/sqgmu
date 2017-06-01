@@ -24,13 +24,13 @@ function model = set_model()
 
 % Deterministic or random model
 %------------------------------
-stochastic_simulation = 1;
+stochastic_simulation = 0;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
 
 % Duration of the simulation (in seconds)
 %----------------------------------------
-advection_duration = 3600*24*30; % in [s] (last number is days)
+advection_duration = 3600*24*20; % in [s] (last number is days)
 
 % Number of realizations in the ensemble
 %---------------------------------------
@@ -44,7 +44,7 @@ N_ech = 4;
 
 % Type of initial conditions
 %---------------------------
-type_data = 'PerturbVortices2';
+type_data = 'Vortices2';
 % - 'Vortices' : 2 large anticyclones and 2 large cyclones
 %    (used in "Geophysical flow under location uncertainty", Resseguier V.,
 %     Memin E., Chapron B.)
@@ -58,7 +58,7 @@ type_data = 'PerturbVortices2';
 
 % Type of initialization randomization
 %-------------------------------------------
-type_rand = 'None';
+type_rand = 'SVDnoise';
 % - 'None' or '': no randomization.
 % - 'SVDnoise': use the SVD-based, same as for the 'SVDfull' stochastic model.
 % - 'Scramble': randomize from a high-resolution observation of the initial
@@ -68,7 +68,7 @@ type_rand = 'None';
 
 % Type of stochastic noise (stochastic_simulation=1)
 %---------------------------------------------------
-type_noise = 'SVDfull';
+type_noise = 'None';
 % - 'None' or '': no noise, purely deterministic.
 % - 'Spectrum': isotropic, homogeneous small-scale spectral noise
 % - 'SVDfull': noise basis learned from pseudo-observations, built by SVD.
@@ -143,7 +143,6 @@ switch type_noise
         sigma.k_c = k_c; % [TODO] remove?
         sigma.P = P;
         sigma.N_obs = N_obs;
-        sigma.interp_method = interp_method;
         sigma.boundary_condition = boundary_condition;
         sigma.divfree_projection = divfree_projection;
         sigma.long_name = 'Pseudo-observations noise';
