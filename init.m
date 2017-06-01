@@ -3,18 +3,19 @@
 %%%%%%%%%%%%%%%%%%
 %
 % Modified by P. DERIAN 2016-10-10
-%   - added isdeployed for compilation support
+%   - added "isdeployed" for compilation support
+% Modified by P. DERIAN 2017-03-10
+%   - removed "clear all"
 
 % Cleaning
-clear all;
 close all;clc;
 
-% Debug
-dbstop if error;
-
-% Paths
+% Note: isdeployed necessary for compiled code (addpath won't work)
 if ~isdeployed
-    % Note: isdeployed necessary for compiled code (addpath won't work)
+    % Debug
+    dbstop if error;
+
+    % Paths
     fct = genpath([ pwd '/functions' ]);
     addpath(pwd)
     addpath(fct)

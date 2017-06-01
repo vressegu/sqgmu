@@ -7,7 +7,7 @@ if any( mod(model.grid.MX,2)~=0)
 end
 
 %%  Damped Fourier grid
-meth_anti_alias='deriv_LowPass';
+meth_anti_alias = 'deriv_LowPass';
 PX=model.grid.MX/2;
 if strcmp(meth_anti_alias,'deriv_LowPass')
     kx=1/(model.grid.MX(1))*[ 0:(PX(1)-1) 0 (1-PX(1)):-1] ...

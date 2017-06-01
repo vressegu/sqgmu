@@ -1,4 +1,4 @@
-function fct_create_folder_plots(model)
+function fct_create_output_folders(model)
 % Create folders to save plots and files
 %
 % Modified by P. DERIAN 2016-08-19
@@ -6,6 +6,8 @@ function fct_create_folder_plots(model)
 %   - improved path generation for cross-platform compatibility.
 % Modified by P. DERIAN 2016-10-11
 %   - made plotting optional.
+% Modified by P. DERIAN 2017-05-04
+%   - change function name to "fct_create_output_folder"
 
 % Root directory
 folder_simu = model.output.folder_simu;

@@ -5,17 +5,16 @@ function fct_plot(model,fft_b_adv_part,day)
 %   - improved output files for cross-platform compatibility;
 %   - improved printing command (resolution, format).
 
-%% Get paramters
+%% Get parameters
 
 % Grid
 x = model.grid.x;
 y = model.grid.y;
-My = model.grid.MX(2);
 
 % Other parameters
 taille_police = 12;
 id_part=1;
-type_data = model.type_data;
+type_data = model.init.type_data; %not used?
 folder_simu = model.output.folder_simu;
 plot_moments = model.output.plot_moments;
 map = model.output.colormap;
@@ -28,10 +27,10 @@ X0=[0 0];
 T_adv_part = real(ifft2( fft_b_adv_part(:,:,1,id_part) ));
 
 if (strcmp(day,'0') && ...
-        strcmp(model.type_data,'Perturbed_vortices') )
+        strcmp(model.init.type_data,'Perturbed_vortices') )
     width = 3.2;
     height = 3.2;
-    figure1=figure(1);
+    figure1 = change_current_figure(1);
     set(figure1,'Units','inches', ...
         'Position',[X0(1) X0(2) width height], ...
         'PaperPositionMode','auto');
@@ -56,9 +55,9 @@ if (strcmp(day,'0') && ...
         [coord1(1)-size_square/2 coord1(2)+size_square/2] ; ...
         [coord1(1)-size_square/2 coord1(2)-size_square/2] ];
     hold on;
-    if strcmp(model.type_data,'Perturbed_vortices')
+    if strcmp(model.init.type_data,'Perturbed_vortices')
         plot(redline1(:,1),redline1(:,2),'r','LineWidth',3);
-    elseif strcmp(model.type_data,'spot6')
+    elseif strcmp(model.init.type_data,'spot6')
         plot(redline1(:,1),redline1(:,2),'b','LineWidth',3);
     else
         error('wrong type of data?');
@@ -77,7 +76,7 @@ if (strcmp(day,'0') && ...
 else
     width = 3.3;
     height = 3.2;
-    figure1=figure(1);
+    figure1 = change_current_figure(1);
     set(figure1,'Units','inches', ...
         'Position',[X0(1) X0(2) width height], ...
         'PaperPositionMode','auto');
@@ -108,7 +107,7 @@ title({'One realization', ...
     'interpreter','latex',...
     'FontSize',12,...
     'FontName','Times')
-axis xy; axis equal
+axis xy;
 colormap(map)
 colorbar
 drawnow
@@ -120,9 +119,7 @@ end
 
 %% Spectrum
 X0=[3.3 1];
-close(figure(4))
-figure4=figure(4);
-
+figure4 = change_current_figure(4); clf;
 widthtemp = 12;
 heighttemp = 6;
 set(figure4,'Units','inches', ...
@@ -183,7 +180,7 @@ if plot_moments
     X0 = [0 4.2];
     width = 3.65;
     height = 3;
-    figure2 = figure(2);
+    figure2 = change_current_figure(2);
     set(figure2,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
         'PaperPositionMode','auto');
@@ -275,7 +272,7 @@ if plot_moments
     
     % Third and fourth order moments
     X0 = [0 8.2];
-    figure3 = figure(3);
+    figure3 = change_current_figure(3);
     set(figure3,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
         'PaperPositionMode','auto');
@@ -396,3 +393,19 @@ end
 
 end
 
+function fig = change_current_figure(h)
+    %% function fig = change_current_figure(h)
+    % - set the current figure to existing handle h without the figure
+    %   getting focus (reaaally annoying); 
+    % - or or create the figure for given handle;
+    % and return the object.
+    % See http://stackoverflow.com/questions/8488758/inhibit-matlab-window-focus-stealing
+    % and http://fr.mathworks.com/help/matlab/ref/figure.html
+    % Written by P. DERIAN 
+    if ishandle(h)
+        set(0,'CurrentFigure',h)
+        fig = gcf;
+    else
+        fig = figure(h);
+    end
+end

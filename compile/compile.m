@@ -5,6 +5,7 @@
 % Note: this script is meant to be started in command line, so as to exit the session
 % at the end and release the Matlab Compiler (MCC) token. E.g. with:
 %   matlab -nodesktop -nosplash -r compile
+% It requires a Matlab license token as well as a Compiler token.
 %
 % Written by P. DERIAN 2016-10-12.
 fprintf(1, 'Beginning compilation of SQGMU...\n');
@@ -24,7 +25,7 @@ addpath( genpath('../functions') );
 % "Java must be initialized in order to use the Parallel Computing Toolbox."
 
 % Notes on run:
-% use ./run_sqgmu <MCR_PATH/vxx>
+% use ./run_sqgmu <MCR_PATH/vxx> <SQGMU_args>
 % see also the readme.txt generated automatically
 
 % Notes on parallel:
@@ -32,15 +33,7 @@ addpath( genpath('../functions') );
 % for the parallel computing stuff.
 %
 % So: to use a pool, the JVM is mandatory. 
-% But, for some reason, compiling WITHOUT jvm but WITH multithreading works
-% even better...
-
-% without JVM, with multithreading
-%mcc -m -I .. -a ../functions/functions_for_plots/BuYlRd.mat -R -nojvm main -o sqgmu
-
-% with JVM
 mcc -m -I .. -a ../functions/output/BuYlRd.mat main -o sqgmu
-
 
 % Job's done
 fprintf(1, 'Compilation complete, exiting.\n');
