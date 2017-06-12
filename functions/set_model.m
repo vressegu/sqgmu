@@ -24,17 +24,17 @@ function model = set_model()
 
 % Deterministic or random model
 %------------------------------
-stochastic_simulation = 0;
+stochastic_simulation = 1;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
 
 % Duration of the simulation (in seconds)
 %----------------------------------------
-advection_duration = 3600*24*20; % in [s] (last number is days)
+advection_duration = 3600*24*30; % in [s] (last number is days)
 
 % Number of realizations in the ensemble
 %---------------------------------------
-N_ech = 4;
+N_ech = 12;
 % NB: 
 % - with deterministic simulation (stochastic_simulation = 1) and
 %   ensemble run (N_ech > 1), make sure set a randomization method
@@ -58,7 +58,7 @@ type_data = 'Vortices2';
 
 % Type of initialization randomization
 %-------------------------------------------
-type_rand = 'SVDnoise';
+type_rand = 'None';
 % - 'None' or '': no randomization.
 % - 'SVDnoise': use the SVD-based, same as for the 'SVDfull' stochastic model.
 % - 'Scramble': randomize from a high-resolution observation of the initial
@@ -68,7 +68,7 @@ type_rand = 'SVDnoise';
 
 % Type of stochastic noise (stochastic_simulation=1)
 %---------------------------------------------------
-type_noise = 'None';
+type_noise = 'SVDfull';
 % - 'None' or '': no noise, purely deterministic.
 % - 'Spectrum': isotropic, homogeneous small-scale spectral noise
 % - 'SVDfull': noise basis learned from pseudo-observations, built by SVD.
@@ -81,11 +81,18 @@ type_forcing = 'None';
 % - 'None': no forcing on the large-scale velocity w;
 % - 'Jet': a constant jet.
 
-% Resolution
-%-----------
+% Resolution and grid
+%--------------------
 resolution = 128;
 % The number of grid point is resolution^2
 % It has to be an even integer
+dealias_method = 'exp';
+% [WIP] Method for mandatory de-aliasing of non-linear terms in
+% pseudospectral codes (advection and non-homogeneous stochastic diffusion) 
+% - 'lowpass': same as in SQGMU 1;
+% - '2/3': the classical 2/3 rule (NB: produces Gibb's oscillations);
+% - 'exp': high-order exponential filter (Constantin et al., J. Sci.
+%   Comput. (2012)).
 
 % Random generator seed
 %----------------------
@@ -229,6 +236,7 @@ model.sigma = sigma; % stochastic parameters
 model.init = init; % the initial condition parameters
 model.type_data = model.init.type_data; % left for backward-compatibility [TODO] remove?
 model.resolution = resolution; %grid resolution
+model.grid.dealias_method = dealias_method; %de-aliasing method
 model.advection.N_ech = N_ech; %number of simultaneous runs
 model.advection.advection_duration = advection_duration; %simulation time
 model.advection.forcing = forcing; %the forcing of the velocity

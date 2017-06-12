@@ -209,6 +209,7 @@ if model.verbose
     fprintf(1, '1/k_c is equal to %.2f m\n', 1./model.sigma.k_c);
     fprintf(1, 'Time step: %.2f seconds\n', model.advection.dt_adv);
     fprintf(1, 'Total time of advection: %f days\n', N_t*model.advection.dt_adv/3600./24.);
+    fprintf(1, 'Grid size: %dx%d (de-aliasing="%s")\n', model.grid.MX(1), model.grid.MX(2), model.grid.dealias_method);
     fprintf(1, 'Ensemble size: %d realization(s)\n', N_ech);
     fprintf(1, 'Random generator seed: %d\n', model.seed);
     if has_probes
@@ -257,7 +258,7 @@ while t<=N_t
             
             %% Time-correlated velocity
             tmp_fft_w = SQG_large_UQ(model, s_fft_b);
-            s_w = real(ifft2(tmp_fft_w)) + model.advection.forcing.F; %include optional forcing
+            s_w = real(ifft2( tmp_fft_w )) + model.advection.forcing.F; %include optional forcing
             
             %% [WIP] update probe
             if has_probes
