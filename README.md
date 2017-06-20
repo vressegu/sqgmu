@@ -1,4 +1,6 @@
 
+# SQGMU 2
+
 ## Context
 
 This MATLAB codes simulates deterministic or randomized version of the *Surface Quasi-Geostrophic* (SQG) model. The random dynamics is based on the transport under location uncertainty. The ensuing model is referred to as SQG model under moderate uncertainty (SQG_MU).
@@ -13,13 +15,15 @@ This code currently needs:
 * the Wavelab toolbox ([4]).
 * optionally, the Parallel Computing toolbox.
 
-Launch the script `main.m` to execute the algorithm. Plots and MAT-files are saved each day of simulation in the folder images.
+Launch the script `main.m` to execute the algorithm. Plots and MAT-files are saved each day of simulation in the chosen output folder.
 
 Several parameters can be changed easily in `functions/set_model.m`.
 
 ## Note
 
 `[WIP]` and `[TODO]` tags denote functionalities being currently developed and/or not fully tested. Use with care.
+
+Compilation script for deployed m-code are provided in the `compile` directory. They must be adapted to the local configuration.
 
 ## References
 
@@ -32,3 +36,8 @@ Several parameters can be changed easily in `functions/set_model.m`.
 [2]: http://dx.doi.org/10.1080/03091929.2017.1312101
 [3]: http://dx.doi.org/10.1080/03091929.2017.1312102
 [4]: http://statweb.stanford.edu/~wavelab
+
+## Resources / contact
+
+* [Fluminance team @ Inria Rennes](http://www.irisa.fr/fluminance/indexFluminance.html)
+* [P. D&eacute;rian](www.pierrederian.net)
