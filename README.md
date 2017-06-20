@@ -23,10 +23,10 @@ Several parameters can be changed easily in `functions/set_model.m`.
 
 ## References
 
-*[1]["Geophysical flows under location uncertainty, Part I", V. Resseguier et al., 2017.]
-*[2]["Geophysical flows under location uncertainty, Part II", V. Resseguier et al., 2017.]
-*[3]["Geophysical flows under location uncertainty, Part III", V. Resseguier et al., 2017.]
-*[4][http://statweb.stanford.edu/~wavelab]
+* [1]["Geophysical flows under location uncertainty, Part I", V. Resseguier et al., 2017.]
+* [2]["Geophysical flows under location uncertainty, Part II", V. Resseguier et al., 2017.]
+* [3]["Geophysical flows under location uncertainty, Part III", V. Resseguier et al., 2017.]
+* [4][http://statweb.stanford.edu/~wavelab]
 
 [1]: http://dx.doi.org/10.1080/03091929.2017.1310210
 [2]: http://dx.doi.org/10.1080/03091929.2017.1312101
