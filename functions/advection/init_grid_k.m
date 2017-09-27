@@ -9,12 +9,15 @@ function model = init_grid_k (model)
 %
 % Modified by P. DERIAN 2017-06-05:
 %   - added various dealiasing methods (model.grid.dealias_method parameter).
+% Modified by P. DERIAN 2017-06-13:
+%   - added ZM = PX+1 as a member of model.grid.k.
 
 % check grid size is even
 if any( mod(model.grid.MX,2)~=0)
     error('the number of grid points by axis need to be even');
 end
 PX = model.grid.MX/2;
+ZM = PX + 1; %index of the single high-freq mode to be zero'ed out.
 
 %% "Unstable" Fourier grid
 % for homogeneous diffusion Laplacian(b), hyper-viscosity Laplacian^p(b),
@@ -28,8 +31,8 @@ ky = (1./model.grid.MX(2)) .* ny;
 kx = (2.*pi/model.grid.dX(1)) .* kx; %as wavenumbers
 ky = (2.*pi/model.grid.dX(2)) .* ky;
 k2 = kx.^2+ky.^2;
-k2(PX(1)+1,:) = 0.; %de-alias the single high freq
-k2(:,PX(2)+1) = 0.;
+k2(ZM(1),:) = 0.; %de-alias the single high freq
+k2(:,ZM(2)) = 0.;
 k = sqrt(k2); %the modulus
 % Specific operators
 over_k = 1./k;
@@ -58,11 +61,12 @@ else
           'Unknown de-aliasing method "%s"', model.grid.dealias_method);
 end
 maskxy = maskx'*masky;
-maskxy(PX(1)+1,:) = 0.; %de-alias the single high freq
-maskxy(:,PX(2)+1) = 0.;
+maskxy(ZM(1),:) = 0.; %de-alias the single high freq
+maskxy(:,ZM(2)) = 0.;
 
 %% Save
 % the "unstable" grid
+model.grid.k.ZM = ZM; %indices of the single mode to force to zero
 model.grid.k.kx = kx;
 model.grid.k.ky = ky;
 model.grid.k.k2 = k2;

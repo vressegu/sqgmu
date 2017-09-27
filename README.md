@@ -19,7 +19,7 @@ Launch the script `main.m` to execute the algorithm. Plots and MAT-files are sav
 
 Several parameters can be changed easily in `functions/set_model.m`.
 
-## Note
+## Notes
 
 `[WIP]` and `[TODO]` tags denote functionalities being currently developed and/or not fully tested. Use with care.
 
@@ -39,5 +39,5 @@ Compilation script for deployed m-code are provided in the `compile` directory. 
 
 ## Resources / contact
 
-* [Fluminance team @ Inria Rennes](http://www.irisa.fr/fluminance/indexFluminance.html)
-* [P. D&eacute;rian](www.pierrederian.net)
+* [Fluminance team @ Inria Rennes](http://www.irisa.fr/fluminance)
+* [P. D&eacute;rian](http://www.pierrederian.net)

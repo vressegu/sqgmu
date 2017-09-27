@@ -11,10 +11,14 @@ function model = set_model()
 % Modified by P. DERIAN many times :)
 % Modified by P. DERIAN 2017-04-10:
 %   - added 'Scramble" init and the "init" sub-structure in "model".
-% Modified by P. DERIAN 2017-05-03: 
+% Modified by P. DERIAN 2017-05-03:
 %   - added the "type_rand" parameter;
 %   - split the initial condition form its optional randomization.
-% TODO: 
+% Modified by P. DERIAN 2017-06-06
+%   - added the "dealias_method" parameter.
+% Modified by P. DERIAN 2017-06-13
+%   - added the "Hypervis" noise model.
+% TODO:
 %   - sometimes I feel like N_ech should not be a sub-attribute of
 %       model.advection, but rather of model.init or at model root...
 %   - seems like the parfor in fct_fft_advection_sto() messes up with the
@@ -24,18 +28,18 @@ function model = set_model()
 
 % Deterministic or random model
 %------------------------------
-stochastic_simulation = 1;
+stochastic_simulation = 0;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
 
 % Duration of the simulation (in seconds)
 %----------------------------------------
-advection_duration = 3600*24*30; % in [s] (last number is days)
+advection_duration = 3600*24*80; % in [s] (last number is days)
 
 % Number of realizations in the ensemble
 %---------------------------------------
-N_ech = 12;
-% NB: 
+N_ech = 1;
+% NB:
 % - with deterministic simulation (stochastic_simulation = 1) and
 %   ensemble run (N_ech > 1), make sure set a randomization method
 %   (type_rand below), otherwise all particles are the same.
@@ -44,7 +48,7 @@ N_ech = 12;
 
 % Type of initial conditions
 %---------------------------
-type_data = 'Vortices2';
+type_data = 'Vortices';
 % - 'Vortices' : 2 large anticyclones and 2 large cyclones
 %    (used in "Geophysical flow under location uncertainty", Resseguier V.,
 %     Memin E., Chapron B.)
@@ -68,10 +72,14 @@ type_rand = 'None';
 
 % Type of stochastic noise (stochastic_simulation=1)
 %---------------------------------------------------
-type_noise = 'SVDfull';
+type_noise = 'None';
 % - 'None' or '': no noise, purely deterministic.
 % - 'Spectrum': isotropic, homogeneous small-scale spectral noise
 % - 'SVDfull': noise basis learned from pseudo-observations, built by SVD.
+% - [WIP] 'Hypervis': noise designed such that its dissipative term -div(a.grad(b))
+%   is exactly the hyper-viscosity term, and pseudo-observations.
+% - [WIP] 'WavHypervis': noise designed such that its dissipative term -div(a.grad(b))
+%   is exactly the hyper-viscosity term, and wavelet decomposition.
 
 % [WIP] Type of forcing
 %----------------------
@@ -88,7 +96,7 @@ resolution = 128;
 % It has to be an even integer
 dealias_method = 'exp';
 % [WIP] Method for mandatory de-aliasing of non-linear terms in
-% pseudospectral codes (advection and non-homogeneous stochastic diffusion) 
+% pseudospectral codes (advection and non-homogeneous stochastic diffusion)
 % - 'lowpass': same as in SQGMU 1;
 % - '2/3': the classical 2/3 rule (NB: produces Gibb's oscillations);
 % - 'exp': high-order exponential filter (Constantin et al., J. Sci.
@@ -153,11 +161,47 @@ switch type_noise
         sigma.boundary_condition = boundary_condition;
         sigma.divfree_projection = divfree_projection;
         sigma.long_name = 'Pseudo-observations noise';
+    case 'Hypervis'
+        % [WIP] Model built from the hyperviscosity term
+        %-----------------------------------------
+        k_c = 1./(3e2); %1/(300 meters) [TODO] remove?
+        P = 3; %observation patch side size - ODD value
+        N_obs = 20; %number of pseudo-observations to generate
+        boundary_condition = 'circular'; %patch boundary condition
+        scaling = 0.5; %scale the energy brought by the noise w.r.t
+                      % the energy removed by hyperviscosity
+        %-----------------------------------------
+        % Gather sigma parameters in one structure
+        % NB: do NOT edit values in the remaining of this section
+        sigma.k_c = k_c; % [TODO] remove?
+        sigma.P = P;
+        sigma.N_obs = N_obs;
+        sigma.scaling = scaling;
+        sigma.boundary_condition = boundary_condition;
+        sigma.long_name = 'Hyper-viscosity noise';
+    case 'WavHypervis'
+        % [WIP] Model built from the hyperviscosity term and wavelet
+        % decomposition
+        %-----------------------------------------
+        k_c = 1./(3e2); %1/(300 meters) [TODO] remove?
+        N_lvl = 1; %number of wavelet scales (levels of decompositions)
+        wavelet_type = 'Symmlet'; %the wavelet family
+        wavelet_vm = 5; %number of vanishing moments
+        scaling = .1; %scale the energy brought by the noise w.r.t
+                      %the energy removed by hyperviscosity
+        %-----------------------------------------
+        % Gather sigma parameters in one structure
+        % NB: do NOT edit values in the remaining of this section
+        sigma.k_c = k_c; % [TODO] remove?
+        sigma.N_lvl = N_lvl;
+        sigma.scaling = scaling;
+        sigma.wavelet_type = wavelet_type;
+        sigma.wavelet_vm = wavelet_vm;
+        sigma.long_name = 'Hyper-viscosity noise on wavelet basis';
     case {'None', ''}
         % No noise, deterministic simulation
         %-----------------------------------------
-        % If the simulation is deterministic, a_H = 0 and only one simulation
-        % is performed
+        % If the simulation is deterministic, a_H = 0
         k_c = inf; % And then a_H = 0
         % [TODO] is k_c necessary with deterministic? or was it left here just
         % to test Stoch or Det? ask Val and maybe remove it.
@@ -195,10 +239,10 @@ switch type_rand
         % Nothing to do here
     case 'Scramble'
         init.resolution_ratio = 4; %ratio between high-res and simulation resolution
-        init.circshift = false; %shift the observation patch across the periodic boundary
+        init.circshift = true; %shift the observation patch across the periodic boundary
     case 'ScrambleSc'
         init.resolution_ratio = 4; %ratio between high-res and simulation resolution
-        init.circshift = false; %shift the observation patch across the periodic boundary
+        init.circshift = true; %shift the observation patch across the periodic boundary
         init.scaling = 0.50; %scalign factor for the variance
     case 'SVDnoise'
         init.P = 3; %patch size (ODD)

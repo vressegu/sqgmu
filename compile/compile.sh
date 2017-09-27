@@ -1,6 +1,6 @@
 #!/bin/bash
 ## Compilation script for SQGMU
-# Compiles the SQGMU project for a licence-free execution using the 
+# Compiles the SQGMU project for a licence-free execution using the
 # Matlab Component runtime (MCR). Requires mcc to be in the $PATH.
 #
 # Usage: sh compile.sh [PATH_TO_MCC]
@@ -22,5 +22,6 @@ mcc -m                                  \
     -I ../functions/sigma/spectrum      \
     -I ../functions/sigma/SVDnoise      \
     -I ../functions/SQG_sto             \
+    -I /Applications/MATLAB_R2015b.app/toolbox/Wavelab850/Orthogonal \
     -a ../functions/output/BuYlRd.mat   \
     main -o sqgmu

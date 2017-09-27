@@ -1,4 +1,4 @@
-function [fft_buoy_part, model] = fct_fft_advection_sto(model,  fft_buoy_part)
+ function [fft_buoy_part, model] = fct_fft_advection_sto(model,  fft_buoy_part)
 % Advection of buoyancy using SQG or SQG_MU model
 %
 % Modified by P. DERIAN 2016-08-18
@@ -57,6 +57,9 @@ model.grid.x = model.grid.dX(1)*(0:model.grid.MX(1)-1);
 model.grid.y = model.grid.dX(2)*(0:model.grid.MX(2)-1);
 % Grid in Fourier space
 model = init_grid_k(model);
+% Dealias the single high-freq of initial fft_b
+fft_buoy_part(model.grid.k.ZM(1),:,:) = 0.;
+fft_buoy_part(:,model.grid.k.ZM(2),:) = 0.;
 
 %% Initialisation of the spatial velocity fields
 N_ech = model.advection.N_ech; % ensemble size
@@ -91,6 +94,7 @@ model.advection.HV.val = ...
 
 %% Choice of time step : CFL
 % CFL of the diffusion (or CFL of the white noise advection)
+% [TODO] what if there is no TLU diffusion? (cf WavHypervis noise model)
 dX2 = (model.grid.dX /pi).^2;
 bound1 = 2./model.sigma.a0*prod(dX2)/sum(dX2);
 % CFL of the (large-scale) advection
@@ -155,6 +159,39 @@ switch model.sigma.type_noise
         model.sigma.D2 = D2;
         % Clean
         clear D1 D2
+    case 'Hypervis' %[WIP]
+        % The Scrambler class is used to generate pseudo-observations from local
+        % permutations of a field (same as what happens in SVDnoise3d)
+        model.sigma.scrambler = Scrambler(model.grid.MX, model.sigma.P, ...
+                                          model.sigma.boundary_condition);
+        % This is the stochastic advection operator (sigma_dBt . grad(b))
+        % NB: b is de-aliased in the operator (model.grid.k_aa.mask)
+        model.sigma.fft_StoAdv = sqrt(2.*model.sigma.scaling*model.advection.HV.val) * ...
+                                (-model.grid.k.k2).^(model.advection.HV.order/4) .* ...
+                                model.grid.k_aa.mask; 
+    case 'WavHypervis' %[WIP]
+        % The coarse wavelet scale
+        model.sigma.Jmin = max([0, nextpow2(min(model.grid.MX))-model.sigma.N_lvl]);
+        % The wavelet filter
+        switch lower(model.sigma.wavelet_type)
+            case 'daubechies'
+                model.sigma.qmf = MakeONFilter('Daubechies', 2*model.sigma.wavelet_vm*2);
+            case 'haar'
+                model.sigma.qmf = MakeONFilter('Haar');
+            case 'symmlet'
+                model.sigma.qmf = MakeONFilter('Symmlet', model.sigma.wavelet_vm);
+            otherwise
+                error('SQGMU:fct_fft_advection_sto:ValueError', ...
+                      'Wavelet type "%s" is currently not supported by the WavHypervis noise model.', ...
+                      model.sigma.wavelet_type)
+        end
+        % This is the stochastic advection operator (sigma_dBt . grad(b))
+        % NB: - sqrt(dt_adv) coeff for the BM variance.
+        %     - no minus applied to model.advection.HV.val as it is
+        %     positive in this code
+        %     - HV.order/4 as the HV operator uses order/2, see deriv_fft_advection(). 
+        model.sigma.fft_StoAdv = sqrt(2.*model.sigma.scaling*model.advection.HV.val*model.advection.dt_adv) * ...
+                                (-model.grid.k.k2).^(model.advection.HV.order/4);
     case 'None'
         % nothing to do here.
     otherwise
@@ -169,6 +206,8 @@ sigma_dBt_over_dt = zeros([model.grid.MX 2 N_ech]); % time-uncorrelated velocity
 switch model.sigma.type_noise
     case {'SVDfull'}
         A = zeros([model.grid.MX 3 N_ech]); % Diffusion tensor data
+    case {'Hypervis', 'WavHypervis'}
+        sigma_dBt_gradb = zeros([model.grid.MX N_ech]); % Stochastic advection
 end
 % output frequency in time-step
 % [TODO] set as a model parameter
@@ -245,6 +284,8 @@ while t<=N_t
     parfor sampl=1:N_ech
         % Note: define these dummy variables below just to suppress some PARFOR warning
         s_sigma_dBt_over_dt = 0.;
+        s_sigma_dBt_gradb = 0.; %[WIP] only used by 'Hypervis' noise model 
+        s_fft_sigma_dBt_gradb = 0.; %[WIP] only used by 'Hypervis' noise model 
         s_A = 0.;
         s_probe = 0;
         % retrieve the current buoyancy
@@ -257,8 +298,8 @@ while t<=N_t
         for tt=begin_t:end_t
             
             %% Time-correlated velocity
-            tmp_fft_w = SQG_large_UQ(model, s_fft_b);
-            s_w = real(ifft2( tmp_fft_w )) + model.advection.forcing.F; %include optional forcing
+            s_fft_w = SQG_large_UQ(model, s_fft_b);
+            s_w = real(ifft2( s_fft_w )) + model.advection.forcing.F; %include optional forcing
             
             %% [WIP] update probe
             if has_probes
@@ -314,6 +355,51 @@ while t<=N_t
                         % Rebuild the noise sigma.dBt.(1/dt) 
                         s_sigma_dBt_over_dt = model.sigma.noise_generator.draw_noise(...
                             tmp_U, tmp_S);
+                    % Noise compensating the hyper-viscoty term
+                    case 'Hypervis' %[WIP]   
+                        % compute the stochastic advection term from
+                        % current buoyancy
+                        tmp_Ab = real(ifft2( model.sigma.fft_StoAdv .* s_fft_b )); 
+                        % Scramble to generate ensemble of pseudo-observations
+                        tmp_Ab_obs = model.sigma.scrambler.scramble_scalar(tmp_Ab, ...
+                                                                           model.sigma.N_obs, ...
+                                                                           true);
+                        % dealias
+                        tmp_fft_Ab_obs = fft2( tmp_Ab_obs );
+                        tmp_Ab_obs = real(ifft2( bsxfun(@times, tmp_fft_Ab_obs, model.grid.k_aa.mask) ));
+                        tmp_Ab_obs = reshape(tmp_Ab_obs, [prod(model.grid.MX), model.sigma.N_obs])
+                        % remove mean
+                        tmp_Ab_obs = bsxfun(@minus, tmp_Ab_obs, mean(tmp_Ab_obs,2));
+                        % apply SVD
+                        [tmp_Phi, tmp_lambda, ~] = svd(tmp_Ab_obs, 'econ');
+                        tmp_lambda = diag(tmp_lambda)./sqrt(double(model.sigma.N_obs) - 1.); %rescale to get proper variance
+                        % draw noise
+                        tmp_gamma = bsxfun(@times, randn(numel(tmp_lambda), 1), tmp_lambda); 
+                        % so this is the (sigma_dBt. grad(b)) term
+                        % (stochastic advection)
+                        s_sigma_dBt_gradb = sqrt(model.advection.dt_adv).*reshape(tmp_Phi*tmp_gamma, model.grid.MX);
+                        s_fft_sigma_dBt_gradb = fft2( s_sigma_dBt_gradb ); %we work in Fourrier
+                        s_fft_sigma_dBt_gradb(model.grid.k.ZM(1),:) = 0.; %so we dealias the single high freq.
+                        s_fft_sigma_dBt_gradb(:,model.grid.k.ZM(2)) = 0.;
+                        s_sigma_dBt_over_dt = 0.; %we directly compute the advection term above, so the noise velocity is zero
+                        s_A = 0.; % because the stochastic diffusion is, by construction, the HV term
+                    case 'WavHypervis' %[WIP]
+                        % compute the stochastic advection term from
+                        % current buoyancy
+                        tmp_Ab = real(ifft2( model.sigma.fft_StoAdv .* s_fft_b ));
+                        % apply 2D wavelet decomposition
+                        tmp_wAb = FWT2_PO(tmp_Ab, model.sigma.Jmin, ...
+                                         model.sigma.qmf);
+                        % multiply each coefficient by random normal variable
+                        tmp_wAb = tmp_wAb.*randn(model.grid.MX);
+                        % and rebuild the noise term
+                        s_sigma_dBt_gradb = IWT2_PO(tmp_wAb, model.sigma.Jmin, ...
+                                                    model.sigma.qmf);
+                        s_fft_sigma_dBt_gradb = fft2( s_sigma_dBt_gradb ); %we work in Fourrier
+                        s_fft_sigma_dBt_gradb(model.grid.k.ZM(1),:) = 0.; %so we dealias the single high freq.
+                        s_fft_sigma_dBt_gradb(:,model.grid.k.ZM(2)) = 0.;
+                        s_sigma_dBt_over_dt = 0.; %we directly compute the advection term above, so the noise velocity is zero
+                        s_A = 0.; % because the stochastic diffusion is, by construction, the HV term                                          
                     % No noise?! Just in case...
                     case {'None', ''}
                         s_sigma_dBt_over_dt = 0.;
@@ -334,10 +420,12 @@ while t<=N_t
             %% Transport of tracer
             if model.is_stochastic
                 % Euler scheme
-                % Note: dt in factor requires appropriate compensation on
-                % sigma_dBt above.
-                s_fft_b = s_fft_b + deriv_fft_advection( ...
-                    model, s_fft_b, s_wf, s_A)*model.advection.dt_adv;
+                % Note: dt in factor of deriv_fft_advection()requires 
+                % appropriate compensation on sigma_dBt above.
+                s_fft_b = s_fft_b ...
+                    + model.advection.dt_adv * ...
+                      deriv_fft_advection(model, s_fft_b, s_wf, s_A) ...
+                    - s_fft_sigma_dBt_gradb;
             else
                 % Runge-Kutta 4 scheme
                 s_fft_b = RK4_fft_advection(model, s_fft_b, s_wf, s_A);
@@ -357,6 +445,8 @@ while t<=N_t
                     switch model.sigma.type_noise
                         case {'SVDfull'}
                             A(:,:,:,sampl) = s_A; % diffusion tensor
+                        case {'Hypervis', 'WavHypervis'}
+                            sigma_dBt_gradb(:,:,sampl) = s_sigma_dBt_gradb;
                     end
                 end
             end
@@ -428,12 +518,16 @@ function output()
     output_file = fullfile(model.output.folder_simu, 'files', file_index);
     % first generic variables
     rstate = rng; % retrieve the random generator data
-    save(output_file, 'model','t','fft_buoy_part','w','sigma_dBt_over_dt', 'rstate');
+    save(output_file, 'model','t','fft_buoy_part','w', 'rstate');
     % then model-specific variables
     if model.is_stochastic
         switch model.sigma.type_noise
+            case 'Spectrum'
+                save(output_file, 'sigma_dBt_over_dt', '-append');
             case {'SVD', 'SVDfull', 'Learning_SVD'}
-                save(output_file, 'A', '-append');
+                save(output_file, 'sigma_dBt_over_dt', 'A', '-append');
+            case {'Hypervis', 'WavHypervis'}
+                save(output_file, 'sigma_dBt_gradb', '-append');
         end
     end
     % Print message

@@ -15,10 +15,10 @@ function d_fft_b_adv = deriv_fft_advection(model, fft_b, w, varargin)
     A = parse_inputs(model, varargin);
     
     %% Grid of wave vectors
-    PX = model.grid.MX/2;
     kx = model.grid.k.kx; %"normal" grid
     ky = model.grid.k.ky;
     k2 = model.grid.k.k2;
+    ZM = model.grid.k.ZM; %index of modes ot be zero'ed out
     ikx_aa = model.grid.k_aa.ikx; %anti-aliased grid for gradient
     iky_aa = model.grid.k_aa.iky;
     mask_aa = model.grid.k_aa.mask; %anti-aliasing mask
@@ -92,15 +92,15 @@ function d_fft_b_adv = deriv_fft_advection(model, fft_b, w, varargin)
 
     %% Hyperviscosity
     % Hyperviscosity term
-    adv4 = - model.advection.HV.val * k2 .^ (model.advection.HV.order/2) .* fft_b;
+    adv4 = (-model.advection.HV.val) * k2 .^ (model.advection.HV.order/2) .* fft_b;
     
     %% Summing terms
     % advection, stochastic diffusion, hyperviscosity
     d_fft_b_adv = adv1 + adv2 + adv4;
     % remove aliasing on single high-freq
     % to make sure b is real.
-    d_fft_b_adv(PX(1)+1,:) = 0.;
-    d_fft_b_adv(:,PX(2)+1) = 0.;
+    d_fft_b_adv(ZM(1),:) = 0.;
+    d_fft_b_adv(:,ZM(2)) = 0.;
 end
 
 function A = parse_inputs(model, v)
@@ -108,7 +108,7 @@ function A = parse_inputs(model, v)
 %
 % Written by P. DERIAN 2016-08-22.
 
-    % defualt value
+    % default value
     A = 0.;
     % If the chosen model requires an A
     if model.is_stochastic
@@ -125,7 +125,7 @@ function A = parse_inputs(model, v)
                 if ~isscalar(A)
                      error('SQGMU:deriv_fft_advection:InvalidInputs', ...
                            'Expecting scalar A with "Spectrum" noise model');
-                end
+                end    
             % SVD: A [MX 3] matrix
             case {'SVD', 'SVDfull'}
                 % make sure its size is correct
@@ -134,6 +134,12 @@ function A = parse_inputs(model, v)
                       'Expecting A matrix of shape [%d, %d, 3] for "SVD" noise model', ...
                       model.grid.MX(1), model.grid.MX(2));
                 end
+            % [WIP] Hyperviscosity-based models: expecting 0.    
+            case {'Hypervis', 'WavHypervis'}
+                if A~=0.
+                     error('SQGMU:deriv_fft_advection:InvalidInputs', ...
+                           'Expecting scalar A=0. with "*Hypervis" noise model');
+                end    
             otherwise
                 warning('SQGMU:deriv_fft_advection:UnknownModel',...
                         'The model %s was not recognized - continuing hopefully with given diffusion tensor A.',...
@@ -141,11 +147,10 @@ function A = parse_inputs(model, v)
         end
     % Deterministic case    
     else
-        % [WIP] enabling diffusion for deterministic case
         if ~isempty(v)
-    %         warning('SQGMU:deriv_fft_advection:InvalidInputs', ...
-    %                 'ignoring diffusion tensor A provided with the deterministic model');
-            A = v{1};
+%             warning('SQGMU:deriv_fft_advection:InvalidInputs', ...
+%                     'ignoring diffusion tensor A provided with the deterministic model');
+            A = 0.;
         end
     end
 end
