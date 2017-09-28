@@ -77,7 +77,8 @@ else
         'PaperPositionMode','auto');
     imagesc(x,y,T_adv_part');
 end
-caxis([-1 1]*1e-3);
+caxis([-1 1]*model.odg_b);
+% caxis([-1 1]*1e-3);
 set(gca,...
     'Units','normalized',...
     'FontUnits','points',...
@@ -178,7 +179,7 @@ if plot_moments
     subimage(x,y,mean_T');axis xy;
     imagesc(x,y,mean_T');axis xy;
     axis equal
-    caxis([-1 1]*1e-3);
+    caxis([-1 1]*model.odg_b);
     if model.folder.colormap_freeze
         colormap(map);
         colorbar;
@@ -217,9 +218,9 @@ if plot_moments
     subimage(x,y,std_T');
     imagesc(x,y,std_T');axis xy;
     axis equal
-    caxis([0 1.5e-4]);
+    caxis([0 model.odg_b/(1e-3)*1.5e-4]);
     if strcmp(type_data,'Spectrum')
-        caxis([0 1e-3]);
+        caxis([0 model.odg_b/(1e-3)*1e-3]);
     end
     if model.folder.colormap_freeze
         colormap('default');
@@ -368,8 +369,6 @@ if plot_moments
     end
     drawnow
     eval( ['print -depsc ' folder_simu '/3rd_4th_order_moments/' day '.eps']);
-end
-
 
 end
 
