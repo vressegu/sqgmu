@@ -47,3 +47,16 @@ adv4 = - model.advection.HV.val * k2 .^ (model.advection.HV.order/2) .* fft_b;
 %% Summing terms
 d_fft_b_adv=adv1+adv2+adv4; clear adv1 adv2 adv4
 
+%% Forcing
+if isfield(model.advection, 'forcing') && model.advection.forcing.bool
+    switch model.advection.forcing.forcing_type
+        case 'Kolmogorov'
+            d_fft_b_adv = d_fft_b_adv ...
+                +  model.advection.forcing.F;
+        case 'Spring'
+            d_fft_b_adv = d_fft_b_adv ...
+                - model.advection.forcing.on_T * ...
+                ( fft_b - model.advection.forcing.F);
+            %     d_fft_b_adv = d_fft_b_adv + model.advection.forcing.F;
+    end
+end

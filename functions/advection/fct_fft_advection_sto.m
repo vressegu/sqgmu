@@ -3,11 +3,28 @@ function [fft_buoy_part, model] = fct_fft_advection_sto(model,  fft_buoy_part)
 %
 
 %% Folder to save plots and files
-if isinf(model.sigma.k_c) % Deterministic case
-    model.folder.folder_simu = [ 'images/usual_SQG/' model.type_data ];
-else % Stochastic case
-    model.folder.folder_simu = [ 'images/SQG_MU/' model.type_data ];
+if model.advection.HV.bool
+    add_HV = '_HV';
+else
+    add_HV = [];
 end
+
+if isinf(model.sigma.k_c) % Deterministic case
+    model.folder.folder_simu = [ 'images/usual_' model.dynamics ...
+        add_HV '/' model.type_data ];
+else % Stochastic case
+    model.folder.folder_simu = [ 'images/' model.dynamics ...
+        '_MU' add_HV '/' model.type_data ];
+end
+if model.advection.forcing.bool
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '_forced_turb' ];
+else
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '_free_turb' ];
+end
+model.folder.folder_simu = [ model.folder.folder_simu ...
+        '/' num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
 % Create the folders
 fct_create_folder_plots(model)
 
@@ -40,6 +57,9 @@ N_ech=model.advection.N_ech;
 fft_w = SQG_large_UQ(model, fft_buoy_part);
 w=real(ifft2(fft_w));
 
+% figure;imagesc(real(ifft2(fft_buoy_part))');axis xy;axis equal;colorbar;
+% figure;imagesc(w(:,:,1)');axis xy;axis equal;colorbar;
+
 % Create several identical realizations of the intial buoyancy
 fft_buoy_part = repmat(fft_buoy_part(:,:,1),[1 1 1 model.advection.N_ech]);
 
@@ -48,6 +68,100 @@ fft_buoy_part = repmat(fft_buoy_part(:,:,1),[1 1 1 model.advection.N_ech]);
 model.sigma.a0 = 2 * model.physical_constant.f0 / model.sigma.k_c^2;  
 % Diffusion coefficient
 model.advection.coef_diff = 1/2 * model.sigma.a0;
+
+%% Forcing
+if isfield(model.advection, 'forcing') && model.advection.forcing.bool
+    %     Ly = model.grid.MX(2) * model.grid.dX(2);
+    %     [~,Y]=ndgrid(model.grid.x,model.grid.y);
+    %     Vy = model.advection.forcing.ampli_forcing * model.odg_b * ...
+    %         sin( 2 * pi * model.advection.forcing.freq_f * Y / Ly);
+    %     clear Ly X Y
+    
+    
+    model.advection.forcing.Lx = model.grid.MX(1) * model.grid.dX(1);
+    model.advection.forcing.Ly = model.grid.MX(2) * model.grid.dX(2);
+    [X,Y]=ndgrid(model.grid.x,model.grid.y);
+    
+    
+    
+    switch model.dynamics
+        case 'SQG'
+            U_caract = ...
+                model.odg_b / model.physical_constant.buoyancy_freq_N;
+        case '2D'
+            U_caract = ...
+                model.odg_b * model.advection.forcing.Ly;
+            U_caract = U_caract /20;
+            U_caract = U_caract /4;
+        otherwise
+            error('Unknown type of dynamics');
+    end
+%     U_caract = U_caract /10;
+    U_caract = U_caract /3;
+    
+    %     model.advection.U_caract = sqrt(mean(w(:).^2));
+    model.advection.forcing.on_T =  U_caract / model.advection.forcing.Ly;
+    
+%     model.advection.forcing.on_T = model.advection.forcing.on_T /10;
+    
+    model.advection.forcing.ampli_forcing = ...
+        model.advection.forcing.ampli_forcing * model.odg_b ;
+    %     model.advection.forcing.ampli_forcing = ...
+    %         model.advection.forcing.ampli_forcing * model.odg_b * ...
+    %         model.advection.forcing.on_T;
+    
+%     ampli_scale = sqrt( ...
+%         ( sum(model.advection.forcing.freq_f.^2)/2 ) ...
+%             ^(model.sigma.slope_sigma) ...
+%             );
+    ampli_scale = 1;
+    
+    switch model.advection.forcing.forcing_type
+        case 'Kolmogorov'
+            F = ampli_scale * ...
+                model.advection.forcing.ampli_forcing * ...
+                cos( 2 * pi / model.advection.forcing.Lx ...
+                    * model.advection.forcing.freq_f(1) * X ...
+                    + 2 * pi / model.advection.forcing.Ly ...
+                    * model.advection.forcing.freq_f(2) * Y );
+            F = F / model.advection.forcing.on_T;
+        case 'Spring'
+            F = ampli_scale * ...
+                model.advection.forcing.ampli_forcing ...
+                * sin( 2 * pi / model.advection.forcing.Lx ...
+                * model.advection.forcing.freq_f(1) * X ) ...
+                .* sin( 2 * pi / model.advection.forcing.Ly ...
+                * model.advection.forcing.freq_f(2) * Y );
+            %     F = model.advection.forcing.ampli_forcing * ...
+            %         sin( 2 * pi * model.advection.forcing.freq_f * Y / ...
+            %         model.advection.forcing.Ly);
+    end
+    
+    
+    
+    model.advection.forcing.F = fft2(F);
+    
+    if strcmp(model.type_data, 'Zero')
+        fft_w = SQG_large_UQ(model,  ...
+            model.odg_b / model.advection.forcing.ampli_forcing ...
+            * model.advection.forcing.F);
+        %         w(:,:,1) = U_caract / model.advection.forcing.ampli_forcing * F;
+        %         w(:,:,2) = 0;
+        %         fft_w = fft2(w);
+        if strcmp( model.advection.forcing.forcing_type,'Kolmogorov')
+            fft_w = fft_w * model.advection.forcing.on_T;
+        end
+        w = real(ifft2(fft_w));
+    end
+
+%     
+%     figure;imagesc(model.grid.x,model.grid.y,model.advection.forcing.F');
+%     axis xy; axis equal;
+%     
+
+%     model.advection.forcing.F = fft2(F);
+    clear Lx Ly X Y on_T U_caract ampli_scale
+end
 
 %% Hyperviscosity
 
@@ -61,12 +175,33 @@ model.advection.lambda_RMS = sqrt(mean(lambda(:).^2));
 clear s d dxUx dxUy dyUx dyUy lambda
 
 % Order of the hyperviscosity
-model.advection.HV.order=8;
+if model.advection.HV.bool
+    model.advection.HV.order=8;
+else
+    model.advection.HV.order=2;
+end
 
 % Hyperviscosity coefficient
 model.advection.HV.val= ...
     40 * model.advection.lambda_RMS * ...
     (mean(model.grid.dX)/pi)^model.advection.HV.order;
+
+if ~model.advection.HV.bool % DNS
+    model.carct.L_caract = 1/ ...
+        sqrt(mean( ( [ model.advection.forcing.Lx ...
+             model.advection.forcing.Ly ] ...
+           .\ model.advection.forcing.freq_f ).^2));
+       warning('Re should be computed with the amplitude of forcing!');
+    model.carct.U_caract = model.odg_b * model.carct.L_caract;
+    Re = model.carct.U_caract * model.carct.L_caract ...
+        / model.advection.HV.val
+    model.carct.Re = Re; 
+    model.carct.l_Kolmogorov = Re^(-1/2) * model.carct.L_caract;
+    if model.carct.l_Kolmogorov < min(model.grid.dX)
+        error('The simulation is under resolved');
+    end
+end
+
 
 %% Choice of time step : CFL
 
@@ -112,9 +247,16 @@ if ~isinf(model.sigma.k_c)
     % the factor d=2 is for the dimension d of the space R^d
     % the variance of sigma_dBt/dt is tr(a)/dt = 2 a0 /dt
     clear missed_var_small_scale_spectrum
+    warning('This formula may changed if k inf > la resolution');
 else
     sigma_on_sq_dt = 0;
 end
+
+%% Possibly reset velocity to zero
+% if strcmp(model.type_data, 'Zero')
+%     w = zeros(size(w));
+% end
+clear w fft_w
 
 %% Loop on time
 
@@ -153,7 +295,10 @@ for t=1:N_t
     
     %% Adding time-correlated and time decorrelated velocity
     w = w + sigma_dBt_dt;
-    
+%     if isfield(model.advection, 'forcing') && model.advection.forcing.bool
+%         w(:,:,1) = w(:,:,1) + Vy;
+%     end
+
     %% Transport of tracer
     if isinf(model.sigma.k_c)
         % Runge-Kutta 4 scheme
@@ -196,6 +341,10 @@ for t=1:N_t
         
         % Plots
         fct_plot(model,fft_buoy_part,day)
+        
+        if model.advection.plot_dissip
+            fct_plot_dissipation(model,fft_buoy_part,sigma_on_sq_dt,day);
+        end
         
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
