@@ -21,3 +21,6 @@ end
 if ~ (exist([folder_simu '/Spectrum'],'dir')==7)
     mkdir([folder_simu '/Spectrum']);
 end
+if ~ (exist([folder_simu '/Dissipation'],'dir')==7)
+    mkdir([folder_simu '/Dissipation']);
+end

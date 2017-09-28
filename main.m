@@ -10,14 +10,12 @@ dynamics = 'SQG';
 % dynamics = '2D';
 
 % Deterministic or random model
-stochastic_simulation = true;
+stochastic_simulation = false;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*100;
-% advection_duration = 3600*24*1000;
-% % advection_duration = 3600*24*20; % 20 days
+advection_duration = 3600*24*20; % 20 days
 
 % Number of realizations in the ensemble
 N_ech=1;
@@ -26,7 +24,7 @@ N_ech=1;
 % ( N_ech is automatically set to 1 in deterministic simulations )
 
 % Type of initial condtions 
-type_data ='Spectrum';
+type_data ='Vortices';
 % 'Vortices' : 2 large anticyclones and 2 large cyclones
 %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
 %    Memin E., Chapron B.)
@@ -38,7 +36,6 @@ type_data ='Spectrum';
 % 'Zero' : Field equal to zero everywhere
 
 % Resolution
-%resolution = 512;
 resolution = 128;
 
 % The number of grid point is resolution^2
@@ -50,7 +47,7 @@ dirichlet = false;
 % Forcing
 
 % Forcing or not
-forcing = true;
+forcing = false;
 % If yes, there is a forcing
 % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
 % % If yes, there is an additionnal velocity V = (0 Vy) 
@@ -78,7 +75,7 @@ HV.bool = true;
 plot_moments = true;
 
 % Plot dissipations terms
-plot_dissip = true;
+plot_dissip = false;
 
 % Variance tensor a_H
 if stochastic_simulation
