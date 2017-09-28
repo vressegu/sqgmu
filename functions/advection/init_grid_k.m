@@ -27,7 +27,15 @@ k2(:,PX(2)+1)=0;
 k=sqrt(k2);
 
 % Specific operators
-on_k = 1./k;
+% on_k = 1./k;
+switch model.dynamics
+    case 'SQG'
+        on_k = 1./k;
+    case '2D'
+        on_k = -1./k.^2;
+    otherwise
+        error('Unknown type of dynamics');
+end
 on_k ( k==0 ) = 0;
 
 %% Save

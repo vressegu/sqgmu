@@ -4,6 +4,9 @@ function buoy_init = init_Spectrum(model)
 
 % Get parameters
 slope = model.slope_b_ini;
+if strcmp(model.dynamics,'2D')
+    slope = slope + 2;
+end
 odg_b = model.odg_b;
 MX=model.grid.MX;
 dX=model.grid.dX;

@@ -6,6 +6,14 @@ function [fft_sst,model] = fct_buoyancy_init(model,resolution)
 n=resolution;
 m=n;
 Lx=1e6;
+% switch dynamics
+%     case 'SQG'
+%         Lx=1e6;
+%     case '2D'
+%         Lx=1;        
+%     otherwise
+%         error('Unknown type of dynamics');
+% end
 dx=Lx/n;
 dy=dx;
 x= dx*(0:n-1);
@@ -20,6 +28,8 @@ model.grid.MX=MX;
 
 %% Spatial buoyancy field
 switch model.type_data
+    case 'Zero'
+        b_S = zeros(MX);
     case 'Vortices'
         b_S = init_Vortices(model,x,y);
     case 'Perturbed_vortices'

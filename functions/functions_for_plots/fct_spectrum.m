@@ -10,6 +10,15 @@ end
 % Square modulus of the Fourier transform
 ft=abs(ft).^2;
 
+switch model.dynamics
+    case 'SQG'
+        slope_ref = -5/3;
+    case '2D'
+        slope_ref = -3;
+    otherwise
+        error('Unknown type of dynamics');
+end
+
 % Get parameters
 MX=model.grid.MX;
 PX=MX/2;
@@ -61,6 +70,10 @@ end
 % Integration over the rings of iso wave number
 spectrum = idxref' * ft(:);
 
+if strcmp(model.dynamics,'2D')
+    spectrum = spectrum ./(kidx').^2;
+end
+
 % Division by prod(model.grid.MX) because of the Parseval theorem for
 % discrete Fourier transform
 % Division by prod(model.grid.MX) again in order to the integration 
@@ -75,7 +88,8 @@ spectrum = spectrum / d_kappa;
 %% Plot
 idx_not_inf=~(isinf(log10(spectrum(2:end))) ...
     | spectrum(2:end)<1e-4*max(spectrum(2:end)) | isinf(kidx(2:end)'));
-line1= -5/3 * log10(kidx(2:end))  ;
+idx_not_inf = [false; idx_not_inf];
+line1= slope_ref * log10(kidx(2:end))  ;
 offset = -1 + mean(  log10(spectrum(idx_not_inf)')  - line1(idx_not_inf));
 line1 = line1 + offset;
 ref=10.^line1;
@@ -84,8 +98,10 @@ hold on;
 name_plot = loglog(kidx(2:end) , spectrum(2:end) ,color);
 ax=axis;
 ax(4)=max([spectrum(2:end); ref']);
-min_ax= 10 ^(-5/3 * log10(kidx(2)*512/2) + offset) ;
-ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
+min_ax= 10 ^(slope_ref * log10(kidx(2)*512/2) + offset) ;
+ax(3) = (model.odg_b/(1e-3))^2 * ...
+    6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
+% ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
 ax(3) = min( [ax(3) min(ref) min_ax]);
 ax(1:2)=kidx(2)*[1 min(model.grid.MX)/2];
 if ax(4)>0

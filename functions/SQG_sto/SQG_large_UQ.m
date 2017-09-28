@@ -17,8 +17,14 @@ if ~isfield(model.grid,'k')
     k(:,PX(2)+1)=0;
     
     %% Specific operators
-    on_k = 1./k;
-    on_k ( k==0 ) = 0;
+    switch model.dynamics
+        case 'SQG'
+            on_k = 1./k;
+        case '2D'
+            on_k = -1./k.^2;
+        otherwise
+            error('Unknown type of dynamics');
+    end
 else
     kx=model.grid.k.kx;
     ky=model.grid.k.ky;
