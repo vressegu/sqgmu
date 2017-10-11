@@ -13,8 +13,8 @@ k2=model.grid.k.k2;
 %% Advection term
 
 % Gradient in Fourier space
-adv1x = - 1i * kx .* fft_b;
-adv1y = - 1i * ky .* fft_b;
+adv1x = 1i * kx .* fft_b;
+adv1y = 1i * ky .* fft_b;
 
 % Gradient in physical space
 gradb(:,:,1)=real(ifft2(adv1x));
@@ -26,7 +26,7 @@ wgradT=sum(bsxfun(@times,w,gradb),3);
 % non-continuous components of the velocity
 
 % Advective term in Fourier space
-adv1=fft2(wgradT);clear wgradT
+adv1 = - fft2(wgradT);clear wgradT
 
 % Remove aliasing
 adv1(PX(1)+1,:)=0;
