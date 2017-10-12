@@ -90,7 +90,8 @@ idx_not_inf=~(isinf(log10(spectrum(2:end))) ...
     | spectrum(2:end)<1e-4*max(spectrum(2:end)) | isinf(kidx(2:end)'));
 idx_not_inf = [false; idx_not_inf];
 line1= slope_ref * log10(kidx(2:end))  ;
-offset = -1 + mean(  log10(spectrum(idx_not_inf)')  - line1(idx_not_inf));
+offset = -1 + mean(  log10(spectrum(idx_not_inf)')  ...
+    - line1(idx_not_inf(2:end)));
 line1 = line1 + offset;
 ref=10.^line1;
 loglog(kidx(2:end),ref,'--k');
