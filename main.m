@@ -15,7 +15,9 @@ stochastic_simulation = false;
 % or SQG_MU model (stochastic_simulation=true)
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*20; % 20 days
+advection_duration = 3600*24*30;
+% advection_duration = 3600*24*1000;
+% % advection_duration = 3600*24*20; % 20 days
 
 % Number of realizations in the ensemble
 N_ech=1;
@@ -28,6 +30,7 @@ type_data ='Vortices';
 % 'Vortices' : 2 large anticyclones and 2 large cyclones
 %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
 %    Memin E., Chapron B.)
+% 'Vortices2' : same as 'Vortices' but properly periodized (by Pierre Derian).
 % 'Perturbed_vortices' : Same flow with slight small-scale modifications
 %   (used in "Chaotic transitions and location uncertainty in geophysical 
 %    fluid flows", Resseguier V., Memin E., Chapron B.)
@@ -37,6 +40,9 @@ type_data ='Vortices';
 
 % Resolution
 resolution = 128;
+%resolution = 512;
+%resolution = 128;
+%resolution = 1024;
 
 % The number of grid point is resolution^2
 % It has to be an even integer
@@ -66,8 +72,26 @@ freq_f = [3 2];
 % freq_f = [0 1];
 
 % Viscosity
+Lap_visco.bool = false;
+% HV.bool = false;
+
+% % Smagorinsky-like viscosity
+% Smag.bool = false;
+% % HV.bool = false;
+
+% Hyper-viscosity
 HV.bool = true;
 % HV.bool = false;
+
+% Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
+Smag.bool = true;
+
+% For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
+% Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) ) 
+% and the targeted diffusion scale
+Smag.kappamax_on_kappad = 0.8;
+% Smag.kappad_on_kappamax = 1/2;
+warning('This value needed to be tuned?')
 
 %% Optional parameters
 
@@ -75,7 +99,12 @@ HV.bool = true;
 plot_moments = true;
 
 % Plot dissipations terms
-plot_dissip = false;
+plot_dissip = true;
+
+% Begin simulation from a precomputed field?
+use_save = false;
+% In this case, which day should be used as initialisation
+day_save = 96;
 
 % Variance tensor a_H
 if stochastic_simulation
@@ -144,6 +173,10 @@ model.advection.forcing.ampli_forcing = ampli_forcing;
 model.advection.forcing.freq_f = freq_f;
 model.advection.forcing.forcing_type = forcing_type;
 model.advection.HV = HV;
+model.advection.Lap_visco = Lap_visco;
+model.advection.Smag = Smag;
+model.advection.use_save = use_save;
+model.advection.day_save = day_save;
 
 %% Generating initial buoyancy
 [fft_buoy,model] = fct_buoyancy_init(model,resolution);
