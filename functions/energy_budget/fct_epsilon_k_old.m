@@ -1,4 +1,4 @@
-function [spectrum,name_plot,int_epsilon] = fct_spectrum(model,ft,color)
+function int_epsilon = fct_epsilon_k_old(model,ft,int_epsilon_dt_m_1,color)
 % Compute the spectrum of a function and superimposed a slope -5/3
 %
 
@@ -54,15 +54,11 @@ if ~exist('MXref','var') ||  isempty (MXref) || any(MXref ~= MX) ...
     k=k(:);
     
     %% Wave number
-    M_kappa=min(model.grid.MX);
+    M_kappa=min(MX);
     P_kappa= M_kappa/2;
-    d_kappa = 2*pi/sqrt(prod(model.grid.MX.* model.grid.dX));
-    kidx= d_kappa * ( 0:(P_kappa-1) ) ;
-%     M_kappa=min(MX);
-%     P_kappa= M_kappa/2;
-%     d_kappa = max(1./dX);
-%     kidx=1/(M_kappa)* (0:(P_kappa-1)) ;
-%     kidx=2*pi*d_kappa*kidx;
+    d_kappa = max(1./dX);
+    kidx=1/(M_kappa)* (0:(P_kappa-1)) ;
+    kidx=2*pi*d_kappa*kidx;
     
     %% Masks associated with the rings of iso wave number
     d_kappa = kidx(2) - kidx(1);
@@ -93,25 +89,29 @@ spectrum = spectrum / d_kappa;
 % Time integral of the dissipation per scale epsilon(k)
 int_epsilon = - cumsum(spectrum) * d_kappa;
 
+epsilon = (int_epsilon - int_epsilon_dt_m_1)/model.advection.dt_adv;
+
 %% Plot
-idx_not_inf=~(isinf(log10(spectrum(2:end))) ...
-    | spectrum(2:end)<1e-4*max(spectrum(2:end)) | isinf(kidx(2:end)'));
+slope_ref = 0;
+idx_not_inf=~(isinf(log10(epsilon(2:end))) ...
+    | epsilon(2:end)<1e-4*max(epsilon(2:end)) | isinf(kidx(2:end)'));
 idx_not_inf = [false; idx_not_inf];
+% line1= slope_ref * log10(kidx(2:end))  ;
 line1= slope_ref * log10(kidx(2:end))  ;
-offset = -1 + mean(  log10(spectrum(idx_not_inf)')  ...
+offset = -1 + mean(  log10(epsilon(idx_not_inf)')  ...
     - line1(idx_not_inf(2:end)));
 line1 = line1 + offset;
 ref=10.^line1;
-loglog(kidx(2:end),ref,'--k');
+semilogx(kidx(2:end),ref,'--k');
 hold on;
-name_plot = loglog(kidx(2:end) , spectrum(2:end) ,color);
+name_plot =semilogx(kidx(2:end) , epsilon(2:end) ,color);
 ax=axis;
-ax(4)=max([spectrum(2:end); ref']);
-min_ax= 10 ^(slope_ref * log10(kidx(2)*512/2) + offset) ;
-ax(3) = (model.odg_b/(1e-3))^2 * ...
-    6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
-% ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
-ax(3) = min( [ax(3) min(ref) min_ax]);
+ax(4)=max([epsilon(2:end); ref']);
+% min_ax= 10 ^(slope_ref * log10(kidx(2)*512/2) + offset) ;
+% ax(3) = (model.odg_b/(1e-3))^2 * ...
+%     6e-2*(kidx(2)/kidx(end))*min([max(epsilon); max(ref)']);
+% % ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(epsilon); max(ref)']);
+% ax(3) = min( [ax(3) min(ref) min_ax]);
 ax(1:2)=kidx(2)*[1 min(model.grid.MX)/2];
 if ax(4)>0
     axis(ax)

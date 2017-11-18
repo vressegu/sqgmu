@@ -3,7 +3,8 @@
 %%%%%%%%%%%%%%%%%%
 
 % Cleaning
-clear all;
+clear;
+% clear all;
 close all;clc;
 
 % Debug

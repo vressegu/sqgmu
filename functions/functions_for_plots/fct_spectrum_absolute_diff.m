@@ -1,4 +1,4 @@
-function [spectrum,name_plot,int_epsilon] = fct_spectrum(model,ft,color)
+function [spectrum_a,abs_diff] = fct_spectrum_absolute_diff(model,ft,color)
 % Compute the spectrum of a function and superimposed a slope -5/3
 %
 
@@ -19,6 +19,7 @@ switch model.dynamics
     otherwise
         error('Unknown type of dynamics');
 end
+slope_ref = (slope_ref-3)/2;
 
 % Get parameters
 MX=model.grid.MX;
@@ -90,27 +91,36 @@ spectrum = 1/prod(model.grid.MX)^2 * spectrum;
 d_kappa = kidx(2)-kidx(1);
 spectrum = spectrum / d_kappa;
 
-% Time integral of the dissipation per scale epsilon(k)
-int_epsilon = - cumsum(spectrum) * d_kappa;
+% From buoyancy spectrum to velocity spectrum
+spectrum = spectrum / model.physical_constant.buoyancy_freq_N^2;
+
+% From velocity spectrum to absolute diffusity by scale
+spectrum_a = kidx.^(-3/2) .* spectrum.^(1/2);
+
+%% Absosute diffusivity
+abs_diff = sum(spectrum_a) * d_kappa;
+
+% %% Time integral of the dissipation per scale epsilon(k)
+% int_epsilon = - cumsum(spectrum) * d_kappa;
 
 %% Plot
-idx_not_inf=~(isinf(log10(spectrum(2:end))) ...
-    | spectrum(2:end)<1e-4*max(spectrum(2:end)) | isinf(kidx(2:end)'));
+idx_not_inf=~(isinf(log10(spectrum_a(2:end))) ...
+    | spectrum_a(2:end)<1e-4*max(spectrum_a(2:end)) | isinf(kidx(2:end)'));
 idx_not_inf = [false; idx_not_inf];
 line1= slope_ref * log10(kidx(2:end))  ;
-offset = -1 + mean(  log10(spectrum(idx_not_inf)')  ...
+offset = -1 + mean(  log10(spectrum_a(idx_not_inf)')  ...
     - line1(idx_not_inf(2:end)));
 line1 = line1 + offset;
 ref=10.^line1;
 loglog(kidx(2:end),ref,'--k');
 hold on;
-name_plot = loglog(kidx(2:end) , spectrum(2:end) ,color);
+name_plot = loglog(kidx(2:end) , spectrum_a(2:end) ,color);
 ax=axis;
-ax(4)=max([spectrum(2:end); ref']);
+ax(4)=max([spectrum_a(2:end); ref']);
 min_ax= 10 ^(slope_ref * log10(kidx(2)*512/2) + offset) ;
 ax(3) = (model.odg_b/(1e-3))^2 * ...
-    6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
-% ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(spectrum); max(ref)']);
+    6e-2*(kidx(2)/kidx(end))*min([max(spectrum_a); max(ref)']);
+% ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(spectrum_a); max(ref)']);
 ax(3) = min( [ax(3) min(ref) min_ax]);
 ax(1:2)=kidx(2)*[1 min(model.grid.MX)/2];
 if ax(4)>0

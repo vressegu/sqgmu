@@ -1,4 +1,4 @@
-function [spectrum,name_plot,int_epsilon] = fct_spectrum(model,ft,color)
+function [spectrum,kidx_out,name_plot] = fct_spectrum_multi(model,ft,color)
 % Compute the spectrum of a function and superimposed a slope -5/3
 %
 
@@ -9,7 +9,8 @@ end
 
 % Square modulus of the Fourier transform
 ft=abs(ft).^2;
-ft= sum(ft,3);
+
+ft=sum(sum(ft,3),4);
 
 switch model.dynamics
     case 'SQG'
@@ -75,10 +76,6 @@ end
 % Integration over the rings of iso wave number
 spectrum = idxref' * ft(:);
 
-if strcmp(model.dynamics,'2D')
-    spectrum = spectrum ./(kidx').^2;
-end
-
 % Division by prod(model.grid.MX) because of the Parseval theorem for
 % discrete Fourier transform
 % Division by prod(model.grid.MX) again in order to the integration 
@@ -90,19 +87,16 @@ spectrum = 1/prod(model.grid.MX)^2 * spectrum;
 d_kappa = kidx(2)-kidx(1);
 spectrum = spectrum / d_kappa;
 
-% Time integral of the dissipation per scale epsilon(k)
-int_epsilon = - cumsum(spectrum) * d_kappa;
-
 %% Plot
 idx_not_inf=~(isinf(log10(spectrum(2:end))) ...
     | spectrum(2:end)<1e-4*max(spectrum(2:end)) | isinf(kidx(2:end)'));
-idx_not_inf = [false; idx_not_inf];
 line1= slope_ref * log10(kidx(2:end))  ;
-offset = -1 + mean(  log10(spectrum(idx_not_inf)')  ...
-    - line1(idx_not_inf(2:end)));
+offset = -1 + mean(  log10(spectrum(idx_not_inf)')  - line1(idx_not_inf));
 line1 = line1 + offset;
 ref=10.^line1;
-loglog(kidx(2:end),ref,'--k');
+if nargin < 3
+    loglog(kidx(2:end),ref,'--k');
+end
 hold on;
 name_plot = loglog(kidx(2:end) , spectrum(2:end) ,color);
 ax=axis;
@@ -116,3 +110,4 @@ ax(1:2)=kidx(2)*[1 min(model.grid.MX)/2];
 if ax(4)>0
     axis(ax)
 end
+kidx_out=kidx;

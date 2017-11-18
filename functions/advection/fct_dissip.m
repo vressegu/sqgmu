@@ -1,62 +1,112 @@
-function [turb_dissip, noise_intake, dissip_HV, intake_forcing] = ...
+function [turb_dissip, noise_intake, estim_noise_intake, ...
+    estim_aa_noise_intake,...
+    dissip_HV, intake_forcing,model] = ...
     fct_dissip(model,fft_b,sigma_on_sq_dt)
 % Compute the deterministic and stochastic dissipation terms locally in
 % space.
 %
 
-% warning('This function is only valid for homogeneous dissipation');
+%warning('This function is only valid for homogeneous dissipation');
 
 
 
 %% Grid of wave vectors
-PX=model.grid.MX/2;
-kx=model.grid.k.kx;
-ky=model.grid.k.ky;
-% k2=model.grid.k.k2;
-% kx1 = permute(kx,[ 3 4 1 2]);
-% ky1 = permute(ky,[ 3 4 1 2]);
-% %k2=model.grid.k_HV.k2;
+ikx = 1i*model.grid.k.kx; %"normal" grid
+iky = 1i*model.grid.k.ky;
+k2 = model.grid.k.k2;
+ZM = model.grid.k.ZM; %index of modes ot be zero'ed out
+ikx_aa = model.grid.k_aa.ikx; %anti-aliased grid for gradient
+iky_aa = model.grid.k_aa.iky;
+k2_aa = model.grid.k_aa.k2;
+mask_aa = model.grid.k_aa.mask; %anti-aliasing mask
 
-%% Preprocessing
-
-% Boolean filter
-
-% Buoyancy
+%% Buoyancy
 b = real(ifft2(fft_b));
 
-% Gradient in Fourier space
-adv1x = 1i * kx .* fft_b;
-adv1y = 1i * ky .* fft_b;
+%% Gradient of b
+gradb(:,:,1,:) = real(ifft2( ikx.*fft_b ));
+gradb(:,:,2,:) = real(ifft2( iky.*fft_b ));
 
-% Gradient in physical space
-gradb(:,:,1)=real(ifft2(adv1x));
-gradb(:,:,2)=real(ifft2(adv1y));
+%% Gradient of b, anti-aliased
+% in Fourier space, de-aliased, then in physical space.
+gradb_aa(:,:,1,:) = real(ifft2( ikx_aa.*fft_b ));
+gradb_aa(:,:,2,:) = real(ifft2( iky_aa.*fft_b ));
 
-% % Influence of the complex brownian variance
-% sigma_on_sq_dt = sqrt(prod(model.grid.MX)) * sigma_on_sq_dt;
-
-%% Advection term
-
-
-
+%% Stochastic terms
 if isinf(model.sigma.k_c) % Deterministic case
     noise_intake = zeros(size(b));
+    estim_noise_intake = zeros(size(b));
+    turb_dissip = zeros(size(b));
+    estim_aa_noise_intake = zeros(size(b));
 else % Stochastic case
+    %% Advection term
+    %if model.advection.N_ech <= 10
+    N_ech_local = 100;
     % Fourier transform of white noise
-    dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 model.advection.N_ech]));
+    dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech_local]));
     % Multiplication by the Fourier transform of the kernel \tilde \sigma
-    fft_sigma_dBt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
+    
+    if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+        dt = model.advection.dt_adv;
+        % Time-correlated velocity
+        fft_w = SQG_large_UQ(model, fft_b);
+        [sigma, ~, tr_a ] ...
+            = fct_sigma_spectrum_abs_diff( model,fft_w,false);
+        a0 = tr_a/2;
+        sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
+        model.sigma.a0 = a0;
+        model.sigma.a0_on_dt = model.sigma.a0 / dt;
+        % Diffusion coefficient
+        model.advection.coef_diff = 1/2 * model.sigma.a0;
+    end
+        
+    fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
     clear dBt_C_on_sq_dt
-    % Homogeneous velocity field
-    sigma_dBt_dt = real(ifft2(fft_sigma_dBt));
-    clear fft_sigma_dBt
     
+    % warning('need case self similar');
     
-    sigma_dBt_dtgradT2 = nan([model.grid.MX 1 model.advection.N_ech]);
+    sigma_dBt_dt = real(ifft2(fft_sigma_dBt_dt));
+    if model.sigma.Smag.bool
+        % Heterogeneous dissipation coefficient
+        %coef_diff_aa = fct_coef_diff(model,fft_buoy_part);
+        coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
+        % Coefficient coef_Smag to target a specific diffusive scale
+        coef_diff_aa = model.sigma.Smag.coef_Smag * coef_diff_aa ;
+        if model.sigma.Smag.SS_vel_homo
+            coef_modulation = mean(coef_diff_aa(:));
+        else
+            coef_modulation = coef_diff_aa;
+        end
+    elseif model.sigma.hetero_modulation
+        coef_modulation = ...
+            fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
+    else
+        coef_modulation = 1;
+    end
     
-    parfor sampl=1:model.advection.N_ech
+    % Heterogeneous small-scale velocity
+    sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
+        sigma_dBt_dt);
+    if model.sigma.proj_free_div
+        sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
+        %             for sampl=1:N_ech_local
+        %                 sigma_dBt_dt(:,:,:,sampl) = fct_proj_free_div(...
+        %                     model,sigma_dBt_dt(:,:,:,sampl));
+        %             end
+    end
+    fft_sigma_dBt_dt = fft2(sigma_dBt_dt); clear sigma_dBt_dt
+    
+    % dealisasing of the velocity: FT, apply mask, iFT
+    sigma_dBt_aa = ...
+        real(ifft2( bsxfun(@times, fft_sigma_dBt_dt, mask_aa) ));
+    clear fft_sigma_dBt_dt
+    
+    sigma_dBt_dtgradT2 = nan([model.grid.MX 1 N_ech_local]);
+    for sampl=1:N_ech_local
+        %parfor sampl=1:N_ech_local
         % Advective term in physical space
-        sigma_dBt_dtgradT2(:,:,:,sampl)=sum(bsxfun(@times,sigma_dBt_dt(:,:,:,sampl),gradb),3);
+        sigma_dBt_dtgradT2(:,:,:,sampl) = ...
+            sum(bsxfun(@times,sigma_dBt_aa(:,:,:,sampl),gradb_aa),3);
         % NB : in the stochastic case, w included both continuous and
         % non-continuous components of the velocity
         
@@ -65,70 +115,170 @@ else % Stochastic case
     %         sigma_dBt_dtgradT2(PX(1)+1,:,:,sampl)=0;
     %         sigma_dBt_dtgradT21(:,PX(2)+1,:,sampl)=0;
     sigma_dBt_dtgradT2=fft2(sigma_dBt_dtgradT2);
-    sigma_dBt_dtgradT2(PX(1)+1,:,:,:)=0;
-    sigma_dBt_dtgradT2(:,PX(2)+1,:,:)=0;
+    sigma_dBt_dtgradT2(ZM(1),:,:,:)=0;
+    sigma_dBt_dtgradT2(:,ZM(2),:,:)=0;
     sigma_dBt_dtgradT2=real(ifft2(sigma_dBt_dtgradT2));
     
+    noise_intake = model.advection.dt_adv/2 ...
+        * mean(sigma_dBt_dtgradT2.^2,4);
     
-    %sigma_dBt_dtgradT2(:,:,:,sampl)=sigma_dBt_dtgradT2(:,:,:,sampl);
     %end
     
-    noise_intake = model.advection.dt_adv/2 * mean(sigma_dBt_dtgradT2.^2,4);
-    
-    
+    %% Laplacian diffusion term (from the stochastic material derivative)
+    if model.sigma.Smag.bool
+        %         % Heterogeneous dissipation coefficient
+        %         coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
+        %         % Coefficient coef_Smag to target a specific diffusive scale
+        %         coef_diff_aa = model.sigma.Smag.coef_Smag * coef_diff_aa ;
+        %         % Taking into account the noise in the energy budget
+        %         coef_diff_aa= model.advection.coef_diff * coef_diff_aa;
+        % Dissipation
+        turb_dissip_Smag = coef_diff_aa .* sum(gradb.^2,3);
+        % turb_dissip = coef_diff_aa .* sum(gradb.^2,3);
+        % Taking into account the noise in the energy budget
+        
+        if model.sigma.Smag.epsi_without_noise
+            turb_dissip= turb_dissip_Smag;
+        else
+            turb_dissip= (1 + model.sigma.a0_LS / model.sigma.a0_SS) ...
+                * turb_dissip_Smag;
+        end
+        
+        % Estimation of the noise intake
+%         estim_noise_intake = ...
+%             1/(model.sigma.a0_SS/model.sigma.a0_LS + 1 ) ...
+%             * turb_dissip;
+        if model.sigma.Smag.epsi_without_noise
+            estim_noise_intake = model.sigma.a0_LS ...
+                / (model.sigma.a0_LS + model.sigma.a0_SS) ...
+                * turb_dissip_Smag;
+        else
+            estim_noise_intake = (model.sigma.a0_LS / model.sigma.a0_SS) ...
+                * turb_dissip_Smag;
+        end
+        
+        % Anti-Dissipation
+        turb_dissip_estim_aa_Smag = coef_diff_aa .* sum(gradb_aa.^2,3);
+        if model.sigma.Smag.epsi_without_noise
+            turb_dissip_estim_aa = turb_dissip_estim_aa_Smag;
+            % Estimation of the noise intake with antialiasing
+            estim_aa_noise_intake = model.sigma.a0_LS ...
+                / (model.sigma.a0_LS + model.sigma.a0_SS) ...
+                * turb_dissip_estim_aa_Smag;
+        else
+            turb_dissip_estim_aa= (1 + model.sigma.a0_LS / model.sigma.a0_SS) ...
+                * turb_dissip_estim_aa_Smag;
+            % Estimation of the noise intake with antialiasing
+            estim_aa_noise_intake = (model.sigma.a0_LS / model.sigma.a0_SS) ...
+                * turb_dissip_estim_aa_Smag;
+        end
+        
+    elseif model.sigma.hetero_modulation
+        
+        % Dissipation
+        turb_dissip = coef_modulation .* sum(gradb.^2,3);
+        % Taking into account the noise in the energy budget
+        turb_dissip= model.sigma.a0/2 * turb_dissip;
+        
+        % Estimation of the noise intake
+        estim_noise_intake = turb_dissip;
+        
+        % Anti-Dissipation
+        turb_dissip_estim_aa = model.sigma.a0/2 * ...
+            coef_modulation .* sum(gradb_aa.^2,3);
+        % Estimation of the noise intake with antialiasing
+        estim_aa_noise_intake = turb_dissip_estim_aa;
+        
+    else
+        % Possibly aliased term !!!
+        turb_dissip = model.advection.coef_diff * sum(gradb.^2,3);
+        % turb_dissip = model.advection.coef_diff * sum(gradb_aa.^2,3);
+        
+        % % adv2 = - model.advection.coef_diff * k2 .* fft_b ;
+        % % turb_dissip = - b .* real(ifft2(adv2));
+        
+        estim_noise_intake = turb_dissip;
+        
+        % Possibly aliased term !!!
+        estim_aa_noise_intake = model.advection.coef_diff * ...
+            sum(gradb_aa.^2,3);
+    end
 end
-
-
-%% Laplacian diffusion term (from the stochastic material derivative)
-turb_dissip = model.advection.coef_diff * sum(gradb.^2,3);
-% adv2 = - model.advection.coef_diff * k2 .* fft_b ;
-% turb_dissip = - b .* real(ifft2(adv2));
 
 %% Hyperviscosity
 
 if model.advection.Smag.bool
-    % Stable k2
-    k2=model.grid.k.k2;
+    %     % Stable k2
+    %     k2=model.grid.k.k2;
     
-    % Heterogeneous HV or diffusivity/viscosity coefficient
+    %% Heterogeneous HV or diffusivity/viscosity coefficient
     if model.advection.Lap_visco.bool
-        % square of the buoyancy gradient norm
-        gradb2 = sum(gradb.^2,3) ;
+        %% Heterogeneous diffusivity/viscosity coefficient
+        %         % square of the buoyancy gradient norm
+        %         gradb2_aa = sum(gradb_aa.^2,3) ;
+        %
+        % %         % Root square of the buoyancy gradient norm
+        % %         coef_diff = gradb2_aa .^(1/4) ;
+        % %
+        % %         % Coefficient coef_Smag to target a specific diffusive scale
+        % %         coef_diff = model.advection.Smag.coef_Smag * coef_diff ;
+        % %
+        % %         % dealisasing of the diffusivity coefficient
+        % %         coef_diff = fft2(coef_diff );
+        % %         coef_diff_aa = real(ifft2( bsxfun(@times, coef_diff, mask_aa) ));
+        % %         model.advection.HV.val = coef_diff_aa;
+        %
+        %
+        %         % Heterogeneous dissipation coefficient
+        %         coef_diff_aa = fct_coef_diff(model,fft_b,gradb_aa);
+        %         % Coefficient coef_Smag to target a specific diffusive scale
+        %         coef_diff_aa = model.advection.Smag.coef_Smag * coef_diff_aa ;
+        %         model.advection.HV.val = coef_diff_aa;
+        %
+        %         % Dissipation
+        %         dissip_HV = coef_diff_aa .* gradb2_aa;
         
-        % Root square of the buoyancy gradient norm
-        model.advection.HV.val = gradb2 .^(1/4) ;
         
+        % Heterogeneous dissipation coefficient
+        coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
         % Coefficient coef_Smag to target a specific diffusive scale
-        model.advection.HV.val = model.advection.Smag.coef_Smag * ...
-            model.advection.HV.val ;
+        coef_diff_aa  = model.advection.Smag.coef_Smag * coef_diff_aa  ;
         
         % Dissipation
-        dissip_HV = model.advection.HV.val .* gradb2;
+        dissip_HV = coef_diff_aa .* sum(gradb.^2,3);
         
     elseif model.advection.HV.bool
+        %% Heterogeneous HV coefficient
         % Laplacian at the power p of buoyancy
-        Lap_p_b = (-k2) .^ (model.advection.HV.order/4) .* fft_b;
-        Lap_p_b = real(ifft2(Lap_p_b));
-%         warning('this k2 need to be smoother ?');
-        model.advection.HV.val = sqrt(abs( Lap_p_b ));
+        Lap_p_b_aa = (-k2_aa) .^ (model.advection.HV.order/4) .* fft_b;
+        Lap_p_b_aa = real(ifft2(Lap_p_b_aa));
+        
+        coef_HV = sqrt(abs( Lap_p_b_aa ));
         
         % Coefficient coef_Smag to target a specific diffusive scale
-        model.advection.HV.val = model.advection.Smag.coef_Smag * ...
-            model.advection.HV.val ;
+        coef_HV = model.advection.Smag.coef_Smag * coef_HV ;
+        
+        % dealisasing of the HV coefficient
+        coef_HV = fft2(coef_HV );
+        coef_HV_aa = real(ifft2( bsxfun(@times, coef_HV, mask_aa) ));
+        model.advection.HV.val = coef_HV_aa;
         
         % Dissipation
-        dissip_HV = model.advection.HV.val .* Lap_p_b .^2 ;
+        dissip_HV = coef_HV_aa .* Lap_p_b_aa .^2 ;
         
     else
         error('Unknown deterministic subgrid tensor');
     end
     
 else
-    % Unstable k2
-    k2_HV=model.grid.k_HV.k2;
+    %% Homogeneous hyper-viscosity
+    % Possibly aliased term !!!
+    
+    %     % Unstable k2
+    %     k2_HV=model.grid.k_HV.k2;
     
     % Laplacian at the power p of buoyancy
-    adv4 = k2_HV .^ (model.advection.HV.order/4) .* fft_b;
+    adv4 = k2 .^ (model.advection.HV.order/4) .* fft_b;
     adv4 = real(ifft2(adv4));
     
     % Dissipation

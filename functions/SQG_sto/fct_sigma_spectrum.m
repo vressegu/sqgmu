@@ -1,8 +1,8 @@
-function [sigma_on_sq_dt,f_sigma,a0_on_dt,spectrum_sigma] = fct_sigma_spectrum(model,ft_w,ft2)
+function [sigma_on_sq_dt,f_sigma,trace_a_on_dt,spectrum_sigma] = fct_sigma_spectrum(model,ft_w,ft2)
 % - sigma_on_sq_dt is the Fourier transform of the kernel \tilde sigma up to a multiplicative
 % constant
 % - f_sigma is the Fourier transform of the associted streamfunction
-% - a0_on_dt measures the total energy of the field and is generally used to
+% - trace_a_on_dt measures the total energy of the field and is generally used to
 % set the muliplicative constant
 % - spectrum_sigma is the spectrum
 %
@@ -42,11 +42,16 @@ k(:,PX(2)+1)=inf;
 k=k(:);
 
 %% Wave number
-M_kappa=min(MX);
+M_kappa=min(model.grid.MX);
 P_kappa= M_kappa/2;
-d_kappa = max(1./dX);
-kappa=1/(M_kappa)* (0:(P_kappa-1)) ;
-kappa=2*pi*d_kappa*kappa;
+d_kappa = 2*pi/sqrt(prod(model.grid.MX.* model.grid.dX));
+kappa= d_kappa * ( 0:(P_kappa-1) ) ;
+% M_kappa=min(MX);
+% P_kappa= M_kappa/2;
+% %d_kappa = max(1./dX);
+% kappa=1/(M_kappa)* (0:(P_kappa-1)) ;
+% kappa=2*pi*max(1./dX)*kappa;
+% %kappa=2*pi*d_kappa*kappa;
 
 %% Masks associated with the rings of iso wave number
 d_kappa = kappa(2) - kappa(1);
@@ -93,24 +98,47 @@ idx_not_inf=~(isinf(log10(spectrum_w(2:end)))| ...
     spectrum_w(2:end)<1e-4*max(spectrum_w(2:end)) | isinf(kappa(2:end)'));
 idx_not_inf= [ false; idx_not_inf ];
 idx_not_inf(end)=false;
-reference_spectrum = reference_spectrum * 10 .^( ...
+% reference_spectrum = reference_spectrum * 10 .^( ...
+%     mean( log10(spectrum_w(idx_not_inf)') ...
+%     - log10( reference_spectrum(idx_not_inf)) ) );
+mult_offset = 10 .^( ...
     mean( log10(spectrum_w(idx_not_inf)') ...
     - log10( reference_spectrum(idx_not_inf)) ) );
+%reference_spectrum = reference_spectrum * mult_offset;
 
 %% Spectre of random small-scale velocity
-f_sigma = reference_spectrum;
+switch model.sigma.type_spectrum
+    case 'Band_Pass_w_Slope'
+        f_sigma = reference_spectrum;
+        
+        % % Parseval ( * prod(model.grid.MX) )
+        % % and integrated over the space ( * prod(model.grid.MX) )
+        % f_sigma = prod(model.grid.MX)^2 * f_sigma;
+        
+        % Band-pass filter
+        idx1 = (kappa(2:end) <= k0);
+        idx3 = (kappa(2:end) > k_inf);
+        idx2 = ~ (idx1 | idx3);
+        
+        unit_approx = fct_unity_approx_(sum(idx2));
+        % unit_approx = ones([1,sum(idx2)]);
+        % warning('Above line modified for debug !!!!!')
+        
+        f_sigma(idx1 | idx3)=0;
+        f_sigma(idx2) = f_sigma(idx2) .* unit_approx;
 
-% Parseval ( * prod(model.grid.MX) ) 
-% and integrated over the space ( * prod(model.grid.MX) )
-f_sigma = prod(model.grid.MX)^2 * f_sigma;
-
-% Band-pass filter
-idx1 = (kappa(2:end) <= k0);
-idx3 = (kappa(2:end) > k_inf);
-idx2 = ~ (idx1 | idx3);
-unit_approx = fct_unity_approx_(sum(idx2));
-f_sigma(idx1 | idx3)=0;
-f_sigma(idx2) = f_sigma(idx2) .* unit_approx;
+    case 'Low_Pass_w_Slope'
+        f_sigma = (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2) ;
+    case  'Low_Pass_streamFct_w_Slope'
+        f_sigma = kappa(2:end).^2 .* ...
+            (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2-1) ;
+    case  'BB'
+        f_sigma = ones(size(kappa(2:end))) ;
+    case  'Bidouille'
+        f_sigma = 1/10 * ones(size(kappa(2:end))) ;
+    otherwise
+        error('Unknown spectrum type for the small-scale velocity');
+end
 
 % Division by k^2 to get the spectrum of the streamfunction
 f_sigma = f_sigma ./ ( kappa(2:end) .^2 );
@@ -119,8 +147,9 @@ f_sigma = f_sigma ./ ( kappa(2:end) .^2 );
 % Division by k in dimension 2
 f_sigma = f_sigma ./ ( kappa(2:end) );
 
-% Influence of discretisation
-f_sigma = f_sigma / ( prod(MX.*dX) /(2*pi) ) ;
+% % Influence of discretisation
+% f_sigma = f_sigma * d_kappa ;
+% f_sigma = f_sigma / ( prod(MX.*dX) /(2*pi) ) ;
 
 % From square modulus to modulus
 f_sigma = sqrt( f_sigma );
@@ -129,7 +158,9 @@ f_sigma = sqrt( f_sigma );
 f_sigma = interp1(kappa,[0 f_sigma],k);
 
 % Cleaning
-f_sigma(k<=k0)=0;
+if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
+    f_sigma(k<=k0)=0;
+end
 f_sigma(k>k_inf)=0;
 f_sigma=reshape(f_sigma,MX);
 
@@ -137,37 +168,113 @@ f_sigma=reshape(f_sigma,MX);
 f_sigma(PX(1)+1,:)=0;
 f_sigma(:,PX(2)+1)=0;
 
-% Influence of the complex brownian variance
-f_sigma = 1/sqrt(prod(MX))*f_sigma;
+% % Influence of the complex brownian variance
+% f_sigma = 1/sqrt(prod(MX))*f_sigma;
+
+% Choice to make the variance tensor explicitely independent of the
+% resolution (i.e. independent of MX and of dX, but dependent on dX.*MX)
+f_sigma = sqrt(prod(MX))*f_sigma;
 
 % Orthogonal gradient (from streamfunction to velocity)
 sigma_on_sq_dt(:,:,1)= 1i * ( - ky ) .* f_sigma;
 sigma_on_sq_dt(:,:,2)= 1i * ( + kx ) .* f_sigma;
 
-% Compute the real spectrum of sigma dBt
+% Compute the bi-directional spectrum of sigma dBt
 ft_sigma=abs(sigma_on_sq_dt).^2;
 ft_sigma=sum(ft_sigma,3);
-spectrum_sigma = idx' * ft_sigma(:);
 
 % Calcul of energy
 % One has to divid by prod(model.grid.MX) because of the form of Parseval
 % theorem for discrete Fourier transform
-a0_on_dt = 1/prod(model.grid.MX) * sum(spectrum_sigma);
+%trace_a_on_dt = sum(spectrum_sigma)
+% trace_a_on_dt = 1/prod(model.grid.MX) * sum(spectrum_sigma);
+% or equivalently
+trace_a_on_dt = 1/prod(model.grid.MX) * sum(ft_sigma(:));
 
-% Influence of the complex brownian variance
-spectrum_sigma = prod(MX)*spectrum_sigma;
+
+alpha = ( 3 - model.sigma.slope_sigma )/2;
+eval(['norm_tr_a_theo = fct_norm_tr_a_theo_' ...
+    model.sigma.type_spectrum '(model,k0,k_inf,alpha);']);
+%norm_tr_a_theo = fct_norm_tr_a_theo(model,k0,k_inf,alpha);
+
+norm_tr_a_theo/trace_a_on_dt
+% d_kappa
+% prod(model.grid.MX)
+% sqrt(prod(model.grid.MX))
+% 1/(sqrt(prod(model.grid.MX))*d_kappa)
+% d_kappa*prod(model.grid.MX)
+
+% Compute the omnidirectional spectrum of sigma dBt
+spectrum_sigma = idx' * ft_sigma(:);
+
+% % Influence of the complex brownian variance
+% spectrum_sigma = prod(MX)*spectrum_sigma;
+
+% Choice to make the variance tensor explicitely independent of the
+% resolution (i.e. independent of MX and of dX, but dependent on dX.*MX)
+spectrum_sigma = (1/prod(MX))*spectrum_sigma;
+
+% % Division by prod(model.grid.MX) because of the Parseval theorem for
+% % discrete Fourier transform
+% % Division by prod(model.grid.MX) again in order to the integration 
+% % of the spectrum over the wave number yields the energy of the
+% % buoyancy averaged (not just integrated) over the space
+% spectrum_sigma = 1/prod(model.grid.MX)^2 * spectrum_sigma;
+
+% % Division by the wave number step
+% spectrum_sigma = spectrum_sigma / d_kappa;
+%%
+
+% Discretisation to go from continuous to discrete Fourier transform
+spectrum_sigma = 1/prod(model.grid.dX) * spectrum_sigma;
 
 % Division by prod(model.grid.MX) because of the Parseval theorem for
 % discrete Fourier transform
-% Division by prod(model.grid.MX) again in order to the integration 
-% of the spectrum over the wave number yields the energy of the
-% buoyancy averaged (not just integrated) over the space
-spectrum_sigma = 1/prod(model.grid.MX)^2 * spectrum_sigma;
+spectrum_sigma = 1/prod(model.grid.MX) * spectrum_sigma;
 
 % Division by the wave number step
 spectrum_sigma = spectrum_sigma / d_kappa;
 
+% To remove the 2 pi which appear when we integrate k^(3-2-alpha) over the
+% wave-vector angles and add the (2 pi)^2 which appear when we go from k to
+% 2*pi*k
+spectrum_sigma = spectrum_sigma * (2*pi);
+
+%%
+
+% warning('debug here');
+% k2=(kx.^2+ky.^2);
+% reference_spectrum2 = k2 .^(1-alpha);
+% %reference_spectrum2 = k .^(2-2*alpha);
+% reference_spectrum2 = idx' * reference_spectrum2(:);
+% reference_spectrum2 = reference_spectrum2(2:end)';
+% 
+% % Discretisation to go from continuous to discrete Fourier transform
+% reference_spectrum2 = 1/prod(model.grid.dX) * reference_spectrum2;
+% 
+% % Division by prod(model.grid.MX) because of the Parseval theorem for
+% % discrete Fourier transform
+% reference_spectrum2 = 1/prod(model.grid.MX) * reference_spectrum2;
+% 
+% % Division by the wave number step
+% reference_spectrum2 = reference_spectrum2 / d_kappa;
+% 
+% % To remove the 2 pi which appear when we integrate k^(3-2-alpha) over the
+% % wave-vector angles
+% reference_spectrum2 = reference_spectrum2 * (2*pi);
+% 
+% reference_spectrum(1)/reference_spectrum2(1)
+% reference_spectrum(1)/reference_spectrum2(1)*reference_spectrum2 ./ reference_spectrum
+% 
+% figure(10);plot(kappa(2:end),reference_spectrum);hold on
+% plot(kappa(2:end),reference_spectrum2);
+
 %% Plot spectrum
+
+% Make the plots appear at the same level thant the large-scale velocity spectrum
+spectrum_sigma_plot = spectrum_sigma * mult_offset;
+reference_spectrum = reference_spectrum * mult_offset;
+
 taille_police = 12;
 X0 = [10 20];
 
@@ -183,12 +290,13 @@ loglog(kappa(2:end),spectrum_w(2:end))
 if nargin>2
     loglog(kappa(2:end),spectrum_w2(2:end),'c')
 end
-loglog(kappa(2:end),spectrum_sigma(2:end),'r')
+loglog(kappa(2:end),spectrum_sigma_plot(2:end),'r')
 hold off
 ax=axis;
-ax(4)=max([spectrum_w; reference_spectrum' ; spectrum_sigma]);
+ax(4)=max([spectrum_w; reference_spectrum' ; spectrum_sigma_plot]);
 ax(4)=ax(4)*2;
-ax(3)=(kappa(2)/kappa(end))*min([max(spectrum_w); max(reference_spectrum); max(spectrum_sigma)]);
+ax(3)=(kappa(2)/kappa(end))*min([max(spectrum_w); ...
+    max(reference_spectrum); max(spectrum_sigma_plot)]);
 ax(3) = min( [ax(3) min(reference_spectrum)]);
 ax(1:2)=kappa([2 end]);
 if ax(4)>0

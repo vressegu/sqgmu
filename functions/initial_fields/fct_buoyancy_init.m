@@ -34,12 +34,14 @@ switch model.type_data
         b_S = init_Vortices(model,x,y);
     case 'Vortices2' %well-periodized vortices
         b_S = init_Vortices2(model,x,y);
-        model.init.label_data = 'Vortices2';
     case 'Perturbed_vortices'
         b_S = init_Perturbed_vortices(model,x,y);
     case 'PerturbVortices2' %[WIP]
         b_S = init_PerturbVortices2(model,x,y);
-        model.init.label_data = 'PerturbVortices2';
+    case 'Constantin_case1' 
+        b_S = init_Constantin_case1(model,x,y);
+    case 'Constantin_case2' 
+        b_S = init_Constantin_case2(model,x,y);
     case 'Spectrum'
         b_S = init_Spectrum(model);
     otherwise

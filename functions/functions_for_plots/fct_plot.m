@@ -1,4 +1,4 @@
-function fct_plot(model,fft_b_adv_part,day)
+function [spectrum,name_plot,int_epsilon] = fct_plot(model,fft_b_adv_part,day)
 % This function creates some plot online and save it
 %
 
@@ -15,6 +15,7 @@ id_part=1;
 type_data = model.type_data;
 folder_simu = model.folder.folder_simu;
 plot_moments = model.advection.plot_moments;
+%plot_epsilon_k = model.advection.plot_epsilon_k;
 map = model.folder.colormap;
 
 %% One particle
@@ -108,7 +109,7 @@ colormap(map)
 colorbar
 drawnow
 eval( ['print -depsc ' folder_simu '/one_realization/'...
-    num2str(day) '.eps']);       
+    num2str(day) '.eps']);
 
 %% Spectrum
 X0=[3.3 1];
@@ -120,7 +121,7 @@ heighttemp = 6;
 set(figure4,'Units','inches', ...
     'Position',[X0(1) X0(2) widthtemp heighttemp], ...
     'PaperPositionMode','auto');
-fct_spectrum( model,fft_b_adv_part(:,:,:,id_part),'b');
+[spectrum,name_plot,int_epsilon] = fct_spectrum( model,fft_b_adv_part(:,:,:,id_part),'b');
 set(gca,'XGrid','on','XTickMode','manual');
 width = 4;
 height = 3;
@@ -147,7 +148,7 @@ xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
     'interpreter','latex',...
     'FontName','Times')
 title({'Spectrum of' ...
-      '\hspace{0.5cm} one realization'},...
+    '\hspace{0.5cm} one realization'},...
     'FontUnits','points',...
     'FontWeight','normal',...
     'interpreter','latex',...
@@ -155,6 +156,56 @@ title({'Spectrum of' ...
     'FontName','Times')
 drawnow
 eval( ['print -depsc ' folder_simu '/Spectrum/' day '.eps']);
+
+
+%% Dissipation by scale
+% if plot_epsilon_k
+%     X0=[3.3 1];
+%     close(figure(4))
+%     figure4=figure(4);
+%     
+%     widthtemp = 12;
+%     heighttemp = 6;
+%     set(figure4,'Units','inches', ...
+%         'Position',[X0(1) X0(2) widthtemp heighttemp], ...
+%         'PaperPositionMode','auto');
+%     int_epsilon = fct_epsilon_k( model,fft_b_adv_part(:,:,:,id_part),...
+%         int_epsilon_dt_m_1,'b');
+%     set(gca,'XGrid','on','XTickMode','manual');
+%     width = 4;
+%     height = 3;
+%     set(figure4,'Units','inches', ...
+%         'Position',[X0(1) X0(2) width height], ...
+%         'PaperPositionMode','auto');
+%     set(gca,'YGrid','on')
+%     
+%     set(gca,...
+%         'Units','normalized',...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'FontSize',taille_police,...
+%         'FontName','Times')
+%     ylabel('$\epsilon(\kappa)$',...
+%         'FontUnits','points',...
+%         'interpreter','latex',...
+%         'FontSize',taille_police,...
+%         'FontName','Times')
+%     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'FontSize',taille_police,...
+%         'interpreter','latex',...
+%         'FontName','Times')
+%     title({'Dissipation by scale' ...
+%         '\hspace{0.5cm} one realization'},...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'interpreter','latex',...
+%         'FontSize',12,...
+%         'FontName','Times')
+%     drawnow
+%     eval( ['print -depsc ' folder_simu '/Epsilon_k/' day '.eps']);
+% end
 
 %% Moments
 if plot_moments
@@ -171,6 +222,7 @@ if plot_moments
     X0=[0 4.2];
     width = 3.65;
     height = 3;
+    close(figure(2))%
     figure2=figure(2);
     set(figure2,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
@@ -218,7 +270,7 @@ if plot_moments
     subimage(x,y,std_T');
     imagesc(x,y,std_T');axis xy;
     axis equal
-    caxis([0 model.odg_b/(1e-3)*1.5e-4]);
+    %caxis([0 model.odg_b/(1e-3)*1.5e-4]);
     if strcmp(type_data,'Spectrum')
         caxis([0 model.odg_b/(1e-3)*1e-3]);
     end
@@ -258,6 +310,7 @@ if plot_moments
     
     % Third and fourth order moments
     X0=[0 8.2];
+    close(figure(3));%
     figure3=figure(3);
     set(figure3,'Units','inches', ...
         'Position',[X0(1) X0(2) 2*width height], ...
@@ -266,9 +319,9 @@ if plot_moments
     jjj = ( std_T < tol *odg_b );
     s=size(std_T);
     std_T=std_T(:);
-    % The standard deviation used to compute skewness and kurtosis is set 
+    % The standard deviation used to compute skewness and kurtosis is set
     % to infinity when this standard deviation is too low
-    % As such, skewness and kurtosis are equal to zero when this standard 
+    % As such, skewness and kurtosis are equal to zero when this standard
     % deviation is too low
     std_T(jjj(:))=inf;
     std_T=reshape(std_T,s);
@@ -369,6 +422,5 @@ if plot_moments
     end
     drawnow
     eval( ['print -depsc ' folder_simu '/3rd_4th_order_moments/' day '.eps']);
-
+    
 end
-

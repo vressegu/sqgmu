@@ -24,3 +24,17 @@ end
 if ~ (exist([folder_simu '/Dissipation'],'dir')==7)
     mkdir([folder_simu '/Dissipation']);
 end
+if ~ (exist([folder_simu '/dissip_coef'],'dir')==7)
+    mkdir([folder_simu '/dissip_coef']);
+end
+if ~ (exist([folder_simu '/Epsilon_k'],'dir')==7)
+    mkdir([folder_simu '/Epsilon_k']);
+end
+if ~ (exist([folder_simu '/Epsilon_k_meth'],'dir')==7)
+    mkdir([folder_simu '/Epsilon_k_meth']);
+end
+if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+    if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)
+        mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t']);
+    end
+end
