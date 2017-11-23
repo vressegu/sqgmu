@@ -27,6 +27,8 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
     end
 elseif ~isinf(model.sigma.k_c) & model.sigma.hetero_modulation
     add_subgrid_deter = [add_subgrid_deter '_hetero_modulation'];
+elseif ~isinf(model.sigma.k_c) & model.sigma.hetero_modulation_V2
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
 elseif ~isinf(model.sigma.k_c) & model.sigma.hetero_energy_flux
     add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
 end
@@ -75,7 +77,8 @@ if ~isinf(model.sigma.k_c) & model.sigma.Smag.bool
     end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
-elseif ~isinf(model.sigma.k_c) & model.sigma.hetero_modulation
+elseif ~isinf(model.sigma.k_c) & ...
+       ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
     subgrid_details = ['dealias_ratio_mask_LS_' ...
         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
     if  model.sigma.proj_free_div
@@ -199,7 +202,7 @@ else
     model.advection.coef_diff = 1/2 * model.sigma.a0;
 end
 
-if model.sigma.hetero_modulation
+if model.sigma.hetero_modulation | model.sigma.hetero_modulation_V2
     coef_modulation = fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
     model.sigma.a0 = model.sigma.a0 * max(coef_modulation(:));
 end
@@ -609,7 +612,8 @@ for t=t_ini:N_t
         if model.sigma.hetero_energy_flux
             coef_modulation = ...
                 fct_epsilon_k_onLine(model,fft_buoy_part,fft_w);
-        elseif model.sigma.hetero_modulation
+        elseif model.sigma.hetero_modulation | ...
+                model.sigma.hetero_modulation_V2
             coef_modulation = ...
                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
         elseif model.sigma.Smag.bool
@@ -724,7 +728,8 @@ for t=t_ini:N_t
             
             %%
             if model.advection.Smag.bool || model.sigma.Smag.bool ...
-                    || model.sigma.hetero_modulation
+                    || model.sigma.hetero_modulation ...
+                    || model.sigma.hetero_modulation_V2
                 id_part=1;
                 % Coefficient coef_Smag to target a specific diffusive scale
                 if model.advection.Smag.bool
@@ -743,7 +748,8 @@ for t=t_ini:N_t
                     coef_diff_aa = ...
                         (1 + model.sigma.a0_LS / model.sigma.a0_SS) * ...
                         model.sigma.Smag.coef_Smag * coef_diff_aa ;
-                elseif model.sigma.hetero_modulation
+                elseif model.sigma.hetero_modulation ...
+                        | model.sigma.hetero_modulation_V2
                     [coef_diff_aa,coef_diff] = ...
                         fct_coef_estim_AbsDiff_heterogeneous(...
                         model,fft_w(:,:,:,id_part));
@@ -751,6 +757,11 @@ for t=t_ini:N_t
                         model.sigma.a0(id_part)/2 * coef_diff_aa ;
                     coef_diff = ...
                         model.sigma.a0(id_part)/2 * coef_diff ;
+                elseif model.sigma.hetero_energy_flux
+                    coef_diff_aa = ...
+                        fct_epsilon_k_onLine(model,fft_buoy_part,fft_w);
+                    coef_diff_aa = ...
+                        model.sigma.a0(id_part)/2 * coef_diff_aa ;
                 end
                 figure(9);
                 subplot(1,2,1);
@@ -813,6 +824,12 @@ for t=t_ini:N_t
             hold off
         end
         
+        % Dissipation by scale
+        if model.advection.plot_epsilon_k
+            fct_plot_epsilon_k(model,fft_buoy_part,day);
+            % fct_plot_epsilon_k(model,fft_buoy_part,int_epsilon,day);
+        end
+        
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
             'model','t','fft_buoy_part','w','sigma_dBt_dt', ...
@@ -820,10 +837,10 @@ for t=t_ini:N_t
         %             'sigma_on_sq_dt','cov_w','abs_diff');
     end
     
-    % Dissipation by scale
-    if (t == t_last_plot + 1) &  model.advection.plot_epsilon_k
-        fct_plot_epsilon_k(model,fft_buoy_part,day);
-        % fct_plot_epsilon_k(model,fft_buoy_part,int_epsilon,day);
-    end
+%     % Dissipation by scale
+%     if (t == t_last_plot + 1) &  model.advection.plot_epsilon_k
+%         fct_plot_epsilon_k(model,fft_buoy_part,day);
+%         % fct_plot_epsilon_k(model,fft_buoy_part,int_epsilon,day);
+%     end
     
 end

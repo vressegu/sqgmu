@@ -50,15 +50,19 @@ if nargin == 0
     
     if strcmp(type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux = true;
+        sigma.hetero_energy_flux = false;
         
-        % Modulation by local V L (estimated from gradient of and length scale
-        % of the velocity)
+        % Modulation by local V L (estimated from the velocity and from 
+        % thegradient of the velocity)
         sigma.hetero_modulation = false;
+        
+        % Modulation by local V^2 
+        sigma.hetero_modulation_V2 = true;
         
         %     %if strcmp(type_spectrum,'SelfSim_from_LS')
         %     if sigma.hetero_modulation & strcmp(type_spectrum,'SelfSim_from_LS')
-        if sigma.hetero_modulation | sigma.hetero_energy_flux
+        if sigma.hetero_modulation | sigma.hetero_energy_flux ...
+                | sigma.hetero_modulation_V2
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             % Smag.dealias_ratio_mask_LS = 1/16;
@@ -71,7 +75,7 @@ if nargin == 0
     sigma.proj_free_div = true;
     
     if (sigma.Smag.bool + sigma.hetero_modulation + ...
-            sigma.hetero_energy_flux ) > 1
+            sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1
         error('These two parametrizations cannot be combined');
     end        
     
@@ -130,7 +134,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Vortices';
+    type_data = 'Constantin_case2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -261,7 +265,10 @@ cov_and_abs_diff = false;
 plot_moments = true;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = true;
+plot_epsilon_k = false;
+if sigma.hetero_energy_flux
+    plot_epsilon_k = true;
+end
 
 % Plot dissipations terms
 plot_dissip = true;
