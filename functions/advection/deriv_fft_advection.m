@@ -62,7 +62,7 @@ adv1 = - fft2(wgradT);clear wgradT
 
 %% Laplacian diffusion term (from the stochastic material derivative)
 %if ~isinf(model.sigma.k_c)
-if model.sigma.a0 > 0
+if model.sigma.sto
     adv2 = fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa);
 %     if model.sigma.Smag.bool 
 %         % Coefficient coef_Smag to target a specific diffusive scale

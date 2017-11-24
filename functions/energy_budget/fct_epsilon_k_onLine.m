@@ -7,12 +7,6 @@ function [coef_AbsDiff, PI_loc_smoothKX_pos] ...
 % The result is normalised in order to have a spatial mean equal to 1.
 %
 
-% Color by default
-if nargin < 3
-    color='b';
-end
-
-
 %% Grid of wave vectors
 ZM = model.grid.k.ZM; %index of modes ot be zero'ed out
 mask_aa_LS = model.grid.k_aa_LS.mask; %anti-aliasing mask

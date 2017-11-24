@@ -4,7 +4,7 @@ function fct_create_folder_plots(model)
 
 folder_simu = model.folder.folder_simu;
 
-if ~ isinf(model.sigma.k_c) % Stochastic case
+if model.sigma.sto % Stochastic case
     if ~ (exist([folder_simu '/1st_2nd_order_moments'],'dir')==7)
         mkdir([folder_simu '/1st_2nd_order_moments']);
     end

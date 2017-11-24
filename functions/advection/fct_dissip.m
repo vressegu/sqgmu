@@ -33,7 +33,7 @@ gradb_aa(:,:,1,:) = real(ifft2( ikx_aa.*fft_b ));
 gradb_aa(:,:,2,:) = real(ifft2( iky_aa.*fft_b ));
 
 %% Stochastic terms
-if isinf(model.sigma.k_c) % Deterministic case
+if ~ model.sigma.sto % Deterministic case
     noise_intake = zeros(size(b));
     estim_noise_intake = zeros(size(b));
     turb_dissip = zeros(size(b));
