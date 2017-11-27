@@ -32,7 +32,7 @@ sigma.type_spectrum = type_spectrum;
 
 if nargin == 0
     % Deterministic or random model
-    stochastic_simulation = true;
+    stochastic_simulation = false;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
     
@@ -124,13 +124,13 @@ N_ech=1;
 % ( N_ech is automatically set to 1 in deterministic simulations )
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
-% advection_duration = 3600*24*1000;
+%advection_duration = 3600*24*30;
+advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Vortices';
+    type_data = 'Spectrum';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -146,9 +146,9 @@ if nargin == 0
     
     % Resolution
     %resolution = 64;
-    resolution = 128;
+    % resolution = 128;
     %resolution = 256;
-    %resolution = 512;
+    resolution = 512;
     %resolution = 1024;
     % resolution = 2048;
     
@@ -158,7 +158,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -258,13 +258,13 @@ end
 cov_and_abs_diff = false;
 
 % Choose to plot one-point one-time moments each day
-plot_moments = true;
+plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = true;
+plot_epsilon_k = false;
 
 % Plot dissipations terms
-plot_dissip = true;
+plot_dissip = false;
 
 % Begin simulation from a precomputed field?
 use_save = false;
