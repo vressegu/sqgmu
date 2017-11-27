@@ -41,7 +41,7 @@ if nargin == 0
     sigma.assoc_diff = false;
     
     % Smagorinsky-like control of dissipation
-    sigma.Smag.bool = true;
+    sigma.Smag.bool = false;
     
     %     % Sigma computed from self similarities from the large scales
     %     sigma.SelfSim_from_LS.bool = true;
@@ -84,6 +84,18 @@ if nargin == 0
         error('These parametrizations cannot be combined');
     end
     
+    if sigma.Smag.bool || sigma.assoc_diff
+        % Rate between the smallest wave number of the spatially-unresolved
+        % (not simulated) component of sigma dBt and the largest wave
+        % number of the simulation
+        sigma.kappaMinUnresolved_on_kappaShanon = 1;
+        
+        % Rate between the largest wave number of the spatially-unresolved
+        % (not simulated) component of sigma dBt and the largest wave
+        % number of the simulation
+        sigma.kappaMaxUnresolved_on_kappaShanon = 8;
+        
+    end
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if sigma.Smag.bool
         % Smagorinsky energy budget (dissipation epsilon)
@@ -100,11 +112,14 @@ if nargin == 0
         % % % %         %         sigma.Smag.dealias_ratio_mask_LS = 1/128;
         % % % %         % %         sigma.Smag.dealias_ratio_mask_LS = 1/8;
         
-        % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
-        % and the targeted diffusion scale
-        % %        sigma.Smag.kappamax_on_kappad = 2;
-        % sigma.Smag.kappamax_on_kappad = 1;
-        sigma.Smag.kappamax_on_kappad = 0.5;
+        %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
+        %         % and the targeted diffusion scale
+        %         % %        sigma.Smag.kappamax_on_kappad = 2;
+        %         % sigma.Smag.kappamax_on_kappad = 1;
+        %         sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+        sigma.Smag.kappamax_on_kappad = 1 / 4;
+%         sigma.Smag.kappamax_on_kappad = 1 / ...
+%             sigma.kappaMaxUnresolved_on_kappaShanon;
         
         %         % Factor in front of the additional constant dissipation
         %         % Set to 0 for no additional constant dissipation
@@ -112,18 +127,6 @@ if nargin == 0
         
         % Heterogeneity of the noise
         sigma.Smag.SS_vel_homo = false;
-        
-    end
-    if sigma.Smag.bool || sigma.assoc_diff
-        % Rate between the smallest wave number of the spatially-unresolved
-        % (not simulated) component of sigma dBt and the largest wave
-        % number of the simulation
-        sigma.kappaMinUnresolved_on_kappaShanon = 1;
-        
-        % Rate between the largest wave number of the spatially-unresolved
-        % (not simulated) component of sigma dBt and the largest wave
-        % number of the simulation
-        sigma.kappaMaxUnresolved_on_kappaShanon = 8;
         
     end
 end
@@ -141,7 +144,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Vortices';
+    type_data = 'Constantin_case2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -190,7 +193,7 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = false;
+    Lap_visco.bool = true;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
@@ -200,7 +203,7 @@ if nargin == 0
     HV.bool = false;
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = false;
+    Smag.bool = true;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
@@ -219,8 +222,9 @@ if nargin == 0
             %     % %    %  Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     %  d'aliasing
-            Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
-            %  d'aliasing
+            Smag.kappamax_on_kappad = 0.5;
+            %Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
+            %  d'aliasing  % (better(?))
             
             % Factor in front of the additional constant dissipation
             % Set to 0 for no additional constant dissipation
