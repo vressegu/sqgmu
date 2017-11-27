@@ -3,7 +3,7 @@ function norm_tr_a_theo = fct_norm_tr_a_theo_Band_Pass_w_Slope(...
 % Compute the theoretical trace of the variance tensor a
 %
 
-warning('This function needs to be changed');
+% warning('This function needs to be changed');
 
 alpha = ( 3 - model.sigma.slope_sigma )/2;
 
@@ -31,6 +31,10 @@ if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
         / (2*pi/ dkxdky );
     norm_tr_a_theo = coef_a0_LS_temp * norm_tr_a_theo ;
 end
+% offset =  model.sigma.offset_spectrum_a_sigma
+% slope_sigma = model.sigma.slope_sigma
+% norm_tr_a_theo
+% pause(0.01)
 
 % % Parseval ( * prod(model.grid.MX) )
 % % and integrated over the space ( * prod(model.grid.MX) )

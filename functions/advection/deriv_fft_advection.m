@@ -62,7 +62,7 @@ adv1 = - fft2(wgradT);clear wgradT
 
 %% Laplacian diffusion term (from the stochastic material derivative)
 %if ~isinf(model.sigma.k_c)
-if model.sigma.a0 > 0
+if model.sigma.sto
     adv2 = fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa);
 %     if model.sigma.Smag.bool 
 %         % Coefficient coef_Smag to target a specific diffusive scale
@@ -115,8 +115,8 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             %             %adv4 = fct_heterogeneous_diff(model,ikx_aa,iky_aa,fft_b,gradb_aa);
             %             %%
             
-            % Coefficient coef_Smag to target a specific diffusive scale
-            adv4 = model.advection.Smag.coef_Smag * adv4 ;
+%             % Coefficient coef_Smag to target a specific diffusive scale
+%             adv4 = model.advection.Smag.coef_Smag * adv4 ;
             
             % Possibly add constant value
             % (but treated further below, without anti-aliasing)
@@ -132,8 +132,8 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             Lap_p_b_aa = (-k2_aa) .^ (model.advection.HV.order/4) .* fft_b;
             Lap_p_b_aa = real(ifft2(Lap_p_b_aa));
             
-            % Heterogeneous HV coefficient
-            coef_HV_aa = fct_coef_HV(model,fft_b,Lap_p_b_aa);
+%             % Heterogeneous HV coefficient
+%             coef_HV_aa = fct_coef_HV(model,fft_b,Lap_p_b_aa);
             
             % Possibly add constant value
             % (but treated further below, without anti-aliasing)
@@ -144,7 +144,8 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             %             + coef_HV_aa;
             
             % HV coef * Laplacian at the power p of buoyancy
-            adv4 = - coef_HV_aa .* Lap_p_b_aa;
+            adv4 = - model.advection.coef_diff .* Lap_p_b_aa;
+%             adv4 = - coef_HV_aa .* Lap_p_b_aa;
             
             adv4 = fft2(adv4);
             adv4 = (-k2_aa) .^ (model.advection.HV.order/4) .*  adv4;
@@ -235,20 +236,21 @@ end
         % Compute heterogeneous Laplacian diffusion term
         %
         
-        if (model.advection.Smag.bool & model.advection.Lap_visco.bool)
-%         if (model.advection.Smag.bool & model.advection.Lap_visco.bool) ...
-%                 | ( model.sigma.a0 > 0 & model.sigma.Smag.bool )
-            % Heterogeneous dissipation coefficient
-            coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
-            % coef_diff_aa = fct_coef_diff(model,fft_b,gradb);
-            
-%         elseif ( model.sigma.a0 > 0 & model.sigma.hetero_modulation)
-%             coef_diff_aa = model.sigma.a0/2 * ...
-%                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
-        else
-            coef_diff_aa = model.advection.coef_diff;
-        end
+%         if (model.advection.Smag.bool & model.advection.Lap_visco.bool)
+% %         if (model.advection.Smag.bool & model.advection.Lap_visco.bool) ...
+% %                 | ( model.sigma.a0 > 0 & model.sigma.Smag.bool )
+%             % Heterogeneous dissipation coefficient
+%             coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
+%             % coef_diff_aa = fct_coef_diff(model,fft_b,gradb);
+%             
+% %         elseif ( model.sigma.a0 > 0 & model.sigma.hetero_modulation)
+% %             coef_diff_aa = model.sigma.a0/2 * ...
+% %                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
+%         else
+%             coef_diff_aa = model.advection.coef_diff;
+%         end
                 
+        coef_diff_aa = model.advection.coef_diff;
         
         % Visco/diff coef * gradient of buoyancy
         adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);

@@ -32,11 +32,15 @@ sigma.type_spectrum = type_spectrum;
 
 if nargin == 0
     % Deterministic or random model
-    stochastic_simulation = false;
+    stochastic_simulation = true;
+    sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
     
-    % Smagorinsky-like ocntrol of dissipation
+    % Homogeneous dissipation associated with the spectrum slope
+    sigma.assoc_diff = false;
+    
+    % Smagorinsky-like control of dissipation
     sigma.Smag.bool = false;
     
     %     % Sigma computed from self similarities from the large scales
@@ -50,15 +54,19 @@ if nargin == 0
     
     if strcmp(type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux = true;
+        sigma.hetero_energy_flux = false;
         
-        % Modulation by local V L (estimated from gradient of and length scale
-        % of the velocity)
+        % Modulation by local V L (estimated from the velocity and from
+        % thegradient of the velocity)
         sigma.hetero_modulation = false;
+        
+        % Modulation by local V^2
+        sigma.hetero_modulation_V2 = false;
         
         %     %if strcmp(type_spectrum,'SelfSim_from_LS')
         %     if sigma.hetero_modulation & strcmp(type_spectrum,'SelfSim_from_LS')
-        if sigma.hetero_modulation | sigma.hetero_energy_flux
+        if sigma.hetero_modulation | sigma.hetero_energy_flux ...
+                | sigma.hetero_modulation_V2
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             % Smag.dealias_ratio_mask_LS = 1/16;
@@ -70,37 +78,13 @@ if nargin == 0
     % Force sigma to be diveregence free
     sigma.proj_free_div = true;
     
-    if (sigma.Smag.bool + sigma.hetero_modulation + ...
-            sigma.hetero_energy_flux ) > 1
-        error('These two parametrizations cannot be combined');
-    end        
+    if ( (sigma.Smag.bool + sigma.hetero_modulation + ...
+            sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1 ) ...
+            || ( (sigma.Smag.bool + sigma.assoc_diff ) > 1 )
+        error('These parametrizations cannot be combined');
+    end
     
-    % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
-    if sigma.Smag.bool
-        % Smagorinsky energy budget (dissipation epsilon)
-        % without taking into account the noise intake
-        sigma.Smag.epsi_without_noise = false;
-        
-        % Ratio between the Shanon resolution and filtering frequency used to
-        % filter the heterogenous diffusion coefficient
-        Smag.dealias_ratio_mask_LS = 1;
-        % Smag.dealias_ratio_mask_LS = 1/8;
-% %         Smag.dealias_ratio_mask_LS = 1/64;
-% % %         Smag.dealias_ratio_mask_LS = 1/8;
-% % % %         Smag.dealias_ratio_mask_LS = 1/128;
-% % % %         %         sigma.Smag.dealias_ratio_mask_LS = 1/128;
-% % % %         % %         sigma.Smag.dealias_ratio_mask_LS = 1/8;
-        
-        % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
-        % and the targeted diffusion scale
-% %        sigma.Smag.kappamax_on_kappad = 2;
-%        sigma.Smag.kappamax_on_kappad = 1;
-        sigma.Smag.kappamax_on_kappad = 0.5;
-        
-%         % Factor in front of the additional constant dissipation
-%         % Set to 0 for no additional constant dissipation
-%         sigma.Smag.weight_cst_dissip = 0;
-        
+    if sigma.Smag.bool || sigma.assoc_diff
         % Rate between the smallest wave number of the spatially-unresolved
         % (not simulated) component of sigma dBt and the largest wave
         % number of the simulation
@@ -111,8 +95,38 @@ if nargin == 0
         % number of the simulation
         sigma.kappaMaxUnresolved_on_kappaShanon = 8;
         
+    end
+    % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
+    if sigma.Smag.bool
+        % Smagorinsky energy budget (dissipation epsilon)
+        % without taking into account the noise intake
+        sigma.Smag.epsi_without_noise = false;
+        
+        % Ratio between the Shanon resolution and filtering frequency used to
+        % filter the heterogenous diffusion coefficient
+        % Smag.dealias_ratio_mask_LS = 1;
+        Smag.dealias_ratio_mask_LS = 1/8;
+        % %         Smag.dealias_ratio_mask_LS = 1/64;
+        % % %         Smag.dealias_ratio_mask_LS = 1/8;
+        % % % %         Smag.dealias_ratio_mask_LS = 1/128;
+        % % % %         %         sigma.Smag.dealias_ratio_mask_LS = 1/128;
+        % % % %         % %         sigma.Smag.dealias_ratio_mask_LS = 1/8;
+        
+        %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
+        %         % and the targeted diffusion scale
+        %         % %        sigma.Smag.kappamax_on_kappad = 2;
+        %         % sigma.Smag.kappamax_on_kappad = 1;
+        %         sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+        sigma.Smag.kappamax_on_kappad = 1 / 4;
+%         sigma.Smag.kappamax_on_kappad = 1 / ...
+%             sigma.kappaMaxUnresolved_on_kappaShanon;
+        
+        %         % Factor in front of the additional constant dissipation
+        %         % Set to 0 for no additional constant dissipation
+        %         sigma.Smag.weight_cst_dissip = 0;
+        
         % Heterogeneity of the noise
-        sigma.Smag.SS_vel_homo = true;
+        sigma.Smag.SS_vel_homo = false;
         
     end
 end
@@ -130,7 +144,7 @@ advection_duration = 3600*24*1000;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Spectrum';
+    type_data = 'Constantin_case2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -179,18 +193,18 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = false;
+    Lap_visco.bool = true;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = true;
+    HV.bool = false;
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = false;
-        
+    Smag.bool = true;
+    
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
         if Lap_visco.bool
@@ -208,8 +222,9 @@ if nargin == 0
             %     % %    %  Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     %  d'aliasing
-            Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
-            %  d'aliasing
+            Smag.kappamax_on_kappad = 0.5;
+            %Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
+            %  d'aliasing  % (better(?))
             
             % Factor in front of the additional constant dissipation
             % Set to 0 for no additional constant dissipation
@@ -262,6 +277,9 @@ plot_moments = false;
 
 % Choose to plot the dissipation by scale
 plot_epsilon_k = false;
+if sigma.hetero_energy_flux
+    plot_epsilon_k = true;
+end
 
 % Plot dissipations terms
 plot_dissip = false;
@@ -284,23 +302,23 @@ dirichlet = false;
 
 % Variance tensor a_H
 if stochastic_simulation
-    switch dynamics
-        case 'SQG'
-            sigma.k_c = 1/(3e2); % 1/(300 meters)
-        case '2D'
-            if strcmp(type_spectrum , 'SelfSim_from_LS')
-                sigma.k_c = 0;
-            else
+    if strcmp(type_spectrum , 'SelfSim_from_LS')
+        sigma.k_c = 0;
+    else
+        switch dynamics
+            case 'SQG'
+                sigma.k_c = 1/(3e2); % 1/(300 meters)
+            case '2D'
                 error(...
                     'The turbulence 2D is not stable under the action of noise');
                 %             k_c = 1/(eps); % 1/(100 meters)
-            end
-        otherwise
-            error('Unknown type of dynamics');
+            otherwise
+                error('Unknown type of dynamics');
+        end
+        % a_H is calculated latter in the code using
+        % a_H = 2 * f_0 / k_c^2
+        % where f_0 is the Corilis frequency
     end
-    % a_H is calculated latter in the code using
-    % a_H = 2 * f_0 / k_c^2
-    % where f_0 is the Corilis frequency
 else
     % If the simulation is deterministic, a_H = 0 and only one simulation
     % is performed
@@ -320,6 +338,8 @@ switch dynamics
 end
 if  strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
+elseif strcmp(type_spectrum,'SelfSim_from_LS')
+    sigma.slope_sigma = nan;
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
