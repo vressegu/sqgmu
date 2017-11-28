@@ -16,7 +16,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Type of spectrum for sigma dBt
-%type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
 %type_spectrum = 'Low_Pass_w_Slope';
 % Spectrum cst for k<km ans slope for k>km
 % type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -25,7 +25,7 @@ dynamics = 'SQG';
 % ~ k2 for k<km ans slope for k>km
 % type_spectrum = 'BB';
 % type_spectrum = 'Bidouille';
-type_spectrum = 'SelfSim_from_LS';
+% type_spectrum = 'SelfSim_from_LS';
 %  Sigma computed from self similarities from the large scales
 sigma.type_spectrum = type_spectrum;
 
@@ -41,7 +41,7 @@ if nargin == 0
     sigma.assoc_diff = false;
     
     % Smagorinsky-like control of dissipation
-    sigma.Smag.bool = false;
+    sigma.Smag.bool = true;
     
     %     % Sigma computed from self similarities from the large scales
     %     sigma.SelfSim_from_LS.bool = true;
@@ -52,7 +52,7 @@ if nargin == 0
     %         sigma.SelfSim_from_LS.spectrum = 'abs_diff';
     %     end
     
-    if strcmp(type_spectrum,'SelfSim_from_LS')
+    % if strcmp(type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
         sigma.hetero_energy_flux = false;
         
@@ -69,11 +69,11 @@ if nargin == 0
                 | sigma.hetero_modulation_V2
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
-            % Smag.dealias_ratio_mask_LS = 1/16;
             Smag.dealias_ratio_mask_LS = 1/8;
+            % Smag.dealias_ratio_mask_LS = 1/4;
             
         end
-    end
+    % end
     
     % Force sigma to be diveregence free
     sigma.proj_free_div = true;
@@ -104,22 +104,18 @@ if nargin == 0
         
         % Ratio between the Shanon resolution and filtering frequency used to
         % filter the heterogenous diffusion coefficient
-        % Smag.dealias_ratio_mask_LS = 1;
         Smag.dealias_ratio_mask_LS = 1/8;
-        % %         Smag.dealias_ratio_mask_LS = 1/64;
-        % % %         Smag.dealias_ratio_mask_LS = 1/8;
-        % % % %         Smag.dealias_ratio_mask_LS = 1/128;
-        % % % %         %         sigma.Smag.dealias_ratio_mask_LS = 1/128;
-        % % % %         % %         sigma.Smag.dealias_ratio_mask_LS = 1/8;
+        % Smag.dealias_ratio_mask_LS = 1/4;
+        % Smag.dealias_ratio_mask_LS = 1/2;
         
         %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
         %         % and the targeted diffusion scale
         %         % %        sigma.Smag.kappamax_on_kappad = 2;
         %         % sigma.Smag.kappamax_on_kappad = 1;
-        %         sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
-        sigma.Smag.kappamax_on_kappad = 1 / 4;
-%         sigma.Smag.kappamax_on_kappad = 1 / ...
-%             sigma.kappaMaxUnresolved_on_kappaShanon;
+                sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+%         sigma.Smag.kappamax_on_kappad = 1 / 4;
+% %         sigma.Smag.kappamax_on_kappad = 1 / ...
+% %             sigma.kappaMaxUnresolved_on_kappaShanon;
         
         %         % Factor in front of the additional constant dissipation
         %         % Set to 0 for no additional constant dissipation
@@ -128,6 +124,12 @@ if nargin == 0
         % Heterogeneity of the noise
         sigma.Smag.SS_vel_homo = false;
         
+    end
+    
+    % Desactivate the noise
+    sigma.no_noise = false;
+    if sigma.no_noise
+        warning('There isno noise here');
     end
 end
 
@@ -138,8 +140,8 @@ N_ech=1;
 % ( N_ech is automatically set to 1 in deterministic simulations )
 
 % Duration of the simulation (in seconds)
-%advection_duration = 3600*24*30;
-advection_duration = 3600*24*1000;
+advection_duration = 3600*24*30;
+%advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
@@ -160,9 +162,9 @@ if nargin == 0
     
     % Resolution
     %resolution = 64;
-    % resolution = 128;
+    resolution = 128;
     %resolution = 256;
-    resolution = 512;
+    % resolution = 512;
     %resolution = 1024;
     % resolution = 2048;
     
@@ -172,7 +174,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = true;
+    forcing = false;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -193,7 +195,7 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = true;
+    Lap_visco.bool = false;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
@@ -203,7 +205,7 @@ if nargin == 0
     HV.bool = false;
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = true;
+    Smag.bool = false;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
@@ -344,8 +346,10 @@ end
 
 % Rate between the smallest and the largest wave number of sigma dBt
 if strcmp(type_spectrum , 'SelfSim_from_LS')
-    sigma.kappamin_on_kappamax = 1/2;
+    % sigma.kappamin_on_kappamax = 1/2;
+    sigma.kappamin_on_kappamax = 1/4;
     % sigma.kappamin_on_kappamax = 1/8;
+    
     sigma.kappaLS_on_kappamax = 1/8;
 else
     %kappamin_on_kappamax = 1/32;
@@ -374,8 +378,10 @@ model = fct_physical_param(dynamics);
 
 % Gather parameters in the structure model
 model.sigma = sigma;
-eval(['model.sigma.fct_tr_a = @(m,k1,k2,alpha) fct_norm_tr_a_theo_' ...
-    model.sigma.type_spectrum '(m,k1,k2,alpha);']);
+eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
+    model.sigma.type_spectrum '(m,k1,k2);']);
+% eval(['model.sigma.fct_tr_a = @(m,k1,k2,alpha) fct_norm_tr_a_theo_' ...
+%     model.sigma.type_spectrum '(m,k1,k2,alpha);']);
 % model.sigma.slope_sigma = slope_sigma;
 % model.sigma.kappamin_on_kappamax = kappamin_on_kappamax;
 if strcmp(type_data,'Spectrum')

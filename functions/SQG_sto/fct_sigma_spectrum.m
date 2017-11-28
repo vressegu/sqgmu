@@ -194,8 +194,9 @@ trace_a_on_dt = 1/prod(model.grid.MX) * sum(ft_sigma(:));
 
 alpha = ( 3 - model.sigma.slope_sigma )/2;
 eval(['norm_tr_a_theo = fct_norm_tr_a_theo_' ...
-    model.sigma.type_spectrum '(model,k0,k_inf,alpha);']);
-%norm_tr_a_theo = fct_norm_tr_a_theo(model,k0,k_inf,alpha);
+    model.sigma.type_spectrum '(model,k0,k_inf);']);
+%     model.sigma.type_spectrum '(model,k0,k_inf,alpha);']);
+% %norm_tr_a_theo = fct_norm_tr_a_theo(model,k0,k_inf,alpha);
 
 norm_tr_a_theo/trace_a_on_dt
 % d_kappa
