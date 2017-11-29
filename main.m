@@ -16,7 +16,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Type of spectrum for sigma dBt
-type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+% type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
 %type_spectrum = 'Low_Pass_w_Slope';
 % Spectrum cst for k<km ans slope for k>km
 % type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -25,7 +25,7 @@ type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
 % ~ k2 for k<km ans slope for k>km
 % type_spectrum = 'BB';
 % type_spectrum = 'Bidouille';
-% type_spectrum = 'SelfSim_from_LS';
+type_spectrum = 'SelfSim_from_LS';
 %  Sigma computed from self similarities from the large scales
 sigma.type_spectrum = type_spectrum;
 

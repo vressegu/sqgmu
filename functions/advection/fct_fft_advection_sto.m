@@ -811,6 +811,29 @@ while time < model.advection.advection_duration
         
         % Maximum of the variance tensor
         model.sigma.a0 = bsxfun( @times, model.sigma.a0 , coef_modulation );
+        %%
+        if model.sigma.Smag.bool
+            if model.sigma.a0_SS > eps
+                if model.sigma.Smag.epsi_without_noise
+                    model.sigma.a0 = model.sigma.a0 ...
+                        / (model.sigma.a0_SS + model.sigma.a0_LS);
+                else
+                    % Taking into account the noise in the energy budget
+                    model.sigma.a0 = model.sigma.a0 / model.sigma.a0_SS;
+                end
+            elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+                % The absolute diffusivity diagnosed from the large-scale
+                % kinematic spectrum is too weak. It suggests that there
+                % are few small scales and no subgrid terms is needed.
+                % Moreover, setting subgris terms to zero prevent numerical
+                % errors.
+                model.sigma.a0 = 0;
+            else
+                error('Unknow case');
+            end
+            
+            %%
+        end
         model.sigma.a0 = max(model.sigma.a0(:)) ;
         %model.sigma.a0 = model.sigma.a0 * max(coef_modulation(:))
     end
