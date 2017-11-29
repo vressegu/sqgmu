@@ -16,7 +16,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Type of spectrum for sigma dBt
-type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+% type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
 %type_spectrum = 'Low_Pass_w_Slope';
 % Spectrum cst for k<km ans slope for k>km
 % type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -25,7 +25,7 @@ type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
 % ~ k2 for k<km ans slope for k>km
 % type_spectrum = 'BB';
 % type_spectrum = 'Bidouille';
-% type_spectrum = 'SelfSim_from_LS';
+type_spectrum = 'SelfSim_from_LS';
 %  Sigma computed from self similarities from the large scales
 sigma.type_spectrum = type_spectrum;
 
@@ -113,6 +113,7 @@ if nargin == 0
         %         % and the targeted diffusion scale
         %         % %        sigma.Smag.kappamax_on_kappad = 2;
         %         % sigma.Smag.kappamax_on_kappad = 1;
+        
                sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
        % sigma.Smag.kappamax_on_kappad = 1 / 4;
 %        sigma.Smag.kappamax_on_kappad = 1 / ...
@@ -279,13 +280,13 @@ cov_and_abs_diff = false;
 plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = false;
+plot_epsilon_k = true;
 if sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
 
 % Plot dissipations terms
-plot_dissip = false;
+plot_dissip = true;
 
 % Begin simulation from a precomputed field?
 use_save = false;
@@ -341,14 +342,14 @@ switch dynamics
 end
 if  strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
-elseif strcmp(type_spectrum,'SelfSim_from_LS')
-    sigma.slope_sigma = nan;
+% elseif strcmp(type_spectrum,'SelfSim_from_LS')
+%     sigma.slope_sigma = nan;
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
 if strcmp(type_spectrum , 'SelfSim_from_LS')
-    % sigma.kappamin_on_kappamax = 1/2;
-    sigma.kappamin_on_kappamax = 1/4;
+    sigma.kappamin_on_kappamax = 1/2;
+    % sigma.kappamin_on_kappamax = 1/4;
     % sigma.kappamin_on_kappamax = 1/8;
     
     sigma.kappaLS_on_kappamax = 1/8;
@@ -358,6 +359,8 @@ else
     % sigma.kappamin_on_kappamax = 1/128;
     %         sigma.slope_sigma = - 5;
     % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+    
+    sigma.kappaLS_on_kappamax = 1/8;
 end
 
 % Rate between the largest wave number of sigma dBt and the largest wave

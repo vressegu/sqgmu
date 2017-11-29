@@ -58,8 +58,63 @@ else % Stochastic case
         model.sigma.a0_on_dt = model.sigma.a0 / dt;
         % Diffusion coefficient
         model.advection.coef_diff = 1/2 * model.sigma.a0;
-    end
         
+        %%
+        if model.sigma.assoc_diff | model.sigma.Smag.bool
+            % warning('deal with slope when there are several realizations')
+            model.sigma.a0_SS = ...
+                1/2 * fct_norm_tr_a_theo_Band_Pass_w_Slope(...
+                model, ...
+                model.sigma.kappaMinUnresolved_on_kappaShanon ...
+                *(pi/sqrt(prod(model.grid.dX))), ...
+                model.sigma.kappaMaxUnresolved_on_kappaShanon ...
+                *(pi/sqrt(prod(model.grid.dX))));
+            model.sigma.a0_LS = a0 ;
+            model.sigma.a0 = a0 + model.sigma.a0_SS;
+            model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
+            % Diffusion coefficient
+            model.advection.coef_diff = 1/2 * model.sigma.a0;
+            
+            %%
+            if model.sigma.Smag.bool
+                if model.sigma.a0_SS > eps
+                    if model.sigma.Smag.epsi_without_noise
+                        sigma_on_sq_dt = ...
+                            sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
+                            * sigma_on_sq_dt;
+                        %                             model.advection.coef_diff = 1;
+                    else
+                        sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
+                            * sigma_on_sq_dt;
+                        %                             model.advection.coef_diff = 1 + ...
+                        %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
+                    end
+                elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+                    % The absolute diffusivity diagnosed from the large-scale
+                    % kinematic spectrum is too weak. It suggests that there
+                    % are few small scales and no subgrid terms is needed.
+                    % Moreover, setting subgris terms to zero prevent numerical
+                    % errors.
+                    sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
+                    model.advection.coef_diff = 0;
+                else
+                    error('Unknow case');
+                end
+            end
+            %%
+        end
+        
+        %%
+        
+    elseif model.sigma.Smag.bool | model.sigma.assoc_diff
+        model.sigma.a0 = model.sigma.a0_LS + model.sigma.a0_SS;
+    else
+        % Variance tensor
+        model.sigma.a0 = 2 * model.physical_constant.f0 ...
+            / model.sigma.k_c^2;
+        
+    end
+    
     fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
     clear dBt_C_on_sq_dt
     
@@ -72,16 +127,55 @@ else % Stochastic case
         coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
         % Coefficient coef_Smag to target a specific diffusive scale
         coef_diff_aa = model.sigma.Smag.coef_Smag * coef_diff_aa ;
+        
         if model.sigma.Smag.SS_vel_homo
             coef_modulation = mean(coef_diff_aa(:));
         else
             coef_modulation = coef_diff_aa;
         end
-    elseif model.sigma.hetero_modulation
+        
+        if model.sigma.a0_SS > eps
+            if model.sigma.Smag.epsi_without_noise
+                model.advection.coef_diff = 1;
+            else
+                % Taking into account the noise in the energy budget
+                model.advection.coef_diff = ...
+                    (1 + model.sigma.a0_LS / model.sigma.a0_SS) ;
+            end
+        elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+            % The absolute diffusivity diagnosed from the large-scale
+            % kinematic spectrum is too weak. It suggests that there
+            % are few small scales and no subgrid terms is needed.
+            % Moreover, setting subgris terms to zero prevent numerical
+            % errors.
+            model.advection.coef_diff = 0;
+        else
+            error('Unknow case');
+        end
+        model.advection.coef_diff = ...
+            model.advection.coef_diff * coef_modulation;
+        
+        
+    elseif model.sigma.hetero_modulation | ...
+            model.sigma.hetero_modulation_V2
         coef_modulation = ...
             fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
+    elseif model.sigma.hetero_energy_flux
+        coef_modulation = ...
+            fct_epsilon_k_onLine(model,fft_b,fft_w);
     else
         coef_modulation = 1;
+    end
+    
+    if model.sigma.assoc_diff
+        %             model.sigma.a0_SS = coef_modulation * model.sigma.a0_SS;
+        %             model.sigma.a0_LS = coef_modulation * model.sigma.a0_LS ;
+        model.sigma.a0 = model.sigma.a0_LS + model.sigma.a0_SS;
+        model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
+        % Diffusion coefficient
+        model.advection.coef_diff = coef_modulation * ...
+            1/2 * model.sigma.a0;
+        % model.advection.coef_diff = 1/2 * model.sigma.a0;
     end
     
     % Heterogeneous small-scale velocity
@@ -145,9 +239,9 @@ else % Stochastic case
         end
         
         % Estimation of the noise intake
-%         estim_noise_intake = ...
-%             1/(model.sigma.a0_SS/model.sigma.a0_LS + 1 ) ...
-%             * turb_dissip;
+        %         estim_noise_intake = ...
+        %             1/(model.sigma.a0_SS/model.sigma.a0_LS + 1 ) ...
+        %             * turb_dissip;
         if model.sigma.Smag.epsi_without_noise
             estim_noise_intake = model.sigma.a0_LS ...
                 / (model.sigma.a0_LS + model.sigma.a0_SS) ...
@@ -205,7 +299,25 @@ else % Stochastic case
     end
 end
 
-%% Hyperviscosity
+%% Deterministic subgrid model
+
+% Specify determinstic heterogeneous subgrid model
+if model.advection.Smag.bool
+    if model.advection.Lap_visco.bool
+        % Heterogeneous dissipation coefficient
+        model.advection.coef_diff = fct_coef_diff(model,fft_b);
+        % Coefficient coef_Smag to target a specific diffusive scale
+        model.advection.coef_diff = ...
+            model.advection.Smag.coef_Smag * ...
+            model.advection.coef_diff ;
+    elseif model.advection.HV.bool
+        % Heterogeneous HV coefficient
+        model.advection.coef_diff = ...
+            fct_coef_HV(model,fft_b);
+    end
+    % Maximum dissipation coefficient
+    model.advection.HV.maxVal = max(model.advection.coef_diff(:));
+end
 
 if model.advection.Smag.bool
     %     % Stable k2

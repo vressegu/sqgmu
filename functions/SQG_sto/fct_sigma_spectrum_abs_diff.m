@@ -21,14 +21,15 @@ ft_w2=sum(ft_w2,3);
 %     ft2=sum(ft2,3);
 % end
 
-switch model.dynamics
-    case 'SQG'
-        slope_ref = -5/3;
-    case '2D'
-        slope_ref = -3;
-    otherwise
-        error('Unknown type of dynamics');
-end
+% switch model.dynamics
+%     case 'SQG'
+%         slope_ref = -5/3;
+%     case '2D'
+%         slope_ref = -3;
+%     otherwise
+%         error('Unknown type of dynamics');
+% end
+slope_ref = model.sigma.slope_sigma;
 slope_ref_a = (slope_ref-3)/2;
 
 % Get parameters
