@@ -1,5 +1,5 @@
 function main(stochastic_simulation,type_data,resolution,forcing, ...
-    Lap_visco,HV,Smag)
+    sigma,Lap_visco,HV,Smag)
 % Main function to Launch thte code
 %
 
@@ -15,44 +15,46 @@ end
 dynamics = 'SQG';
 %dynamics = '2D';
 
-% Type of spectrum for sigma dBt
-% type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
-%type_spectrum = 'Low_Pass_w_Slope';
-% Spectrum cst for k<km ans slope for k>km
-% type_spectrum = 'Low_Pass_streamFct_w_Slope';
-% Matern covariance for the streamfunction
-% spectrum = cst. * k2 .* ( 1 + (k/km)^2 )^slope )
-% ~ k2 for k<km ans slope for k>km
-% type_spectrum = 'BB';
-% type_spectrum = 'Bidouille';
-type_spectrum = 'SelfSim_from_LS';
-%  Sigma computed from self similarities from the large scales
-sigma.type_spectrum = type_spectrum;
-
 
 if nargin == 0
+    
     % Deterministic or random model
-    stochastic_simulation = true;
+    stochastic_simulation = false;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
     
-    % Homogeneous dissipation associated with the spectrum slope
-    sigma.assoc_diff = false;
-    
-    % Smagorinsky-like control of dissipation
-    sigma.Smag.bool = true;
-    
-    %     % Sigma computed from self similarities from the large scales
-    %     sigma.SelfSim_from_LS.bool = true;
-    
-    %     if sigma.SelfSim_from_LS.bool
-    %         % Sigma computed from a energy of absolute diffusivity spectrum
-    %         % sigma.SelfSim_from_LS.spectrum = 'energy';
-    %         sigma.SelfSim_from_LS.spectrum = 'abs_diff';
-    %     end
-    
-    % if strcmp(type_spectrum,'SelfSim_from_LS')
+    if sigma.sto
+        % Type of spectrum for sigma dBt
+        % type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+        %type_spectrum = 'Low_Pass_w_Slope';
+        % Spectrum cst for k<km ans slope for k>km
+        % type_spectrum = 'Low_Pass_streamFct_w_Slope';
+        % Matern covariance for the streamfunction
+        % spectrum = cst. * k2 .* ( 1 + (k/km)^2 )^slope )
+        % ~ k2 for k<km ans slope for k>km
+        % type_spectrum = 'BB';
+        % type_spectrum = 'Bidouille';
+        sigma.type_spectrum = 'SelfSim_from_LS';
+        %  Sigma computed from self similarities from the large scales
+        % sigma.type_spectrum = type_spectrum;
+        
+        % Homogeneous dissipation associated with the spectrum slope
+        sigma.assoc_diff = false;
+        
+        % Smagorinsky-like control of dissipation
+        sigma.Smag.bool = false;
+        
+        %     % Sigma computed from self similarities from the large scales
+        %     sigma.SelfSim_from_LS.bool = true;
+        
+        %     if sigma.SelfSim_from_LS.bool
+        %         % Sigma computed from a energy of absolute diffusivity spectrum
+        %         % sigma.SelfSim_from_LS.spectrum = 'energy';
+        %         sigma.SelfSim_from_LS.spectrum = 'abs_diff';
+        %     end
+        
+        % if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
         sigma.hetero_energy_flux = false;
         
@@ -63,8 +65,8 @@ if nargin == 0
         % Modulation by local V^2
         sigma.hetero_modulation_V2 = false;
         
-        %     %if strcmp(type_spectrum,'SelfSim_from_LS')
-        %     if sigma.hetero_modulation & strcmp(type_spectrum,'SelfSim_from_LS')
+        %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
+        %     if sigma.hetero_modulation & strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         if sigma.hetero_modulation | sigma.hetero_energy_flux ...
                 | sigma.hetero_modulation_V2
             % Ratio between the Shanon resolution and filtering frequency used to
@@ -73,65 +75,67 @@ if nargin == 0
             % Smag.dealias_ratio_mask_LS = 1/4;
             
         end
-    % end
-    
-    % Force sigma to be diveregence free
-    sigma.proj_free_div = true;
-    
-    if ( (sigma.Smag.bool + sigma.hetero_modulation + ...
-            sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1 ) ...
-            || ( (sigma.Smag.bool + sigma.assoc_diff ) > 1 )
-        error('These parametrizations cannot be combined');
-    end
-    
-    if sigma.Smag.bool || sigma.assoc_diff
-        % Rate between the smallest wave number of the spatially-unresolved
-        % (not simulated) component of sigma dBt and the largest wave
-        % number of the simulation
-        sigma.kappaMinUnresolved_on_kappaShanon = 1;
+        % end
         
-        % Rate between the largest wave number of the spatially-unresolved
-        % (not simulated) component of sigma dBt and the largest wave
-        % number of the simulation
-        sigma.kappaMaxUnresolved_on_kappaShanon = 8;
+        % Force sigma to be diveregence free
+        sigma.proj_free_div = true;
         
-    end
-    % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
-    if sigma.Smag.bool
-        % Smagorinsky energy budget (dissipation epsilon)
-        % without taking into account the noise intake
-        sigma.Smag.epsi_without_noise = false;
+        if ( (sigma.Smag.bool + sigma.hetero_modulation + ...
+                sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1 ) ...
+                || ( (sigma.Smag.bool + sigma.assoc_diff ) > 1 )
+            error('These parametrizations cannot be combined');
+        end
         
-        % Ratio between the Shanon resolution and filtering frequency used to
-        % filter the heterogenous diffusion coefficient
-        % Smag.dealias_ratio_mask_LS = 1;
-        % Smag.dealias_ratio_mask_LS = 1/8;
-        % Smag.dealias_ratio_mask_LS = 1/4;
-        Smag.dealias_ratio_mask_LS = 1/2;
+        if sigma.Smag.bool || sigma.assoc_diff
+            % Rate between the smallest wave number of the spatially-unresolved
+            % (not simulated) component of sigma dBt and the largest wave
+            % number of the simulation
+            sigma.kappaMinUnresolved_on_kappaShanon = 1;
+            
+            % Rate between the largest wave number of the spatially-unresolved
+            % (not simulated) component of sigma dBt and the largest wave
+            % number of the simulation
+            sigma.kappaMaxUnresolved_on_kappaShanon = 8;
+            
+        end
+        % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
+        if sigma.Smag.bool
+            % Smagorinsky energy budget (dissipation epsilon)
+            % without taking into account the noise intake
+            sigma.Smag.epsi_without_noise = false;
+            
+            % Ratio between the Shanon resolution and filtering frequency used to
+            % filter the heterogenous diffusion coefficient
+            % Smag.dealias_ratio_mask_LS = 1;
+            % Smag.dealias_ratio_mask_LS = 1/8;
+            % Smag.dealias_ratio_mask_LS = 1/4;
+            %Smag.dealias_ratio_mask_LS = 1/2;
+            Smag.dealias_ratio_mask_LS = 1;
+            
+            %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
+            %         % and the targeted diffusion scale
+            %         % %        sigma.Smag.kappamax_on_kappad = 2;
+            %         % sigma.Smag.kappamax_on_kappad = 1;
+            
+            % sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+            % sigma.Smag.kappamax_on_kappad = 1 / 4;
+            sigma.Smag.kappamax_on_kappad = 1 / ...
+                sigma.kappaMaxUnresolved_on_kappaShanon;
+            
+            %         % Factor in front of the additional constant dissipation
+            %         % Set to 0 for no additional constant dissipation
+            %         sigma.Smag.weight_cst_dissip = 0;
+            
+            % Heterogeneity of the noise
+            sigma.Smag.SS_vel_homo = false;
+            
+        end
         
-        %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
-        %         % and the targeted diffusion scale
-        %         % %        sigma.Smag.kappamax_on_kappad = 2;
-        %         % sigma.Smag.kappamax_on_kappad = 1;
-        
-               sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
-       % sigma.Smag.kappamax_on_kappad = 1 / 4;
-%        sigma.Smag.kappamax_on_kappad = 1 / ...
-%            sigma.kappaMaxUnresolved_on_kappaShanon;
-        
-        %         % Factor in front of the additional constant dissipation
-        %         % Set to 0 for no additional constant dissipation
-        %         sigma.Smag.weight_cst_dissip = 0;
-        
-        % Heterogeneity of the noise
-        sigma.Smag.SS_vel_homo = false;
-        
-    end
-    
-    % Desactivate the noise
-    sigma.no_noise = false;
-    if sigma.no_noise
-        warning('There isno noise here');
+        % Desactivate the noise
+        sigma.no_noise = false;
+        if sigma.no_noise
+            warning('There isno noise here');
+        end
     end
 end
 
@@ -195,9 +199,12 @@ ampli_forcing = 10;
 freq_f = [3 2];
 % freq_f = [0 1];
 
+
+%% Deterministic subgrid tensor
+
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = false;
+    Lap_visco.bool = true;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
@@ -207,7 +214,7 @@ if nargin == 0
     HV.bool = false;
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = false;
+    Smag.bool = true;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
@@ -306,7 +313,7 @@ dirichlet = false;
 
 % Variance tensor a_H
 if stochastic_simulation
-    if strcmp(type_spectrum , 'SelfSim_from_LS')
+    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
         sigma.k_c = 0;
     else
         switch dynamics
@@ -342,12 +349,12 @@ switch dynamics
 end
 if  strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
-% elseif strcmp(type_spectrum,'SelfSim_from_LS')
-%     sigma.slope_sigma = nan;
+    % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
+    %     sigma.slope_sigma = nan;
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
-if strcmp(type_spectrum , 'SelfSim_from_LS')
+if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
     sigma.kappamin_on_kappamax = 1/2;
     % sigma.kappamin_on_kappamax = 1/4;
     % sigma.kappamin_on_kappamax = 1/8;

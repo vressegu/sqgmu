@@ -701,12 +701,12 @@ while time < model.advection.advection_duration
                             sigma_on_sq_dt = ...
                                 sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
                                 * sigma_on_sq_dt;
-%                             model.advection.coef_diff = 1;
+                            %                             model.advection.coef_diff = 1;
                         else
                             sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
                                 * sigma_on_sq_dt;
-%                             model.advection.coef_diff = 1 + ...
-%                                 model.sigma.a0_LS / model.sigma.a0_SS ;
+                            %                             model.advection.coef_diff = 1 + ...
+                            %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
                         end
                     elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
                         % The absolute diffusivity diagnosed from the large-scale
@@ -900,7 +900,14 @@ while time < model.advection.advection_duration
     if any(iii(:))
         iii=any(any(any(iii,3),2),1);
         if all(iii(:))
-            error('the simulation has blown up');
+            if model.plots
+                error('The simulation has blown up');
+            else
+                warning('One simulation has blown up');
+                fprintf('Folder of the simulation : \n');
+                fprintf([ model.folder.folder_simu ' \n']);
+                return;
+            end
         end
         nb_dead_pcl = sum(iii);
         warning([ num2str(nb_dead_pcl) ' particle(s) on ' num2str(N_ech) ...
@@ -1042,30 +1049,33 @@ while time < model.advection.advection_duration
                 %    model.advection.coef_diff = 1/2 * model.sigma.a0;
                 %        warning('The CFL should be changed');
             end
+            
+            
+            if model.sigma.sto & ...
+                    ( model.sigma.Smag.bool | model.sigma.assoc_diff )
+                slope_sigma=model.sigma.slope_sigma
+                a0_LS=model.sigma.a0_LS
+                a0_SS=model.sigma.a0_SS
+            end
+            
+            if model.advection.cov_and_abs_diff
+                abs_diff = sum(cov_w(t_ref_cov:end))*model.advection.dt_adv;
+                figure(36)
+                plot(model.advection.dt_adv*(0:(N_t-1))/3600/24,cov_w);
+                hold on;
+                plot(t_ref_cov*[1 1]*model.advection.dt_adv/3600/24,...
+                    max(abs(cov_w(~isnan(cov_w))))*[-1 1],'r');
+                hold off
+            end
+            
+            % Dissipation by scale
+            if model.advection.plot_epsilon_k
+                fct_plot_epsilon_k(model,fft_b,day);
+                % fct_plot_epsilon_k(model,fft_b,int_epsilon,day);
+            end
+            dt = model.advection.dt_adv
+            
         end
-        if model.sigma.sto & ...
-                ( model.sigma.Smag.bool | model.sigma.assoc_diff )
-            slope_sigma=model.sigma.slope_sigma
-            a0_LS=model.sigma.a0_LS
-            a0_SS=model.sigma.a0_SS
-        end
-        
-        if model.advection.cov_and_abs_diff
-            abs_diff = sum(cov_w(t_ref_cov:end))*model.advection.dt_adv;
-            figure(36)
-            plot(model.advection.dt_adv*(0:(N_t-1))/3600/24,cov_w);
-            hold on;
-            plot(t_ref_cov*[1 1]*model.advection.dt_adv/3600/24,...
-                max(abs(cov_w(~isnan(cov_w))))*[-1 1],'r');
-            hold off
-        end
-        
-        % Dissipation by scale
-        if model.advection.plot_epsilon_k
-            fct_plot_epsilon_k(model,fft_b,day);
-            % fct_plot_epsilon_k(model,fft_b,int_epsilon,day);
-        end
-        dt = model.advection.dt_adv
         
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
