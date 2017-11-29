@@ -112,8 +112,8 @@ if nargin == 0
         %         % and the targeted diffusion scale
         %         % %        sigma.Smag.kappamax_on_kappad = 2;
         %         % sigma.Smag.kappamax_on_kappad = 1;
-                sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
-%         sigma.Smag.kappamax_on_kappad = 1 / 4;
+              sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+       % sigma.Smag.kappamax_on_kappad = 1 / 4;
 % %         sigma.Smag.kappamax_on_kappad = 1 / ...
 % %             sigma.kappaMaxUnresolved_on_kappaShanon;
         
@@ -278,13 +278,13 @@ cov_and_abs_diff = false;
 plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = false;
+plot_epsilon_k = true;
 if sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
 
 % Plot dissipations terms
-plot_dissip = false;
+plot_dissip = true;
 
 % Begin simulation from a precomputed field?
 use_save = false;
@@ -340,14 +340,14 @@ switch dynamics
 end
 if  strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
-elseif strcmp(type_spectrum,'SelfSim_from_LS')
-    sigma.slope_sigma = nan;
+% elseif strcmp(type_spectrum,'SelfSim_from_LS')
+%     sigma.slope_sigma = nan;
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
 if strcmp(type_spectrum , 'SelfSim_from_LS')
-    % sigma.kappamin_on_kappamax = 1/2;
-    sigma.kappamin_on_kappamax = 1/4;
+    sigma.kappamin_on_kappamax = 1/2;
+    % sigma.kappamin_on_kappamax = 1/4;
     % sigma.kappamin_on_kappamax = 1/8;
     
     sigma.kappaLS_on_kappamax = 1/8;
@@ -357,6 +357,8 @@ else
     % sigma.kappamin_on_kappamax = 1/128;
     %         sigma.slope_sigma = - 5;
     % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+    
+    sigma.kappaLS_on_kappamax = 1/8;
 end
 
 % Rate between the largest wave number of sigma dBt and the largest wave

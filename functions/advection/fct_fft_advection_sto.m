@@ -642,6 +642,9 @@ if model.plots
     fprintf(['Deterministic subgrid tensor : ' str_subgridtensor ' \n']);
     fprintf(['Model type : ' add_subgrid_deter ' \n']);
     fprintf(['Details : ' subgrid_details ' \n']);
+    if model.sigma.sto
+        fprintf(['type spectrum sigma :' model.sigma.type_spectrum ' \n']);
+    end
 end
 
 time = 0;
