@@ -104,18 +104,19 @@ if nargin == 0
         
         % Ratio between the Shanon resolution and filtering frequency used to
         % filter the heterogenous diffusion coefficient
-        Smag.dealias_ratio_mask_LS = 1/8;
+        % Smag.dealias_ratio_mask_LS = 1;
+        % Smag.dealias_ratio_mask_LS = 1/8;
         % Smag.dealias_ratio_mask_LS = 1/4;
-        % Smag.dealias_ratio_mask_LS = 1/2;
+        Smag.dealias_ratio_mask_LS = 1/2;
         
         %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
         %         % and the targeted diffusion scale
         %         % %        sigma.Smag.kappamax_on_kappad = 2;
         %         % sigma.Smag.kappamax_on_kappad = 1;
-                sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
-%         sigma.Smag.kappamax_on_kappad = 1 / 4;
-% %         sigma.Smag.kappamax_on_kappad = 1 / ...
-% %             sigma.kappaMaxUnresolved_on_kappaShanon;
+               sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+       % sigma.Smag.kappamax_on_kappad = 1 / 4;
+%        sigma.Smag.kappamax_on_kappad = 1 / ...
+%            sigma.kappaMaxUnresolved_on_kappaShanon;
         
         %         % Factor in front of the additional constant dissipation
         %         % Set to 0 for no additional constant dissipation
