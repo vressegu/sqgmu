@@ -9,11 +9,6 @@ init;
 dynamics = 'SQG';
 % dynamics = '2D';
 
-% Deterministic or random model
-stochastic_simulation = false;
-% Usual SQG model (stochastic_simulation=false)
-% or SQG_MU model (stochastic_simulation=true)
-
 % Type of initial condtions
 type_data ='Constantin_case2' ;
 % 'Vortices' : 2 large anticyclones and 2 large cyclones

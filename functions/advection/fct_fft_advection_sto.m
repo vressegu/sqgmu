@@ -676,8 +676,8 @@ while time < model.advection.advection_duration
             slope_sigma = nan(1,N_ech);
             offset_spectrum_a_sigma = nan(1,N_ech);
             km_LS = nan(1,N_ech);
-            % for sampl=1:N_ech
-            parfor sampl=1:N_ech
+            for sampl=1:N_ech
+            % parfor sampl=1:N_ech
                 % [sigma(:,:,:,sampl), ~, tr_a(sampl) ] ...
                 [ sigma(:,:,:,sampl), ~, tr_a(sampl) ,....
                     slope_sigma(sampl),...
@@ -899,8 +899,8 @@ while time < model.advection.advection_duration
         fft_b = RK4_fft_advection(model,fft_b, w);
     else
         model_temp = cell(N_ech,1);
-        % for sampl=1:N_ech
-        parfor sampl=1:N_ech
+        for sampl=1:N_ech
+        % parfor sampl=1:N_ech
             % Euler scheme
             model_temp{sampl} = model;
             if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
