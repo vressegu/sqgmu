@@ -26,7 +26,7 @@ if model.sigma.sto
     % Further constraint on dt due to the use of a (simple) Euler scheme
     % for the SPDE
 end
-if model.advection.Smag.spatial_scheme
+if model.advection.Smag.bool & model.advection.Smag.spatial_scheme
     dt=dt/2;
 end
 

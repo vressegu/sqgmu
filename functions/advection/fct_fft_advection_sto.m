@@ -4,7 +4,7 @@ function [fft_b, model] = fct_fft_advection_sto(model,  fft_b)
 
 %% Folder to save plots and files
 if model.advection.HV.bool
-    add_subgrid_deter = '_HV';
+    add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
 elseif model.advection.Lap_visco.bool
     add_subgrid_deter = '_Lap_visco';
 else
@@ -17,7 +17,8 @@ end
 % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
 %         model.advection.Smag.bool
 if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-        model.advection.Smag.bool ) | model.sigma.Smag.bool
+        model.advection.Smag.bool ) | ...
+        (model.sigma.sto & model.sigma.Smag.bool )
     % if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
     %  model.advection.Smag.bool
     add_subgrid_deter = [add_subgrid_deter '_Smag'];
@@ -366,7 +367,7 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
     
     % Order of the hyperviscosity
     if model.advection.HV.bool
-        model.advection.HV.order=8;
+        % model.advection.HV.order=8;
     else
         model.advection.HV.order=2;
     end
@@ -648,7 +649,9 @@ if model.plots
     end
     fprintf(['Deterministic subgrid tensor : ' str_subgridtensor ' \n']);
     fprintf(['Model type : ' add_subgrid_deter ' \n']);
-    fprintf(['Details : ' subgrid_details ' \n']);
+    if model.sigma.sto | model.advection.Smag.bool
+        fprintf(['Details : ' subgrid_details ' \n']);
+    end
     if model.sigma.sto
         fprintf(['type spectrum sigma :' model.sigma.type_spectrum ' \n']);
     end
@@ -957,9 +960,10 @@ while time < model.advection.advection_duration
             end
             
             %%
-            if model.advection.Smag.bool || model.sigma.Smag.bool ...
+            if model.advection.Smag.bool || ...
+                    (model.sigma.sto && ( model.sigma.Smag.bool ...
                     || model.sigma.hetero_modulation ...
-                    || model.sigma.hetero_modulation_V2
+                    || model.sigma.hetero_modulation_V2 ) )
                 id_part=1;
                 % Coefficient coef_Smag to target a specific diffusive scale
                 if model.advection.Smag.bool

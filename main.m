@@ -208,17 +208,22 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = true;
+    Lap_visco.bool = false;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = false;
+    HV.bool = true;
+    
+    if HV.bool
+        HV.order=4;
+        % model.advection.HV.order=8;
+    end
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = true;
+    Smag.bool = false;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
@@ -226,7 +231,7 @@ if nargin == 0
             
             % Use a spatial derivation scheme for the herogeneous
             % disspation
-            Smag.spatial_scheme = true;
+            Smag.spatial_scheme = false;
             
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
@@ -242,8 +247,8 @@ if nargin == 0
             %     % %    %  Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     %  d'aliasing
-            Smag.kappamax_on_kappad = 0.5;
-            %Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
+            % Smag.kappamax_on_kappad = 0.5;
+            Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
             %  d'aliasing  % (better(?))
             
             % Factor in front of the additional constant dissipation
