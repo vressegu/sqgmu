@@ -141,6 +141,51 @@ if sigma.sto
         warning('There isno noise here');
     end
     
+    %%
+    
+    % Rate between the largest wave number of sigma dBt and the largest wave
+    % number of the simulation
+    sigma.kappamax_on_kappaShanon = 1;
+    
+    % Rate between the smallest and the largest wave number of sigma dBt
+    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        if sigma.Smag.bool | ...
+                Lap_visco.bool | ( HV.bool & (HV.order<=2) )
+            % sigma.kappamin_on_kappamax = 1/2;
+            sigma.kappamin_on_kappamax = 1/4;
+            % sigma.kappamin_on_kappamax = 1/8;
+            
+%             v_kappamin_on_kappamax = 1 ./ [ 2 4 ];
+%             
+%             sigma_ref = sigma;
+%             Smag_ref = Smag;
+%             for r=1:length(v_kappamin_on_kappamax)
+%                 Smag(r) = catstruct(Smag_ref,Smag(1));
+%                 sigma(r) = catstruct(sigma_ref, sigma(1));
+%                 sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+%             end
+        elseif ( HV.bool & (HV.order==4) )
+            sigma.kappamin_on_kappamax = 1/2;
+        else
+            warning('kappamin_on_kappamax may be inapropriate');
+            sigma.kappamin_on_kappamax = 1/2;
+            % sigma.kappamin_on_kappamax = 1/4;
+            % sigma.kappamin_on_kappamax = 1/8;
+        end
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    else
+        %kappamin_on_kappamax = 1/32;
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/128;
+        %         sigma.slope_sigma = - 5;
+        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    end
+    
+    %%
+    
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if sigma.Smag.bool
         
@@ -180,18 +225,45 @@ if sigma.sto
         % and the targeted diffusion scale
         v_kappamax_on_kappad = 1./ [1 2 4 8]' ;
         
+        % Rate between the smallest and the largest wave number of sigma dBt
+        v_kappamin_on_kappamax = 1 ./ [ 2 4 ];
+        
+%         sigma_ref = sigma;
+%         Smag_ref = Smag;
+%         for r=1:length(v_kappamin_on_kappamax)
+%             Smag(r) = catstruct(Smag_ref,Smag(1));
+%             sigma(r) = catstruct(sigma_ref, sigma(1));
+%             sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+%         end
+        
+        
         sigma_ref = sigma;
         Smag_ref = Smag;
         for p=1:length(v_dealias_ratio_mask_LS)
             for q=1:length(v_kappamax_on_kappad)
-                Smag(p,q) = catstruct(Smag_ref,Smag(1,1));
-                %Smag(p,q) = Smag_ref;
-                Smag(p,q).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
-                sigma(p,q) = catstruct(sigma_ref, sigma(1,1));
-                %sigma(p,q) = sigma_ref;
-                sigma(p,q).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+                for r=1:length(v_kappamin_on_kappamax)
+                    Smag(p,q,r) = catstruct(Smag_ref,Smag(1,1,1));
+                    %Smag(p,q) = Smag_ref;
+                    Smag(p,q,r).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
+                    sigma(p,q,r) = catstruct(sigma_ref, sigma(1,1,1));
+                    %sigma(p,q) = sigma_ref;
+                    sigma(p,q,r).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+                    sigma(p,q,r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+                end
             end
         end
+%         sigma_ref = sigma;
+%         Smag_ref = Smag;
+%         for p=1:length(v_dealias_ratio_mask_LS)
+%             for q=1:length(v_kappamax_on_kappad)
+%                 Smag(p,q) = catstruct(Smag_ref,Smag(1,1));
+%                 %Smag(p,q) = Smag_ref;
+%                 Smag(p,q).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
+%                 sigma(p,q) = catstruct(sigma_ref, sigma(1,1));
+%                 %sigma(p,q) = sigma_ref;
+%                 sigma(p,q).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+%             end
+%         end
         %%
         
         
@@ -205,7 +277,7 @@ end
 
 
 % Viscosity
-Lap_visco.bool = true;
+Lap_visco.bool = false;
 
 % % Smagorinsky-like viscosity
 % Smag.bool = false;
@@ -268,6 +340,7 @@ if Smag(1,1).bool
 end
 
 %% Main
+s_Smag = size(Smag);
 Smag = Smag(:);
 sigma = sigma(:);
 %Smag = Smag(1:2);
@@ -277,9 +350,28 @@ if ~ sigma(1).sto
         sigma(j)=sigma(1);
     end
 end
-%for j=1:ll
+% for j=1:ll
 parfor j=1:ll
     main(stochastic_simulation,type_data,resolution,forcing, ...
         sigma(j),Lap_visco,HV,Smag(j));
 end
 
+%% PLots
+
+for j=1:ll
+%parfor j=1:ll
+    plot_post_process_2(stochastic_simulation,type_data,resolution,forcing, ...
+        sigma(j),Lap_visco,HV,Smag(j));
+end
+
+%% Compared to reference
+nb_days =30
+
+error_vs_t = nan([nb_days,2,ll]);
+for j=1:ll
+%parfor j=1:ll
+    error_vs_t(:,:,j) = post_process_error_grid(...
+        stochastic_simulation,type_data,resolution,resolution_HR,...
+        forcing,Lap_visco,HV,Smag(j));
+end
+error_vs_t = reshape(error_vs_t,[nb_days 2 s_Smag]);

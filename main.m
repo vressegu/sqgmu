@@ -366,27 +366,39 @@ if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     %     sigma.slope_sigma = nan;
 end
 
-% Rate between the smallest and the largest wave number of sigma dBt
-if sigma.sto
-    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/4;
-        % sigma.kappamin_on_kappamax = 1/8;
+if nargin == 0
+    % Rate between the smallest and the largest wave number of sigma dBt
+    if sigma.sto
+        if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+            if sigma.Smag.bool | ...
+                    Lap_visco.bool | ( HV.bool & (HV.order<=2) )
+                % sigma.kappamin_on_kappamax = 1/2;
+                sigma.kappamin_on_kappamax = 1/4;
+                % sigma.kappamin_on_kappamax = 1/8;
+            elseif ( HV.bool & (HV.order==4) )
+                sigma.kappamin_on_kappamax = 1/2;
+            else
+                warning('kappamin_on_kappamax may be inapropriate');
+                sigma.kappamin_on_kappamax = 1/2;
+                % sigma.kappamin_on_kappamax = 1/4;
+                % sigma.kappamin_on_kappamax = 1/8;
+            end
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+        else
+            %kappamin_on_kappamax = 1/32;
+            sigma.kappamin_on_kappamax = 1/2;
+            % sigma.kappamin_on_kappamax = 1/128;
+            %         sigma.slope_sigma = - 5;
+            % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+        end
         
-        sigma.kappaLS_on_kappamax = 1/8;
-    else
-        %kappamin_on_kappamax = 1/32;
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/128;
-        %         sigma.slope_sigma = - 5;
-        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-        
-        sigma.kappaLS_on_kappamax = 1/8;
+        % Rate between the largest wave number of sigma dBt and the largest wave
+        % number of the simulation
+        sigma.kappamax_on_kappaShanon = 1;
     end
-    
-    % Rate between the largest wave number of sigma dBt and the largest wave
-    % number of the simulation
-    sigma.kappamax_on_kappaShanon = 1;
 end
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )

@@ -146,6 +146,10 @@ if sigma.sto
         % Smagorinsky energy budget (dissipation epsilon)
         % without taking into account the noise intake
         sigma.Smag.epsi_without_noise = false;
+            
+        % Use a spatial derivation scheme for the herogeneous
+        % disspation
+        Smag.spatial_scheme = false;
         
         %         % Ratio between the Shanon resolution and filtering frequency used to
         %         % filter the heterogenous diffusion coefficient
