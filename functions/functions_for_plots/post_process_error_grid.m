@@ -205,21 +205,31 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = false;
+    Lap_visco.bool = true;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = true;
+    HV.bool = false;
+    
+    if HV.bool
+        HV.order=4;
+        % model.advection.HV.order=8;
+    end
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = false;
+    Smag.bool = true;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
         if Lap_visco.bool
+            
+            % Use a spatial derivation scheme for the herogeneous
+            % disspation
+            Smag.spatial_scheme = false;
+            
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
@@ -570,31 +580,118 @@ model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
 
 
 %% Folder to save plots and files
+% if model.advection.HV.bool
+%     add_subgrid_deter = '_HV';
+% elseif model.advection.Lap_visco.bool
+%     add_subgrid_deter = '_Lap_visco';
+% else
+%     add_subgrid_deter = '_no_deter_subgrid';
+%     %add_subgrid_deter = [];
+% end
+% % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
+% %         model.advection.Smag.bool
+% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+%         model.advection.Smag.bool
+%     add_subgrid_deter = [add_subgrid_deter '_Smag'];
+%     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
+%     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
+%     %         '_dealias_ratio_mask_LS_' ...
+%     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
+% end
+% 
+% if isinf(model.sigma.k_c) % Deterministic case
+%     model.folder.folder_simu = [ 'images/usual_' model.dynamics ...
+%         add_subgrid_deter '/' model.type_data ];
+% else % Stochastic case
+%     model.folder.folder_simu = [ 'images/' model.dynamics ...
+%         '_MU' add_subgrid_deter '/' model.type_data ];
+% end
+% if model.advection.forcing.bool
+%     model.folder.folder_simu = [ model.folder.folder_simu ...
+%         '_forced_turb' ];
+% else
+%     model.folder.folder_simu = [ model.folder.folder_simu ...
+%         '_free_turb' ];
+% end
+% model.folder.folder_simu = [ model.folder.folder_simu ...
+%     '/' num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
+% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+%         model.advection.Smag.bool
+%     subgrid_details = ['kappamax_on_kappad_' ...
+%         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
+%         '_dealias_ratio_mask_LS_' ...
+%         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+%     model.folder.folder_simu = [ model.folder.folder_simu ...
+%         '/' subgrid_details ];
+% end
+% % Create the folders
+% fct_create_folder_plots(model)
+% 
+% % Colormap
+% load('BuYlRd.mat');
+% model.folder.colormap = BuYlRd; clear BuYlRd
+% 
+% % Version of matlab
+% vers = version;
+% year = str2double(vers(end-5:end-2));
+% subvers = vers(end-1);
+% model.folder.colormap_freeze = ...
+%     (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
+
+
+%% Folder to save plots and files
 if model.advection.HV.bool
-    add_subgrid_deter = '_HV';
+    add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
 elseif model.advection.Lap_visco.bool
     add_subgrid_deter = '_Lap_visco';
 else
     add_subgrid_deter = '_no_deter_subgrid';
     %add_subgrid_deter = [];
 end
+if model.sigma.sto & model.sigma.assoc_diff
+    add_subgrid_deter = [add_subgrid_deter '_assoc_diff'];
+end
 % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
 %         model.advection.Smag.bool
-if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-        model.advection.Smag.bool
+if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+        model.advection.Smag.bool ) | ...
+        (model.sigma.sto & model.sigma.Smag.bool )
+    % if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+    %  model.advection.Smag.bool
     add_subgrid_deter = [add_subgrid_deter '_Smag'];
     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
     %         '_dealias_ratio_mask_LS_' ...
     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
+    if model.sigma.sto & model.sigma.Smag.bool & ...
+            model.sigma.Smag.epsi_without_noise
+        add_subgrid_deter = [add_subgrid_deter '_epsi_without_noise'];
+    end
+elseif model.sigma.sto & model.sigma.hetero_modulation
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation'];
+elseif model.sigma.sto & model.sigma.hetero_modulation_V2
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
+elseif model.sigma.sto & model.sigma.hetero_energy_flux
+    add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
+end
+if model.sigma.sto & model.sigma.no_noise
+    add_subgrid_deter = [add_subgrid_deter '_no_noise'];
 end
 
-if isinf(model.sigma.k_c) % Deterministic case
+% if model.sigma.SelfSim_from_LS.bool
+%     add_subgrid_deter = [add_subgrid_deter '_SelfSim_from_LS'];
+% end
+
+if ~ model.sigma.sto % Deterministic case
     model.folder.folder_simu = [ 'images/usual_' model.dynamics ...
         add_subgrid_deter '/' model.type_data ];
 else % Stochastic case
+    %     model.folder.folder_simu = [ 'images/' model.dynamics ...
+    %         '_MU' add_subgrid_deter '/' model.type_data ];
     model.folder.folder_simu = [ 'images/' model.dynamics ...
-        '_MU' add_subgrid_deter '/' model.type_data ];
+        '_MU' add_subgrid_deter '/' ...
+        'type_spectrum_sigma_' model.sigma.type_spectrum '/' ...
+        model.type_data ];
 end
 if model.advection.forcing.bool
     model.folder.folder_simu = [ model.folder.folder_simu ...
@@ -605,15 +702,52 @@ else
 end
 model.folder.folder_simu = [ model.folder.folder_simu ...
     '/' num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
-if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-        model.advection.Smag.bool
+if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+        model.advection.Smag.bool)
     subgrid_details = ['kappamax_on_kappad_' ...
         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
         '_dealias_ratio_mask_LS_' ...
         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+    if model.advection.Smag.spatial_scheme
+        subgrid_details = [ subgrid_details '_spatial_scheme'];
+    end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
+if model.sigma.sto & model.sigma.Smag.bool
+    subgrid_details = ['kappamax_on_kappad_' ...
+        fct_num2str(model.sigma.Smag.kappamax_on_kappad) ...
+        '_dealias_ratio_mask_LS_' ...
+        fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+    if model.sigma.Smag.SS_vel_homo
+        subgrid_details = [ subgrid_details '_SS_vel_homo'];
+    elseif  model.sigma.proj_free_div
+        subgrid_details = [ subgrid_details '_proj_free_div'];
+    end
+    if model.advection.Smag.spatial_scheme
+        subgrid_details = [ subgrid_details '_spatial_scheme'];
+    end
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '/' subgrid_details ];
+elseif model.sigma.sto & ...
+        ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
+    subgrid_details = ['dealias_ratio_mask_LS_' ...
+        fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+    if  model.sigma.proj_free_div
+        subgrid_details = [ subgrid_details '_proj_free_div'];
+    end
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '/' subgrid_details ];
+end
+if model.sigma.sto
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '_kappamin_on_kappamax_' ....
+        fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    subgrid_details = [ subgrid_details ...
+        '_kappamin_on_kappamax_' ....
+        fct_num2str(model.sigma.kappamin_on_kappamax) ];
+end
+
 % Create the folders
 fct_create_folder_plots(model)
 
@@ -720,7 +854,7 @@ for t_loop=t_ini:N_t
         
         %%
         
-        fprintf([ num2str(t*dt/(24*3600)) ' days of advection \n'])
+        fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
         
         %%
 %         if model.advection.Smag.bool
@@ -738,7 +872,7 @@ for t_loop=t_ini:N_t
 %         end
         %%
         % Plots
-        [spectrum,name_plot] = fct_plot(model,fft_buoy_part,day);
+        [spectrum,name_plot] = fct_plot(model,fft_b,day);
         fct_spectrum_multi(model,fft_buoy_part_ref,'r');
         eval( ['print -depsc ' model.folder.folder_simu '/Spectrum/' day '.eps']);
 %         if model.advection.plot_dissip
@@ -752,7 +886,7 @@ for t_loop=t_ini:N_t
         % RMSE
         temp(1,2) = ...
             1/prod(model.grid.MX)^2 * ...
-            sum(abs(fft_buoy_part(:) - fft_buoy_part_ref(:)).^2) ;
+            sum(abs(fft_b(:) - fft_buoy_part_ref(:)).^2) ;
         % Concatenation
         error_vs_t = [ error_vs_t ; temp ];
         
