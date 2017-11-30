@@ -9,11 +9,6 @@ init;
 dynamics = 'SQG';
 % dynamics = '2D';
 
-% Deterministic or random model
-stochastic_simulation = false;
-% Usual SQG model (stochastic_simulation=false)
-% or SQG_MU model (stochastic_simulation=true)
-
 % Type of initial condtions
 type_data ='Constantin_case2' ;
 % 'Vortices' : 2 large anticyclones and 2 large cyclones
@@ -48,12 +43,12 @@ forcing = false;
 
 %% Deterministic Smag model
 % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-Smag.bool = true;
+Smag.bool = false;
 
 %% Stochastic terms
 
 % Deterministic or random model
-stochastic_simulation = false;
+stochastic_simulation = true;
 sigma.sto = stochastic_simulation;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
@@ -277,7 +272,7 @@ Smag = Smag(:);
 sigma = sigma(:);
 %Smag = Smag(1:2);
 ll=length(Smag);
-if ~ sigma.sto
+if ~ sigma(1).sto
     for j=1:ll
         sigma(j)=sigma(1);
     end
