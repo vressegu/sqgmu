@@ -33,7 +33,8 @@ end
 if ~ (exist([folder_simu '/Epsilon_k_meth'],'dir')==7)
     mkdir([folder_simu '/Epsilon_k_meth']);
 end
-if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+if model.sigma.sto ... % Stochastic case
+    & strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)
         mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t']);
     end

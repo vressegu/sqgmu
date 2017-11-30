@@ -63,18 +63,18 @@ adv1 = - fft2(wgradT);clear wgradT
 %% Laplacian diffusion term (from the stochastic material derivative)
 %if ~isinf(model.sigma.k_c)
 if model.sigma.sto
-    adv2 = fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa);
-%     if model.sigma.Smag.bool 
-%         % Coefficient coef_Smag to target a specific diffusive scale
-%         adv2 = model.sigma.Smag.coef_Smag * adv2 ;
-%         % Taking into account the noise in the energy budget
-%         adv2 = model.advection.coef_diff * adv2;
-%     end
+    adv2 = fct_heterogeneous_diff(model,ikx,iky,gradb,fft_b);
+    %     if model.sigma.Smag.bool
+    %         % Coefficient coef_Smag to target a specific diffusive scale
+    %         adv2 = model.sigma.Smag.coef_Smag * adv2 ;
+    %         % Taking into account the noise in the energy budget
+    %         adv2 = model.advection.coef_diff * adv2;
+    %     end
 else
     adv2 = 0;
 end
 % if model.sigma.a0 > 0
-%     if model.sigma.Smag.bool 
+%     if model.sigma.Smag.bool
 % %         %%
 % %         ikx = 1i*model.grid.k.kx;
 % %         iky = 1i*model.grid.k.ky;
@@ -91,7 +91,7 @@ end
 %         adv2 = model.advection.coef_diff * adv2;
 %     elseif model.sigma.hetero_modulation
 %         adv2 = fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa);
-%         
+%
 %     else
 %         adv2 = - model.advection.coef_diff * k2 .* fft_b ;
 %     end
@@ -104,19 +104,19 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
     if model.advection.Smag.bool
         % Heterogeneous HV or diffusivity/viscosity coefficient
         if model.advection.Lap_visco.bool
-%             %%
-%             ikx = 1i*model.grid.k.kx;
-%             iky = 1i*model.grid.k.ky;
-%             gradb(:,:,1,:) = real(ifft2( ikx.*fft_b ));
-%             gradb(:,:,2,:) = real(ifft2( iky.*fft_b ));
-            adv4 = fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa);
+            %             %%
+            %             ikx = 1i*model.grid.k.kx;
+            %             iky = 1i*model.grid.k.ky;
+            %             gradb(:,:,1,:) = real(ifft2( ikx.*fft_b ));
+            %             gradb(:,:,2,:) = real(ifft2( iky.*fft_b ));
+            adv4 = fct_heterogeneous_diff(model,ikx,iky,gradb,fft_b);
             %             adv4 = fct_heterogeneous_diff(model,ikx,iky,fft_b,gradb);
             %             %%
             %             %adv4 = fct_heterogeneous_diff(model,ikx_aa,iky_aa,fft_b,gradb_aa);
             %             %%
             
-%             % Coefficient coef_Smag to target a specific diffusive scale
-%             adv4 = model.advection.Smag.coef_Smag * adv4 ;
+            %             % Coefficient coef_Smag to target a specific diffusive scale
+            %             adv4 = model.advection.Smag.coef_Smag * adv4 ;
             
             % Possibly add constant value
             % (but treated further below, without anti-aliasing)
@@ -132,8 +132,8 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             Lap_p_b_aa = (-k2_aa) .^ (model.advection.HV.order/4) .* fft_b;
             Lap_p_b_aa = real(ifft2(Lap_p_b_aa));
             
-%             % Heterogeneous HV coefficient
-%             coef_HV_aa = fct_coef_HV(model,fft_b,Lap_p_b_aa);
+            %             % Heterogeneous HV coefficient
+            %             coef_HV_aa = fct_coef_HV(model,fft_b,Lap_p_b_aa);
             
             % Possibly add constant value
             % (but treated further below, without anti-aliasing)
@@ -145,7 +145,7 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             
             % HV coef * Laplacian at the power p of buoyancy
             adv4 = - model.advection.coef_diff .* Lap_p_b_aa;
-%             adv4 = - coef_HV_aa .* Lap_p_b_aa;
+            %             adv4 = - coef_HV_aa .* Lap_p_b_aa;
             
             adv4 = fft2(adv4);
             adv4 = (-k2_aa) .^ (model.advection.HV.order/4) .*  adv4;
@@ -231,34 +231,66 @@ if isfield(model.advection, 'forcing') && model.advection.forcing.bool
 end
 
     function adv_hetero_diff = ...
-            fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa)
-        %            fct_heterogeneous_diff(model,ikx,iky,fft_b,gradb)
+            fct_heterogeneous_diff(model,ikx,iky,gradb,fft_b)
+        %             fct_heterogeneous_diff(model,ikx,iky,gradb,gradb_aa)
+        %         %            fct_heterogeneous_diff(model,ikx,iky,fft_b,gradb)
         % Compute heterogeneous Laplacian diffusion term
         %
         
-%         if (model.advection.Smag.bool & model.advection.Lap_visco.bool)
-% %         if (model.advection.Smag.bool & model.advection.Lap_visco.bool) ...
-% %                 | ( model.sigma.a0 > 0 & model.sigma.Smag.bool )
-%             % Heterogeneous dissipation coefficient
-%             coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
-%             % coef_diff_aa = fct_coef_diff(model,fft_b,gradb);
-%             
-% %         elseif ( model.sigma.a0 > 0 & model.sigma.hetero_modulation)
-% %             coef_diff_aa = model.sigma.a0/2 * ...
-% %                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
-%         else
-%             coef_diff_aa = model.advection.coef_diff;
-%         end
-                
+        %         if (model.advection.Smag.bool & model.advection.Lap_visco.bool)
+        % %         if (model.advection.Smag.bool & model.advection.Lap_visco.bool) ...
+        % %                 | ( model.sigma.a0 > 0 & model.sigma.Smag.bool )
+        %             % Heterogeneous dissipation coefficient
+        %             coef_diff_aa = fct_coef_diff(model,nan,gradb_aa);
+        %             % coef_diff_aa = fct_coef_diff(model,fft_b,gradb);
+        %
+        % %         elseif ( model.sigma.a0 > 0 & model.sigma.hetero_modulation)
+        % %             coef_diff_aa = model.sigma.a0/2 * ...
+        % %                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
+        %         else
+        %             coef_diff_aa = model.advection.coef_diff;
+        %         end
+        
         coef_diff_aa = model.advection.coef_diff;
-        
-        % Visco/diff coef * gradient of buoyancy
-        adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
-        adv_hetero_diff = fft2(adv_hetero_diff);
-        
-        % Divergence of ( Visco/diff coef * gradient of buoyancy )
-        adv_hetero_diff = ikx .* adv_hetero_diff(:,:,1,:) ...
-            + iky .* adv_hetero_diff(:,:,2,:);
-        
+        if model.advection.Smag.spatial_scheme
+            b = real(ifft2(fft_b));
+            gradb = gradient_mat_2_per(b,model.grid.dX);
+            adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
+            d_adv_dx = gradient_mat_2_per(adv_hetero_diff(:,:,1,:),model.grid.dX);
+            d_adv_dy = gradient_mat_2_per(adv_hetero_diff(:,:,2,:),model.grid.dX);
+            adv_hetero_diff = d_adv_dx(:,:,1,:) + d_adv_dy(:,:,2,:);
+            adv_hetero_diff = fft2(adv_hetero_diff);
+        else
+            % Visco/diff coef * gradient of buoyancy
+            adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
+            adv_hetero_diff = fft2(adv_hetero_diff);
+            
+            % Divergence of ( Visco/diff coef * gradient of buoyancy )
+            adv_hetero_diff = ikx .* adv_hetero_diff(:,:,1,:) ...
+                + iky .* adv_hetero_diff(:,:,2,:);
+        end
+        %% Test
+%         %adv_hetero_diff_ref = real(ifft2(adv_hetero_diff;
+%         adv_hetero_diff_ref = adv_hetero_diff;
+%         
+%         b = real(ifft2(fft_b));
+%         gradb = gradient_mat_2_per(b,model.grid.dX);
+%         adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
+%         d_adv_dx = gradient_mat_2_per(adv_hetero_diff(:,:,1,:),model.grid.dX);
+%         d_adv_dy = gradient_mat_2_per(adv_hetero_diff(:,:,2,:),model.grid.dX);
+%         adv_hetero_diff = d_adv_dx(:,:,1,:) + d_adv_dy(:,:,2,:);
+%         adv_hetero_diff = fft2(adv_hetero_diff);
+%         
+%         adv_hetero_diff = real(ifft2(adv_hetero_diff));
+%         adv_hetero_diff_ref = real(ifft2(adv_hetero_diff_ref));
+%         err = abs(adv_hetero_diff - adv_hetero_diff_ref) / ...
+%             mean(abs(adv_hetero_diff_ref(:)));
+%         mean(err(:))
+%             
+%         figure(99);imagesc(((adv_hetero_diff')));axis equal;axis xy;colorbar;
+%         figure(101);imagesc(((adv_hetero_diff_ref))');axis equal;axis xy;colorbar;
+%         figure(104);imagesc(((err))');axis equal;axis xy;colorbar;
+%         keyboard;
+        %%
     end
 end

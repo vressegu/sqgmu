@@ -104,6 +104,10 @@ if nargin == 0
             % without taking into account the noise intake
             sigma.Smag.epsi_without_noise = false;
             
+            % Use a spatial derivation scheme for the herogeneous
+            % disspation
+            Smag.spatial_scheme = false;
+            
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             % Smag.dealias_ratio_mask_LS = 1;
@@ -219,6 +223,11 @@ if nargin == 0
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
         if Lap_visco.bool
+            
+            % Use a spatial derivation scheme for the herogeneous
+            % disspation
+            Smag.spatial_scheme = true;
+            
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
@@ -287,8 +296,8 @@ cov_and_abs_diff = false;
 plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = true;
-if sigma.hetero_energy_flux
+plot_epsilon_k = false;
+if sigma.sto & sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
 
@@ -347,32 +356,34 @@ switch dynamics
     otherwise
         error('Unknown type of dynamics');
 end
-if  strcmp(sigma.type_spectrum,'BB')
+if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
     % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
     %     sigma.slope_sigma = nan;
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
-if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-    sigma.kappamin_on_kappamax = 1/2;
-    % sigma.kappamin_on_kappamax = 1/4;
-    % sigma.kappamin_on_kappamax = 1/8;
+if sigma.sto
+    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/4;
+        % sigma.kappamin_on_kappamax = 1/8;
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    else
+        %kappamin_on_kappamax = 1/32;
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/128;
+        %         sigma.slope_sigma = - 5;
+        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    end
     
-    sigma.kappaLS_on_kappamax = 1/8;
-else
-    %kappamin_on_kappamax = 1/32;
-    sigma.kappamin_on_kappamax = 1/2;
-    % sigma.kappamin_on_kappamax = 1/128;
-    %         sigma.slope_sigma = - 5;
-    % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-    
-    sigma.kappaLS_on_kappamax = 1/8;
+    % Rate between the largest wave number of sigma dBt and the largest wave
+    % number of the simulation
+    sigma.kappamax_on_kappaShanon = 1;
 end
-
-% Rate between the largest wave number of sigma dBt and the largest wave
-% number of the simulation
-sigma.kappamax_on_kappaShanon = 1;
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
 switch dynamics
@@ -389,12 +400,14 @@ model = fct_physical_param(dynamics);
 
 % Gather parameters in the structure model
 model.sigma = sigma;
-eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
-    model.sigma.type_spectrum '(m,k1,k2);']);
-% eval(['model.sigma.fct_tr_a = @(m,k1,k2,alpha) fct_norm_tr_a_theo_' ...
-%     model.sigma.type_spectrum '(m,k1,k2,alpha);']);
-% model.sigma.slope_sigma = slope_sigma;
-% model.sigma.kappamin_on_kappamax = kappamin_on_kappamax;
+if sigma.sto
+    eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
+        model.sigma.type_spectrum '(m,k1,k2);']);
+    % eval(['model.sigma.fct_tr_a = @(m,k1,k2,alpha) fct_norm_tr_a_theo_' ...
+    %     model.sigma.type_spectrum '(m,k1,k2,alpha);']);
+    % model.sigma.slope_sigma = slope_sigma;
+    % model.sigma.kappamin_on_kappamax = kappamin_on_kappamax;
+end
 if strcmp(type_data,'Spectrum')
     model.slope_b_ini = slope_b_ini;
 end

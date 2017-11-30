@@ -21,10 +21,13 @@ clear dX dX2
 % Minimum of the CFL
 dt = min([bound1 bound2 bound3]);
 clear bound1 bound2 bound3
-if model.sigma.sto
+if model.sigma.sto 
     dt=dt/2;
     % Further constraint on dt due to the use of a (simple) Euler scheme
     % for the SPDE
+end
+if model.advection.Smag.spatial_scheme
+    dt=dt/2;
 end
 
 % if model.plots

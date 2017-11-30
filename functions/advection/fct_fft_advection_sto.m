@@ -36,7 +36,7 @@ elseif model.sigma.sto & model.sigma.hetero_modulation_V2
 elseif model.sigma.sto & model.sigma.hetero_energy_flux
     add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
 end
-if model.sigma.no_noise
+if model.sigma.sto & model.sigma.no_noise
     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
 end
 
@@ -70,6 +70,9 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
         '_dealias_ratio_mask_LS_' ...
         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+    if model.advection.Smag.spatial_scheme
+        subgrid_details = [ subgrid_details '_spatial_scheme'];
+    end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
@@ -82,6 +85,9 @@ if model.sigma.sto & model.sigma.Smag.bool
         subgrid_details = [ subgrid_details '_SS_vel_homo'];
     elseif  model.sigma.proj_free_div
         subgrid_details = [ subgrid_details '_proj_free_div'];
+    end
+    if model.Smag.spatial_scheme
+        subgrid_details = [ subgrid_details '_spatial_scheme'];
     end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
@@ -243,9 +249,10 @@ else
 end
 
 
-if model.sigma.hetero_energy_flux
+if model.sigma.sto & model.sigma.hetero_energy_flux
     coef_modulation = fct_epsilon_k_onLine(model,fft_b);
-elseif model.sigma.hetero_modulation | model.sigma.hetero_modulation_V2
+elseif model.sigma.sto & ...
+        (model.sigma.hetero_modulation | model.sigma.hetero_modulation_V2)
     coef_modulation = fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
 else
     coef_modulation = 1;
@@ -864,7 +871,9 @@ while time < model.advection.advection_duration
     
     %% Adding time-correlated and time decorrelated velocity
     % w_fv = w;
-    w = w + ( ~ model.sigma.no_noise) * sigma_dBt_dt;
+    if  model.sigma.sto & ~model.sigma.no_noise
+        w = w + sigma_dBt_dt;
+    end
     % if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     %         w(:,:,1) = w(:,:,1) + Vy;
     %     end

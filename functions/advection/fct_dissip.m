@@ -226,8 +226,15 @@ else % Stochastic case
         %         coef_diff_aa = model.sigma.Smag.coef_Smag * coef_diff_aa ;
         %         % Taking into account the noise in the energy budget
         %         coef_diff_aa= model.advection.coef_diff * coef_diff_aa;
+        
+        if model.advection.Smag.spatial_scheme
+            gradb_dissip = gradient_mat_2_per(b,model.grid.dX);
+        else
+            gradb_dissip = gradb;
+        end
+        
         % Dissipation
-        turb_dissip_Smag = coef_diff_aa .* sum(gradb.^2,3);
+        turb_dissip_Smag = coef_diff_aa .* sum(gradb_dissip.^2,3);
         % turb_dissip = coef_diff_aa .* sum(gradb.^2,3);
         % Taking into account the noise in the energy budget
         
@@ -356,8 +363,14 @@ if model.advection.Smag.bool
         % Coefficient coef_Smag to target a specific diffusive scale
         coef_diff_aa  = model.advection.Smag.coef_Smag * coef_diff_aa  ;
         
+        if model.advection.Smag.spatial_scheme
+            gradb_dissip = gradient_mat_2_per(b,model.grid.dX);
+        else
+            gradb_dissip = gradb;
+        end
+        
         % Dissipation
-        dissip_HV = coef_diff_aa .* sum(gradb.^2,3);
+        dissip_HV = coef_diff_aa .* sum(gradb_dissip.^2,3);
         
     elseif model.advection.HV.bool
         %% Heterogeneous HV coefficient
