@@ -43,12 +43,12 @@ forcing = false;
 
 %% Deterministic Smag model
 % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-Smag.bool = false;
+Smag.bool = true;
 
 %% Stochastic terms
 
 % Deterministic or random model
-stochastic_simulation = true;
+stochastic_simulation = false;
 sigma.sto = stochastic_simulation;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
@@ -204,7 +204,7 @@ end
 
 
 % Viscosity
-Lap_visco.bool = false;
+Lap_visco.bool = true;
 
 % % Smagorinsky-like viscosity
 % Smag.bool = false;
@@ -216,21 +216,21 @@ HV.bool = false;
 
 if Smag(1,1).bool
     if Lap_visco.bool
+            
+        % Use a spatial derivation scheme for the herogeneous
+        % disspation
+        Smag.spatial_scheme = false;
+        
+        %%
+        
         % Ratio between the Shanon resolution and filtering frequency used to
         % filter the heterogenous diffusion coefficient
-        v_dealias_ratio_mask_LS = 1;
-        %     v_dealias_ratio_mask_LS = 1./ [2 4 8 16 64]';
-        %     %     v_dealias_ratio_mask_LS = 1./ 128;
-        %     % %     v_dealias_ratio_mask_LS = 1./ [128 64 32]';
-        %     % % %     v_dealias_ratio_mask_LS = 1./ [2 4 8 16 ]';
+        v_dealias_ratio_mask_LS = 1./ [1 2 4 8]';
+        
         % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
         % and the targeted diffusion scale
-        % %     % %    v_kappamax_on_kappad = 1.9;
-        % %     %      v_kappamax_on_kappad = 0.4:0.3:3;
-        % %     v_kappamax_on_kappad = 0.4:0.2:1.2;
-        %     v_kappamax_on_kappad = 0.8:0.2:1;
-        v_kappamax_on_kappad = [ 0.4 0.6 1.2 ] ;
+        v_kappamax_on_kappad = 1./ [1 2 4 8]' ;
         
         for p=1:length(v_dealias_ratio_mask_LS)
             for q=1:length(v_kappamax_on_kappad)
@@ -271,13 +271,32 @@ if Smag(1,1).bool
 end
 
 %% Main
+s_Smag = size(Smag);
+
 Smag = Smag(:);
 sigma = sigma(:);
 %Smag = Smag(1:2);
 ll=length(Smag);
+if ~ sigma(1).sto
+    for j=1:ll
+        sigma(j)=sigma(1);
+    end
+end
 for j=1:ll
 %parfor j=1:ll
     plot_post_process_2(stochastic_simulation,type_data,resolution,forcing, ...
         sigma(j),Lap_visco,HV,Smag(j));
 end
 
+%% Compared to reference
+nb_days =30
+resolution_HR = 1024;
+
+error_vs_t = nan([nb_days,2,ll]);
+for j=1:ll
+%parfor j=1:ll
+    error_vs_t(:,:,j) = post_process_error_grid(...
+        stochastic_simulation,type_data,resolution,resolution_HR,...
+        forcing,sigma(j),Lap_visco,HV,Smag(j));
+end
+error_vs_t = reshape(error_vs_t,[nb_days 2 s_Smag]);

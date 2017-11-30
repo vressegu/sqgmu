@@ -298,8 +298,8 @@ cov_and_abs_diff = false;
 plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = true;
-if sigma.hetero_energy_flux
+plot_epsilon_k = false;
+if sigma.sto & sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
 
@@ -358,32 +358,34 @@ switch dynamics
     otherwise
         error('Unknown type of dynamics');
 end
-if  strcmp(sigma.type_spectrum,'BB')
+if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
     % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
     %     sigma.slope_sigma = nan;
 end
 
-% Rate between the smallest and the largest wave number of sigma dBt
-if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-    sigma.kappamin_on_kappamax = 1/2;
-    % sigma.kappamin_on_kappamax = 1/4;
-    % sigma.kappamin_on_kappamax = 1/8;
+if sigma.sto
+    % Rate between the smallest and the largest wave number of sigma dBt
+    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/4;
+        % sigma.kappamin_on_kappamax = 1/8;
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    else
+        %kappamin_on_kappamax = 1/32;
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/128;
+        %         sigma.slope_sigma = - 5;
+        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    end
     
-    sigma.kappaLS_on_kappamax = 1/8;
-else
-    %kappamin_on_kappamax = 1/32;
-    sigma.kappamin_on_kappamax = 1/2;
-    % sigma.kappamin_on_kappamax = 1/128;
-    %         sigma.slope_sigma = - 5;
-    % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-    
-    sigma.kappaLS_on_kappamax = 1/8;
+    % Rate between the largest wave number of sigma dBt and the largest wave
+    % number of the simulation
+    sigma.kappamax_on_kappaShanon = 1;
 end
-
-% Rate between the largest wave number of sigma dBt and the largest wave
-% number of the simulation
-sigma.kappamax_on_kappaShanon = 1;
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
 switch dynamics
@@ -400,8 +402,10 @@ model = fct_physical_param(dynamics);
 
 % Gather parameters in the structure model
 model.sigma = sigma;
-eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
-    model.sigma.type_spectrum '(m,k1,k2);']);
+if sigma.sto
+    eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
+        model.sigma.type_spectrum '(m,k1,k2);']);
+end
 % eval(['model.sigma.fct_tr_a = @(m,k1,k2,alpha) fct_norm_tr_a_theo_' ...
 %     model.sigma.type_spectrum '(m,k1,k2,alpha);']);
 % model.sigma.slope_sigma = slope_sigma;
@@ -979,7 +983,8 @@ for t_loop=t_ini:N_t
         end
         
         % Dissipation by scale
-        if model.advection.plot_epsilon_k
+        if plot_epsilon_k
+        % if model.advection.plot_epsilon_k
             fct_plot_epsilon_k(model,fft_b,day);
             % fct_plot_epsilon_k(model,fft_b,int_epsilon,day);
         end
