@@ -19,7 +19,7 @@ dynamics = 'SQG';
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = false;
+    stochastic_simulation = true;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -43,7 +43,7 @@ if nargin == 0
         sigma.assoc_diff = false;
         
         % Smagorinsky-like control of dissipation
-        sigma.Smag.bool = false;
+        sigma.Smag.bool = true;
         
         %     % Sigma computed from self similarities from the large scales
         %     sigma.SelfSim_from_LS.bool = true;
@@ -111,20 +111,19 @@ if nargin == 0
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             % Smag.dealias_ratio_mask_LS = 1;
-            % Smag.dealias_ratio_mask_LS = 1/8;
+            Smag.dealias_ratio_mask_LS = 1/8;
             % Smag.dealias_ratio_mask_LS = 1/4;
             %Smag.dealias_ratio_mask_LS = 1/2;
-            Smag.dealias_ratio_mask_LS = 1;
             
             %         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
             %         % and the targeted diffusion scale
             %         % %        sigma.Smag.kappamax_on_kappad = 2;
             %         % sigma.Smag.kappamax_on_kappad = 1;
             
-            % sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
+            sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
             % sigma.Smag.kappamax_on_kappad = 1 / 4;
-            sigma.Smag.kappamax_on_kappad = 1 / ...
-                sigma.kappaMaxUnresolved_on_kappaShanon;
+%             sigma.Smag.kappamax_on_kappad = 1 / ...
+%                 sigma.kappaMaxUnresolved_on_kappaShanon;
             
             %         % Factor in front of the additional constant dissipation
             %         % Set to 0 for no additional constant dissipation
@@ -215,7 +214,7 @@ if nargin == 0
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = true;
+    HV.bool = false;
     
     if HV.bool
         HV.order=4;

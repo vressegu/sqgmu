@@ -87,7 +87,7 @@ if model.sigma.sto & model.sigma.Smag.bool
     elseif  model.sigma.proj_free_div
         subgrid_details = [ subgrid_details '_proj_free_div'];
     end
-    if model.Smag.spatial_scheme
+    if model.advection.Smag.spatial_scheme
         subgrid_details = [ subgrid_details '_spatial_scheme'];
     end
     model.folder.folder_simu = [ model.folder.folder_simu ...
@@ -671,18 +671,29 @@ while time < model.advection.advection_duration
     else % Stochastic case
         
         if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
-            a0 = nan(1,N_ech);
-            for sampl=1:N_ech
-                %parfor sampl=1:N_ech
+            sigma = nan([model.grid.MX 2 N_ech]);
+            tr_a = nan(1,N_ech);
+            slope_sigma = nan(1,N_ech);
+            offset_spectrum_a_sigma = nan(1,N_ech);
+            km_LS = nan(1,N_ech);
+            % for sampl=1:N_ech
+            parfor sampl=1:N_ech
                 % [sigma(:,:,:,sampl), ~, tr_a(sampl) ] ...
                 [ sigma(:,:,:,sampl), ~, tr_a(sampl) ,....
-                    model.sigma.slope_sigma(sampl),...
-                    model.sigma.offset_spectrum_a_sigma(sampl), ...
-                    model.sigma.km_LS(sampl) ]...
+                    slope_sigma(sampl),...
+                    offset_spectrum_a_sigma(sampl), ...
+                    km_LS(sampl) ]...
                     = fct_sigma_spectrum_abs_diff(...
                     model,fft_w(:,:,:,sampl),false);
-                a0(sampl) = tr_a(sampl)/2;
             end
+            a0 = tr_a/2;
+            for sampl=1:N_ech
+                model.sigma.slope_sigma(sampl) = slope_sigma(sampl);
+                model.sigma.offset_spectrum_a_sigma(sampl) = ...
+                    offset_spectrum_a_sigma(sampl);
+                model.sigma.km_LS(sampl) = km_LS(sampl);
+            end
+            clear tr_a slope_sigma offset_spectrum_a_sigma km_LS
             sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) ...
                 * sigma; clear sigma
             model.sigma.a0 = a0;
@@ -887,24 +898,29 @@ while time < model.advection.advection_duration
         % Runge-Kutta 4 scheme
         fft_b = RK4_fft_advection(model,fft_b, w);
     else
-        for sampl=1:N_ech
-            %parfor sampl=1:N_ech
+        model_temp = cell(N_ech,1);
+        % for sampl=1:N_ech
+        parfor sampl=1:N_ech
             % Euler scheme
-            model_temp = model;
+            model_temp{sampl} = model;
             if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
-                model_temp.sigma.a0 = model.sigma.a0(sampl);
-                model_temp.sigma.a0_on_dt =model.sigma.a0_on_dt(sampl);
-                model_temp.advection.coef_diff = ...
-                    model.sigma.a0(sampl)/2 ...
-                    * coef_modulation(:,:,:,sampl) ;
+                model_temp{sampl}.sigma.a0 = model.sigma.a0(sampl);
+                % model_temp{sampl}.sigma.a0_on_dt =model.sigma.a0_on_dt(sampl);
+                model_temp{sampl}.advection.coef_diff = ...
+                   model.advection.coef_diff(sampl);
+%                 model_temp{sampl}.advection.coef_diff = ...
+%                     model.sigma.a0(sampl)/2 ...
+%                     * coef_modulation(:,:,:,sampl) ;
             end
             fft_b(:,:,:,sampl) = fft_b(:,:,:,sampl) ...
                 + deriv_fft_advection( ...
-                model_temp, fft_b(:,:,:,sampl), w(:,:,:,sampl)) ...
+                model_temp{sampl}, fft_b(:,:,:,sampl), w(:,:,:,sampl)) ...
                 * model.advection.dt_adv;
             %model, fft_b(:,:,:,sampl), w(:,:,:,sampl)) ...
             %   * model.advection.dt_adv;
+            model_temp{sampl} = {};
         end
+        clear model_temp
     end
     
     %% Discard particles which have blown up
