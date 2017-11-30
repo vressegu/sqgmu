@@ -4,6 +4,9 @@ function plot_post_process_2(stochastic_simulation,type_data,resolution,forcing,
 % plot the same thing that fct_fft_advection_sto
 %
 
+if nargin == 0
+    init;
+end
 %% Main parameters to choose
 % Type of dynamics
 dynamics = 'SQG';
