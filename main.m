@@ -18,18 +18,16 @@ end
 dynamics = 'SQG';
 %dynamics = '2D';
 
-bool_parfor = false;
-
 % Duration of the simulation (in seconds)
 advection_duration = 3600*24*30;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    bool_parfor = true;
+    bool_parfor = false;
 
     % Type of initial condtions
-    type_data ='Vortices';
+    type_data ='Vortices2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -140,6 +138,10 @@ if nargin == 0
         end
         % end
         
+        % Use a spatial derivation scheme for the herogeneous
+        % disspation
+        Smag.spatial_scheme = false;
+        
         % Force sigma to be diveregence free
         sigma.proj_free_div = true;
         
@@ -166,10 +168,6 @@ if nargin == 0
             % Smagorinsky energy budget (dissipation epsilon)
             % without taking into account the noise intake
             sigma.Smag.epsi_without_noise = false;
-            
-            % Use a spatial derivation scheme for the herogeneous
-            % disspation
-            Smag.spatial_scheme = false;
             
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
@@ -206,68 +204,14 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=2
+N_ech=1
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
 
-% <<<<<<< HEAD
-% % Duration of the simulation (in seconds)
-% advection_duration = 3600*24*30;
-% %advection_duration = 3600*24*1000;
-% % % advection_duration = 3600*24*20; % 20 days
-% 
-% if nargin == 0
-%     % Type of initial condtions
-%     type_data = 'Vortices2';
-%     % 'Vortices' : 2 large anticyclones and 2 large cyclones
-%     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
-%     %    Memin E., Chapron B.)
-%     % 'Vortices2' : same as 'Vortices' but properly periodized (by Pierre Derian).
-%     % 'Perturbed_vortices' : Same flow with slight small-scale modifications
-%     %   (used in "Chaotic transitions and location uncertainty in geophysical
-%     %    fluid flows", Resseguier V., Memin E., Chapron B.)
-%     % 'Spectrum' : Gaussian random field with a spectrum slope deined by
-%     %   the variable slop_b_ini (default value  = -5/3)
-%     % 'Zero' : Field equal to zero everywhere
-%     % 'Constantin_case1'
-%     % 'Constantin_case2'
-%     
-%     % Resolution
-%     %resolution = 64;
-%     resolution = 128;
-%     %resolution = 256;
-%     % resolution = 512;
-%     %resolution = 1024;
-%     % resolution = 2048;
-%     
-%     % The number of grid point is resolution^2
-%     % It has to be an even integer
-%     
-%     % Forcing
-%     
-%     % Forcing or not
-%     forcing = false;
-%     % If yes, there is a forcing
-%     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
-%     % % If yes, there is an additionnal velocity V = (0 Vy)
-%     % % with Vy = ampli_forcing * odg_b *  sin( 2 freq_f pi y/L_y)
-% end
-% 
-% % Type de forcing
-% % forcing_type = 'Kolmogorov';
-% forcing_type = 'Spring';
-% 
-% % Amplitude of the forcing
-% ampli_forcing = 10;
-% % ampli_forcing = 1;
-% 
-% % Frequency of the forcing
-% freq_f = [3 2];
-% % freq_f = [0 1];
-% 
-% =======
-% >>>>>>> 2f701f9e482ddfb0b6d3c011752609307c624b4c
+if nargin >0
+    bool_parfor = false;
+end
 
 %% Deterministic subgrid tensor
 

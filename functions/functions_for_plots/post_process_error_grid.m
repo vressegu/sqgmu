@@ -714,38 +714,41 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
-if model.sigma.sto & model.sigma.Smag.bool
-    subgrid_details = ['kappamax_on_kappad_' ...
-        fct_num2str(model.sigma.Smag.kappamax_on_kappad) ...
-        '_dealias_ratio_mask_LS_' ...
-        fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-    if model.sigma.Smag.SS_vel_homo
-        subgrid_details = [ subgrid_details '_SS_vel_homo'];
-    elseif  model.sigma.proj_free_div
-        subgrid_details = [ subgrid_details '_proj_free_div'];
-    end
-    if model.advection.Smag.spatial_scheme
-        subgrid_details = [ subgrid_details '_spatial_scheme'];
-    end
-    model.folder.folder_simu = [ model.folder.folder_simu ...
-        '/' subgrid_details ];
-elseif model.sigma.sto & ...
-        ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
-    subgrid_details = ['dealias_ratio_mask_LS_' ...
-        fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-    if  model.sigma.proj_free_div
-        subgrid_details = [ subgrid_details '_proj_free_div'];
-    end
-    model.folder.folder_simu = [ model.folder.folder_simu ...
-        '/' subgrid_details ];
-end
 if model.sigma.sto
+    if model.sigma.Smag.bool
+        subgrid_details = ['kappamax_on_kappad_' ...
+            fct_num2str(model.sigma.Smag.kappamax_on_kappad) ...
+            '_dealias_ratio_mask_LS_' ...
+            fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+        if model.sigma.Smag.SS_vel_homo
+            subgrid_details = [ subgrid_details '_SS_vel_homo'];
+        elseif  model.sigma.proj_free_div
+            subgrid_details = [ subgrid_details '_proj_free_div'];
+        end
+        if model.advection.Smag.spatial_scheme
+            subgrid_details = [ subgrid_details '_spatial_scheme'];
+        end
+    elseif ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
+        subgrid_details = ['dealias_ratio_mask_LS_' ...
+            fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+        if  model.sigma.proj_free_div
+            subgrid_details = [ subgrid_details '_proj_free_div'];
+        end
+    end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '_kappamin_on_kappamax_' ....
         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    if ~ ( exist('subgrid_details','file')==1)
+        subgrid_details = [];
+    end
     subgrid_details = [ subgrid_details ...
         '_kappamin_on_kappamax_' ....
         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    subgrid_details = [ subgrid_details ...
+        '_N_ech_' ....
+        fct_num2str(model.advection.N_ech) ];
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '/' subgrid_details ];
 end
 
 % Create the folders
