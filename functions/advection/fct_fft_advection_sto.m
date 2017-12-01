@@ -995,8 +995,8 @@ while time < model.advection.advection_duration
         % t_last_plot = t;
         if model.plots
             fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
-            a_0_LS = mean(sigma_dBt_on_sq_dt(:).^2);
             if model.sigma.sto
+                a_0_LS = mean(sigma_dBt_on_sq_dt(:).^2);
                 a_0_LS
             end
             
@@ -1087,6 +1087,10 @@ while time < model.advection.advection_duration
             [spectrum,name_plot,int_epsilon] = ...
                 fct_plot(model,fft_b,day);
             
+            if ~model.sigma.sto
+                sigma = 0;
+                sigma_dBt_on_sq_dt=0;
+            end
             if model.advection.plot_dissip
                 fct_plot_dissipation(model,fft_b,sigma,day);
             end
