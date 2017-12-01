@@ -1,4 +1,4 @@
-function [fft_b, model] = fct_fft_advection_sto_2(model,  fft_b)
+function [fft_b, model] = fct_fft_advection_sto_parfor(model,  fft_b)
 % Advection of buoyancy using SQG or SQG_MU model
 %
 
@@ -77,41 +77,41 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
-if model.sigma.sto & model.sigma.Smag.bool
-    subgrid_details = ['kappamax_on_kappad_' ...
-        fct_num2str(model.sigma.Smag.kappamax_on_kappad) ...
-        '_dealias_ratio_mask_LS_' ...
-        fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-    if model.sigma.Smag.SS_vel_homo
-        subgrid_details = [ subgrid_details '_SS_vel_homo'];
-    elseif  model.sigma.proj_free_div
-        subgrid_details = [ subgrid_details '_proj_free_div'];
-    end
-    if model.advection.Smag.spatial_scheme
-        subgrid_details = [ subgrid_details '_spatial_scheme'];
-    end
-    model.folder.folder_simu = [ model.folder.folder_simu ...
-        '/' subgrid_details ];
-elseif model.sigma.sto & ...
-        ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
-    subgrid_details = ['dealias_ratio_mask_LS_' ...
-        fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-    if  model.sigma.proj_free_div
-        subgrid_details = [ subgrid_details '_proj_free_div'];
-    end
-    model.folder.folder_simu = [ model.folder.folder_simu ...
-        '/' subgrid_details ];
-end
 if model.sigma.sto
+    if model.sigma.Smag.bool
+        subgrid_details = ['kappamax_on_kappad_' ...
+            fct_num2str(model.sigma.Smag.kappamax_on_kappad) ...
+            '_dealias_ratio_mask_LS_' ...
+            fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+        if model.sigma.Smag.SS_vel_homo
+            subgrid_details = [ subgrid_details '_SS_vel_homo'];
+        elseif  model.sigma.proj_free_div
+            subgrid_details = [ subgrid_details '_proj_free_div'];
+        end
+        if model.advection.Smag.spatial_scheme
+            subgrid_details = [ subgrid_details '_spatial_scheme'];
+        end
+    elseif ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
+        subgrid_details = ['dealias_ratio_mask_LS_' ...
+            fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+        if  model.sigma.proj_free_div
+            subgrid_details = [ subgrid_details '_proj_free_div'];
+        end
+    end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '_kappamin_on_kappamax_' ....
         fct_num2str(model.sigma.kappamin_on_kappamax) ];
     if ~ ( exist('subgrid_details','file')==1)
-         subgrid_details = [];
+        subgrid_details = [];
     end
     subgrid_details = [ subgrid_details ...
         '_kappamin_on_kappamax_' ....
         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    subgrid_details = [ subgrid_details ...
+        '_N_ech_' ....
+        fct_num2str(model.advection.N_ech) ];
+    model.folder.folder_simu = [ model.folder.folder_simu ...
+        '/' subgrid_details ];
 end
 
 % Create the folders
@@ -686,8 +686,10 @@ while time < model.advection.advection_duration
             %             slope_sigma = nan(1,N_ech);
             %             offset_spectrum_a_sigma = nan(1,N_ech);
             %             km_LS = nan(1,N_ech);
+            %%
             % for sampl=1:N_ech
             parfor sampl=1:N_ech
+                %%
                 % [sigma(:,:,:,sampl), ~, tr_a(sampl) ] ...
                 [ sigma(:,:,:,sampl), ~, model_sampl(sampl).sigma.tr_a ,....
                     model_sampl(sampl).sigma.slope_sigma,...
@@ -709,25 +711,17 @@ while time < model.advection.advection_duration
                 % Diffusion coefficient
                 model_sampl(sampl).advection.coef_diff = ...
                     1/2 * model_sampl(sampl).sigma.a0;
-            end
-            % model.sigma.a0 = model.sigma.tr_a/2;
-            %a0 = tr_a/2;
-            %             for sampl=1:N_ech
-            %                 model.sigma.slope_sigma(sampl) = slope_sigma(sampl);
-            %                 model.sigma.offset_spectrum_a_sigma(sampl) = ...
-            %                     offset_spectrum_a_sigma(sampl);
-            %                 model.sigma.km_LS(sampl) = km_LS(sampl);
-            %             end
-            sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) ...
-                * sigma; clear sigma
-            % model.sigma.a0 = a0;
-            % model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
-            %             % Diffusion coefficient
-            %             model.advection.coef_diff = 1/2 * model.sigma.a0;
-            if model.sigma.assoc_diff | model.sigma.Smag.bool
-                % warning('deal with slope when there are several realizations')
-                % for sampl=1:N_ech
-                parfor sampl=1:N_ech
+                %end
+                %             sigma_on_sq_dt(:,:,:,sampl) = (1/sqrt(model_sampl(sampl).advection.dt_adv)) ...
+                %                 * sigma(:,:,:,sampl); clear sigma
+                % %             sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) ...
+                % %                 * sigma; clear sigma
+                %             %%
+                %             % for sampl=1:N_ech
+                %             parfor sampl=1:N_ech
+                %                 %%
+                if model.sigma.assoc_diff | model.sigma.Smag.bool
+                    % warning('deal with slope when there are several realizations')
                     model_sampl(sampl).sigma.a0_SS = ...
                         1/2 * fct_norm_tr_a_theo_Band_Pass_w_Slope(...
                         model_sampl(sampl), ...
@@ -749,19 +743,17 @@ while time < model.advection.advection_duration
                     
                     %%
                     if model_sampl(sampl).sigma.Smag.bool
-                        %                     % for sampl=1:N_ech
-                        %                     parfor sampl=1:N_ech
                         if model_sampl(sampl).sigma.a0_SS > eps
                             if model_sampl(sampl).sigma.Smag.epsi_without_noise
-                                sigma_on_sq_dt(:,:,:,sampl) = ...
+                                sigma(:,:,:,sampl) = ...
                                     sqrt(2/(model_sampl(sampl).sigma.a0_LS ...
                                     + model_sampl(sampl).sigma.a0_SS)) ...
-                                    * sigma_on_sq_dt(:,:,:,sampl);
+                                    * sigma(:,:,:,sampl);
                                 %                             model.advection.coef_diff = 1;
                             else
-                                sigma_on_sq_dt(:,:,:,sampl) = ...
+                                sigma(:,:,:,sampl) = ...
                                     sqrt(2/model_sampl(sampl).sigma.a0_SS) ...
-                                    * sigma_on_sq_dt(:,:,:,sampl);
+                                    * sigma(:,:,:,sampl);
                                 %                             model.advection.coef_diff = 1 + ...
                                 %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
                             end
@@ -771,16 +763,41 @@ while time < model.advection.advection_duration
                             % are few small scales and no subgrid terms is needed.
                             % Moreover, setting subgris terms to zero prevent numerical
                             % errors.
-                            sigma_on_sq_dt(:,:,:,sampl) = ...
-                                zeros(size(sigma_on_sq_dt(:,:,:,sampl)));
+                            sigma(:,:,:,sampl) = ...
+                                zeros(size(sigma(:,:,:,sampl)));
                             model_sampl(sampl).advection.coef_diff = 0;
+                            
+%                             if model_sampl(sampl).sigma.Smag.epsi_without_noise
+%                                 sigma_on_sq_dt(:,:,:,sampl) = ...
+%                                     sqrt(2/(model_sampl(sampl).sigma.a0_LS ...
+%                                     + model_sampl(sampl).sigma.a0_SS)) ...
+%                                     * sigma_on_sq_dt(:,:,:,sampl);
+%                                 %                             model.advection.coef_diff = 1;
+%                             else
+%                                 sigma_on_sq_dt(:,:,:,sampl) = ...
+%                                     sqrt(2/model_sampl(sampl).sigma.a0_SS) ...
+%                                     * sigma_on_sq_dt(:,:,:,sampl);
+%                                 %                             model.advection.coef_diff = 1 + ...
+%                                 %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
+%                             end
+%                         elseif strcmp(model_sampl(sampl).sigma.type_spectrum,'SelfSim_from_LS')
+%                             % The absolute diffusivity diagnosed from the large-scale
+%                             % kinematic spectrum is too weak. It suggests that there
+%                             % are few small scales and no subgrid terms is needed.
+%                             % Moreover, setting subgris terms to zero prevent numerical
+%                             % errors.
+%                             sigma_on_sq_dt(:,:,:,sampl) = ...
+%                                 zeros(size(sigma_on_sq_dt(:,:,:,sampl)));
+%                             model_sampl(sampl).advection.coef_diff = 0;
                         else
                             error('Unknow case');
                         end
                     end
+                    %%
                 end
-                %%
             end
+%             sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) ...
+%                 * sigma; clear sigma
         elseif model.sigma.Smag.bool | model.sigma.assoc_diff
             model_sampl.sigma.a0 = model_sampl.sigma.a0_LS + model_sampl.sigma.a0_SS;
         else
@@ -790,17 +807,11 @@ while time < model.advection.advection_duration
         end
         
         
-        % Fourier transform of white noise
-        dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
-        % Multiplication by the Fourier transform of the kernel \tilde \sigma
-        fft_sigma_dBt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
-        clear dBt_C_on_sq_dt
-        % Homogeneous velocity field
-        sigma_dBt_dt = real(ifft2(fft_sigma_dBt));
-        clear fft_sigma_dBt
-        
         if model.sigma.hetero_energy_flux
+            %%
             parfor sampl=1:N_ech
+                % for sampl=1:N_ech
+                %%
                 coef_modulation(:,:,:,sampl) = ...
                     fct_epsilon_k_onLine(model_sampl(sampl),...
                     fft_b(:,:,:,sampl),fft_w(:,:,:,sampl));
@@ -819,8 +830,10 @@ while time < model.advection.advection_duration
             %   figure(13);fct_spectrum( model,fft2(coef_diff_aa));
             %     figure(14);fct_spectrum( model,fft2(sqrt(coef_diff_aa)));
             %    figure(15);imagesc(sqrt(coef_diff_aa)');axis xy;axis equal
-            
+            %%
+            % for sampl=1:N_ech
             parfor sampl=1:N_ech
+                %%
                 % Coefficient coef_Smag to target a specific diffusive scale
                 if model_sampl(sampl).sigma.a0_SS > eps
                     if model_sampl(sampl).sigma.Smag.epsi_without_noise
@@ -842,7 +855,8 @@ while time < model.advection.advection_duration
                     error('Unknow case');
                 end
                 model_sampl(sampl).advection.coef_diff = ...
-                    model_sampl(sampl).advection.coef_diff * coef_modulation;
+                    model_sampl(sampl).advection.coef_diff ...
+                    * coef_modulation(:,:,:,sampl);
             end
             
             if model.sigma.Smag.SS_vel_homo
@@ -854,7 +868,10 @@ while time < model.advection.advection_duration
         end
         
         if model.sigma.assoc_diff
+            %%
+            % for sampl=1:N_ech
             parfor sampl=1:N_ech
+                %%
                 %             model.sigma.a0_SS = coef_modulation * model.sigma.a0_SS;
                 %             model.sigma.a0_LS = coef_modulation * model.sigma.a0_LS ;
                 model_sampl(sampl).sigma.a0 = ...
@@ -871,33 +888,31 @@ while time < model.advection.advection_duration
             end
         end
         
-        % Heterogeneous small-scale velocity
-        sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
-            sigma_dBt_dt);
         
-        if model.sigma.proj_free_div
-            % nrj_before_proj_div = mean(sigma_dBt_dt(:).^2)
-            sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
-            % nrj_after_proj_div = mean(sigma_dBt_dt(:).^2)
-        end
+
         
         % Maximum of the variance tensor
-%         % coef_modulation_a0 = max(max(coef_modulation,[],2),[],1);
-%         a0_temp = nan([1 1 1 N_ech]);
+        %         % coef_modulation_a0 = max(max(coef_modulation,[],2),[],1);
+        %         a0_temp = nan([1 1 1 N_ech]);
         a0_temp = nan([N_ech 1]);
+        if size(coef_modulation,4)==1
+            coef_modulation = repmat(coef_modulation,[1 1 1 N_ech]);
+        end
+        %%
+        % for sampl=1:N_ech
         parfor sampl=1:N_ech
+            %%
             model_sampl(sampl).sigma.a0 = ...
                 model_sampl(sampl).sigma.a0 * ...
                 coef_modulation(:,:,:,sampl) ;
             %%
             if model_sampl(sampl).sigma.Smag.bool
-                %parfor sampl=1:N_ech
                 if model_sampl(sampl).sigma.a0_SS > eps
                     if model_sampl(sampl).sigma.Smag.epsi_without_noise
                         model_sampl(sampl).sigma.a0 = ...
                             model_sampl(sampl).sigma.a0 ...
                             / (model_sampl(sampl).sigma.a0_SS ...
-                            + model_sampl(sampl).sigma.a0_LS);
+                                + model_sampl(sampl).sigma.a0_LS);
                     else
                         % Taking into account the noise in the energy budget
                         model_sampl(sampl).sigma.a0 = ...
@@ -922,12 +937,42 @@ while time < model.advection.advection_duration
             % a0_temp(1,1,1,sampl) = model_sampl(sampl).sigma.a0 ;
         end
         model.sigma.a0 = max(a0_temp(:)) ; clear a0_temp;
-%         model.sigma.a0 = a0_temp; clear a0_temp;
-%         %         model.sigma.a0 = bsxfun( @times, a0_temp , coef_modulation );
-%         %         %model.sigma.a0 = bsxfun( @times, model.sigma.a0 , coef_modulation );
-%         model.sigma.a0 = max(model.sigma.a0(:)) ;
-%         %model.sigma.a0 = model.sigma.a0 * max(coef_modulation(:))
-     
+        %         model.sigma.a0 = a0_temp; clear a0_temp;
+        %         %         model.sigma.a0 = bsxfun( @times, a0_temp , coef_modulation );
+        %         %         %model.sigma.a0 = bsxfun( @times, model.sigma.a0 , coef_modulation );
+        %         model.sigma.a0 = max(model.sigma.a0(:)) ;
+        %         %model.sigma.a0 = model.sigma.a0 * max(coef_modulation(:))
+        
+        %% Simulation of sigma dBt
+        
+        % Fourier transform of white noise
+        dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
+        % Multiplication by the Fourier transform of the kernel \tilde \sigma
+        fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
+        clear dBt_C_on_sq_dt
+        % Homogeneous velocity field
+        sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
+        clear fft_sigma_dBt_on_sq_dt
+        
+%         % Fourier transform of white noise
+%         dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
+%         % Multiplication by the Fourier transform of the kernel \tilde \sigma
+%         fft_sigma_dBt_on_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
+%         clear dBt_C_on_sq_dt
+%         % Homogeneous velocity field
+%         sigma_dBt_dt = real(ifft2(fft_sigma_dBt_on_dt));
+%         clear fft_sigma_dBt_on_dt
+
+        % Heterogeneous small-scale velocity
+        sigma_dBt_on_sq_dt = bsxfun(@times, sqrt(coef_modulation) , ...
+            sigma_dBt_on_sq_dt);
+        
+        if model.sigma.proj_free_div & any(coef_modulation(:) ~= 1)
+            % nrj_before_proj_div = mean(sigma_dBt_on_sq_dt(:).^2)
+            sigma_dBt_on_sq_dt = fct_proj_free_div(model,sigma_dBt_on_sq_dt);
+            % nrj_after_proj_div = mean(sigma_dBt_on_sq_dt(:).^2)
+        end
+        
     end
     
     %% Specify determinstic heterogeneous subgrid model
@@ -951,7 +996,15 @@ while time < model.advection.advection_duration
     %% Dynamical time step
     model.advection.dt_adv = fct_CFL(model,w);
     if model.sigma.sto
-        model_sampl.advection.dt_adv = model.advection.dt_adv;
+        %         model_sampl.advection.dt_adv = repamt( model.advection.dt_adv,...
+        %             [1 1 1 N_ech]);
+        % model_sampl.advection.dt_adv = model.advection.dt_adv;
+        %%
+        parfor sampl=1:N_ech
+            % for sampl=1:N_ech
+            %%
+            model_sampl(sampl).advection.dt_adv = model.advection.dt_adv;
+        end
     end
     time = time + model.advection.dt_adv;
     % for t=t_ini:N_t
@@ -960,7 +1013,7 @@ while time < model.advection.advection_duration
     %% Adding time-correlated and time decorrelated velocity
     % w_fv = w;
     if  model.sigma.sto & ~model.sigma.no_noise
-        w = w + sigma_dBt_dt;
+        w = w + sigma_dBt_on_sq_dt/sqrt(model.advection.dt_adv);
     end
     % if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     %         w(:,:,1) = w(:,:,1) + Vy;
@@ -972,27 +1025,29 @@ while time < model.advection.advection_duration
         % Runge-Kutta 4 scheme
         fft_b = RK4_fft_advection(model,fft_b, w);
     else
-%         model_temp = cell(N_ech,1);
+        %         model_temp = cell(N_ech,1);
+        %%
         % for sampl=1:N_ech
         parfor sampl=1:N_ech
+            %%
             % Euler scheme
-%             % model_temp{sampl} = model;
-%             if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
-%                 model_temp{sampl}.sigma.a0 = model.sigma.a0(sampl);
-%                 % model_temp{sampl}.sigma.a0_on_dt =model.sigma.a0_on_dt(sampl);
-%                 model_temp{sampl}.advection.coef_diff = ...
-%                    model.advection.coef_diff(sampl);
-% %                 model_temp{sampl}.advection.coef_diff = ...
-% %                     model.sigma.a0(sampl)/2 ...
-% %                     * coef_modulation(:,:,:,sampl) ;
-%             end
+            %             % model_temp{sampl} = model;
+            %             if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+            %                 model_temp{sampl}.sigma.a0 = model.sigma.a0(sampl);
+            %                 % model_temp{sampl}.sigma.a0_on_dt =model.sigma.a0_on_dt(sampl);
+            %                 model_temp{sampl}.advection.coef_diff = ...
+            %                    model.advection.coef_diff(sampl);
+            % %                 model_temp{sampl}.advection.coef_diff = ...
+            % %                     model.sigma.a0(sampl)/2 ...
+            % %                     * coef_modulation(:,:,:,sampl) ;
+            %             end
             fft_b(:,:,:,sampl) = fft_b(:,:,:,sampl) ...
                 + deriv_fft_advection( ...
                 model_sampl(sampl), fft_b(:,:,:,sampl), w(:,:,:,sampl)) ...
                 * model_sampl(sampl).advection.dt_adv;
-%             %model, fft_b(:,:,:,sampl), w(:,:,:,sampl)) ...
-%             %   * model.advection.dt_adv;
-%             model_temp{sampl} = {};
+            %             %model, fft_b(:,:,:,sampl), w(:,:,:,sampl)) ...
+            %             %   * model.advection.dt_adv;
+            %             model_temp{sampl} = {};
         end
         clear model_temp
     end
@@ -1048,18 +1103,17 @@ while time < model.advection.advection_duration
             end
             
             fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
-            a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
-            %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
+            a_0_LS = mean(sigma_dBt_on_sq_dt(:).^2);
             if model.sigma.sto
                 a_0_LS
             end
             
+            id_part=1;
             %%
             if model.advection.Smag.bool || ...
                     (model.sigma.sto && ( model.sigma.Smag.bool ...
                     || model.sigma.hetero_modulation ...
                     || model.sigma.hetero_modulation_V2 ) )
-                id_part=1;
                 % Coefficient coef_Smag to target a specific diffusive scale
                 if model.advection.Smag.bool
                     [coef_diff_aa,coef_diff] = fct_coef_diff(model,...
@@ -1096,20 +1150,20 @@ while time < model.advection.advection_duration
                         | model.sigma.hetero_modulation_V2
                     coef_diff_aa = ...
                         model_sampl(id_part).sigma.a0/2  ;
-%                     [coef_diff_aa,coef_diff] = ...
-%                         fct_coef_estim_AbsDiff_heterogeneous(...
-%                         model,fft_w(:,:,:,id_part));
-%                     coef_diff_aa = ...
-%                         model_sampl(id_part).sigma.a0/2 * coef_diff_aa ;
-%                     coef_diff = ...
-%                         model_sampl(id_part).sigma.a0/2 * coef_diff ;
+                    %                     [coef_diff_aa,coef_diff] = ...
+                    %                         fct_coef_estim_AbsDiff_heterogeneous(...
+                    %                         model,fft_w(:,:,:,id_part));
+                    %                     coef_diff_aa = ...
+                    %                         model_sampl(id_part).sigma.a0/2 * coef_diff_aa ;
+                    %                     coef_diff = ...
+                    %                         model_sampl(id_part).sigma.a0/2 * coef_diff ;
                 elseif model.sigma.hetero_energy_flux
                     coef_diff_aa = ...
                         model_sampl(id_part).sigma.a0/2  ;
-%                     coef_diff_aa = ...
-%                         fct_epsilon_k_onLine(model,fft_b,fft_w);
-%                     coef_diff_aa = ...
-%                         model.sigma.a0(id_part)/2 * coef_diff_aa ;
+                    %                     coef_diff_aa = ...
+                    %                         fct_epsilon_k_onLine(model,fft_b,fft_w);
+                    %                     coef_diff_aa = ...
+                    %                         model.sigma.a0(id_part)/2 * coef_diff_aa ;
                 end
                 figure(9);
                 subplot(1,2,1);
@@ -1145,7 +1199,7 @@ while time < model.advection.advection_duration
             %%
             % Plots
             [spectrum,name_plot,int_epsilon] = ...
-                fct_plot(model,fft_b(:,:,:,id_part),day);
+                fct_plot(model,fft_b,day);
             
             if model.advection.plot_dissip
                 fct_plot_dissipation(model_sampl(id_part),fft_b(:,:,:,id_part),sigma_on_sq_dt,day);
@@ -1193,9 +1247,9 @@ while time < model.advection.advection_duration
         
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
-            'model','model_sampl','time','fft_b','w','sigma_dBt_dt', ...
+            'model','model_sampl','time','fft_b','w','sigma_dBt_on_sq_dt', ...
             'sigma_on_sq_dt');
-        %             'model','t','fft_b','w','sigma_dBt_dt', ...
+        %             'model','t','fft_b','w','sigma_dBt_on_sq_dt', ...
         %             'sigma_on_sq_dt');
         %         %             'sigma_on_sq_dt','cov_w','abs_diff');
     end
