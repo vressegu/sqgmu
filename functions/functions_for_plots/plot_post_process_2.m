@@ -365,26 +365,44 @@ if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     %     sigma.slope_sigma = nan;
 end
 
-% Rate between the smallest and the largest wave number of sigma dBt
-if sigma.sto & strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-    sigma.kappamin_on_kappamax = 1/2;
-    % sigma.kappamin_on_kappamax = 1/4;
-    % sigma.kappamin_on_kappamax = 1/8;
+% <<<<<<< HEAD
+% % Rate between the smallest and the largest wave number of sigma dBt
+% if sigma.sto & strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+%     sigma.kappamin_on_kappamax = 1/2;
+%     % sigma.kappamin_on_kappamax = 1/4;
+%     % sigma.kappamin_on_kappamax = 1/8;
+%
+%     sigma.kappaLS_on_kappamax = 1/8;
+% else
+%     %kappamin_on_kappamax = 1/32;
+%     sigma.kappamin_on_kappamax = 1/2;
+%     % sigma.kappamin_on_kappamax = 1/128;
+%     %         sigma.slope_sigma = - 5;
+%     % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+% =======
+if sigma.sto
+    % Rate between the smallest and the largest wave number of sigma dBt
+    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/4;
+        % sigma.kappamin_on_kappamax = 1/8;
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    else
+        %kappamin_on_kappamax = 1/32;
+        sigma.kappamin_on_kappamax = 1/2;
+        % sigma.kappamin_on_kappamax = 1/128;
+        %         sigma.slope_sigma = - 5;
+        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+        
+        sigma.kappaLS_on_kappamax = 1/8;
+    end
+    % >>>>>>> 66e0d274c3dc3d35c2b1138c12b022fd3a0806f5
     
-    sigma.kappaLS_on_kappamax = 1/8;
-else
-    %kappamin_on_kappamax = 1/32;
-    sigma.kappamin_on_kappamax = 1/2;
-    % sigma.kappamin_on_kappamax = 1/128;
-    %         sigma.slope_sigma = - 5;
-    % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-    
-    sigma.kappaLS_on_kappamax = 1/8;
+    % Rate between the largest wave number of sigma dBt and the largest wave
+    % number of the simulation
+    sigma.kappamax_on_kappaShanon = 1;
 end
-
-% Rate between the largest wave number of sigma dBt and the largest wave
-% number of the simulation
-sigma.kappamax_on_kappaShanon = 1;
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
 switch dynamics
@@ -401,7 +419,7 @@ model = fct_physical_param(dynamics);
 
 % Gather parameters in the structure model
 model.sigma = sigma;
-if sigma.sto 
+if sigma.sto
     eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
         model.sigma.type_spectrum '(m,k1,k2);']);
 end
@@ -559,11 +577,11 @@ nb_modes = 200;
 % if model.sigma.no_noise
 %     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
 % end
-% 
+%
 % % if model.sigma.SelfSim_from_LS.bool
 % %     add_subgrid_deter = [add_subgrid_deter '_SelfSim_from_LS'];
 % % end
-% 
+%
 % if ~ model.sigma.sto % Deterministic case
 %     model.folder.folder_simu = [ 'images/usual_' model.dynamics ...
 %         add_subgrid_deter '/' model.type_data ];
@@ -623,14 +641,14 @@ nb_modes = 200;
 %         '_kappamin_on_kappamax_' ....
 %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
 % end
-% 
+%
 % % Create the folders
 % fct_create_folder_plots(model)
-% 
+%
 % % Colormap
 % load('BuYlRd.mat');
 % model.folder.colormap = BuYlRd; clear BuYlRd
-% 
+%
 % % Version of matlab
 % vers = version;
 % year = str2double(vers(end-5:end-2));
@@ -988,7 +1006,7 @@ for t_loop=t_ini:N_t
         
         % Dissipation by scale
         if plot_epsilon_k
-        %if model.advection.plot_epsilon_k
+            %if model.advection.plot_epsilon_k
             epsilon_th_scales = fct_plot_epsilon_k(model,fft_b,day);
             % fct_plot_epsilon_k(model,fft_b,int_epsilon,day);
             v_epsilon_th_scale = [ v_epsilon_th_scale epsilon_th_scales];
