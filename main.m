@@ -43,7 +43,7 @@ if nargin == 0
         sigma.assoc_diff = false;
         
         % Smagorinsky-like control of dissipation
-        sigma.Smag.bool = true;
+        sigma.Smag.bool = false;
         
         %     % Sigma computed from self similarities from the large scales
         %     sigma.SelfSim_from_LS.bool = true;
@@ -155,7 +155,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Constantin_case2';
+    type_data = 'Vortices2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -214,7 +214,7 @@ if nargin == 0
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = false;
+    HV.bool = true;
     
     if HV.bool
         HV.order=4;

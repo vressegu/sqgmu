@@ -43,12 +43,12 @@ forcing = false;
 
 %% Deterministic Smag model
 % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-Smag.bool = false;
+Smag.bool = true;
 
 %% Stochastic terms
 
 % Deterministic or random model
-stochastic_simulation = true;
+stochastic_simulation = false;
 sigma.sto = stochastic_simulation;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
@@ -277,7 +277,7 @@ end
 
 
 % Viscosity
-Lap_visco.bool = false;
+Lap_visco.bool = true;
 
 % % Smagorinsky-like viscosity
 % Smag.bool = false;
@@ -296,7 +296,8 @@ if Smag(1,1).bool
         % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
         % and the targeted diffusion scale
-        v_kappamax_on_kappad = 1./ [1 2 4 8]' ;
+        v_kappamax_on_kappad = [0.3 0.4 0.6:0.1:0.8]' ;
+        % v_kappamax_on_kappad = 1./ [1 2 4 8]' ;
         
         for p=1:length(v_dealias_ratio_mask_LS)
             for q=1:length(v_kappamax_on_kappad)
@@ -366,12 +367,13 @@ end
 
 %% Compared to reference
 nb_days =30
+resolution_HR = 1024;
 
 error_vs_t = nan([nb_days,2,ll]);
 for j=1:ll
 %parfor j=1:ll
     error_vs_t(:,:,j) = post_process_error_grid(...
         stochastic_simulation,type_data,resolution,resolution_HR,...
-        forcing,Lap_visco,HV,Smag(j));
+        forcing,sigma(j),Lap_visco,HV,Smag(j));
 end
 error_vs_t = reshape(error_vs_t,[nb_days 2 s_Smag]);
