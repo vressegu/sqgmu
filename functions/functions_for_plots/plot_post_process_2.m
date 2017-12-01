@@ -232,9 +232,10 @@ if nargin == 0
             
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
-            Smag.dealias_ratio_mask_LS = 1/8;
-            %     dealias_ratio_mask_LS = 1/8;
-            %     %dealias_ratio_mask_LS = 1/2;
+            % Smag.dealias_ratio_mask_LS = 1/8;
+            %     Smag.dealias_ratio_mask_LS = 1/8;
+            %     %Smag.dealias_ratio_mask_LS = 1/2;
+            Smag.dealias_ratio_mask_LS = 1;
             warning('Redondant argument that for heterogeneous small-scale velocity')
             
             % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
@@ -299,7 +300,7 @@ plot_moments = false;
 
 % Choose to plot the dissipation by scale
 plot_epsilon_k = true;
-if sigma.hetero_energy_flux
+if sigma.sto & sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
 
@@ -358,14 +359,14 @@ switch dynamics
     otherwise
         error('Unknown type of dynamics');
 end
-if  strcmp(sigma.type_spectrum,'BB')
+if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
     % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
     %     sigma.slope_sigma = nan;
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
-if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+if sigma.sto & strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
     sigma.kappamin_on_kappamax = 1/2;
     % sigma.kappamin_on_kappamax = 1/4;
     % sigma.kappamin_on_kappamax = 1/8;
@@ -400,8 +401,10 @@ model = fct_physical_param(dynamics);
 
 % Gather parameters in the structure model
 model.sigma = sigma;
-eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
-    model.sigma.type_spectrum '(m,k1,k2);']);
+if sigma.sto 
+    eval(['model.sigma.fct_tr_a = @(m,k1,k2) fct_norm_tr_a_theo_' ...
+        model.sigma.type_spectrum '(m,k1,k2);']);
+end
 % eval(['model.sigma.fct_tr_a = @(m,k1,k2,alpha) fct_norm_tr_a_theo_' ...
 %     model.sigma.type_spectrum '(m,k1,k2,alpha);']);
 % model.sigma.slope_sigma = slope_sigma;
@@ -798,6 +801,9 @@ F_save = [];
 F_save2 = [];
 bt1_HR_vect = [];
 bt1_LR_vect = [];
+v_epsilon_dissip = [];
+v_epsilon_th_scale = [];
+v_time = [];
 
 
 trigger = false;
@@ -944,7 +950,9 @@ for t_loop=t_ini:N_t
             fct_plot(model,fft_b,day);
         
         if model.advection.plot_dissip
-            fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day);
+            epsilon_dissip = fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day);
+            v_epsilon_dissip = [ v_epsilon_dissip epsilon_dissip];
+            v_time = [ v_time time];
         end
         
         if model.sigma.sto & ...
@@ -979,9 +987,11 @@ for t_loop=t_ini:N_t
         end
         
         % Dissipation by scale
-        if model.advection.plot_epsilon_k
-            fct_plot_epsilon_k(model,fft_b,day);
+        if plot_epsilon_k
+        %if model.advection.plot_epsilon_k
+            epsilon_th_scales = fct_plot_epsilon_k(model,fft_b,day);
             % fct_plot_epsilon_k(model,fft_b,int_epsilon,day);
+            v_epsilon_th_scale = [ v_epsilon_th_scale epsilon_th_scales];
         end
         dt = model.advection.dt_adv
         
@@ -1015,4 +1025,12 @@ for t_loop=t_ini:N_t
     %         fct_plot_epsilon_k(model,fft_buoy_part,int_epsilon,day);
     %     end
 end
+
+
+figure(88);plot(v_time,v_epsilon_th_scale,'r');
+hold on;plot(v_time,v_epsilon_dissip,'b');
+eval( ['print -depsc ' model.folder.folder_simu '/epsilon_vs_time.eps']);
+
+
+
 end

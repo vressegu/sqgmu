@@ -122,7 +122,7 @@ for j=1:ll
 %parfor j=1:ll
     error_vs_t(:,:,j) = post_process_error_grid(...
         stochastic_simulation,type_data,resolution,resolution_HR,...
-        forcing,Lap_visco,HV,Smag(j));
+        forcing,sigma(j),Lap_visco,HV,Smag(j));
 end
 error_vs_t = reshape(error_vs_t,[nb_days 2 s_Smag]);
 

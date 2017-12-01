@@ -1,4 +1,4 @@
-function fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day)
+function epsilon = fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day)
 % This function creates plot online for the dissipation terms and save it
 %
 

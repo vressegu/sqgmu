@@ -1,5 +1,5 @@
 function error_vs_t = post_process_error_grid(stochastic_simulation,...
-    type_data,resolution,resolution_HR,forcing,Lap_visco,HV,Smag)
+    type_data,resolution,resolution_HR,forcing,sigma,Lap_visco,HV,Smag)
     %Lap_visco,HV,Smag,day_choose)
 % plot the same thing that fct_fft_advection_sto
 %
