@@ -1,7 +1,7 @@
 function [turb_dissip, noise_intake, estim_noise_intake, ...
     estim_aa_noise_intake,...
     dissip_HV, intake_forcing,model] = ...
-    fct_dissip(model,fft_b,sigma_on_sq_dt)
+    fct_dissip(model,fft_b,sigma)
 % Compute the deterministic and stochastic dissipation terms locally in
 % space.
 %
@@ -107,8 +107,10 @@ else % Stochastic case
         %%
         
     elseif model.sigma.Smag.bool | model.sigma.assoc_diff
+        sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
         model.sigma.a0 = model.sigma.a0_LS + model.sigma.a0_SS;
     else
+        sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
         % Variance tensor
         model.sigma.a0 = 2 * model.physical_constant.f0 ...
             / model.sigma.k_c^2;

@@ -1202,7 +1202,7 @@ while time < model.advection.advection_duration
                 fct_plot(model,fft_b,day);
             
             if model.advection.plot_dissip
-                fct_plot_dissipation(model_sampl(id_part),fft_b(:,:,:,id_part),sigma_on_sq_dt,day);
+                fct_plot_dissipation(model_sampl(id_part),fft_b(:,:,:,id_part),sigma,day);
             end
             
             if model.sigma.sto & ...

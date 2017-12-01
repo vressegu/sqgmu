@@ -1,4 +1,4 @@
-function epsilon = fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day)
+function epsilon = fct_plot_dissipation(model,fft_b,sigma,day)
 % This function creates plot online for the dissipation terms and save it
 %
 
@@ -29,7 +29,7 @@ if model.sigma.sto & ...
 end
 [turb_dissip,noise_intake,estim_noise_intake, estim_aa_noise_intake, ...
     dissip_HV,intake_forcing] = ...
-    fct_dissip(model,fft_b,sigma_on_sq_dt);
+    fct_dissip(model,fft_b,sigma);
 dissip_sto = turb_dissip - noise_intake;
 epsilon = dissip_sto + dissip_HV;
 epsilon_estim = turb_dissip - estim_noise_intake + dissip_HV;

@@ -694,8 +694,8 @@ while time < model.advection.advection_duration
                 model.sigma.km_LS(sampl) = km_LS(sampl);
             end
             clear tr_a slope_sigma offset_spectrum_a_sigma km_LS
-            sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) ...
-                * sigma; clear sigma
+%             sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) ...
+%                 * sigma; clear sigma
             model.sigma.a0 = a0;
             model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
             % Diffusion coefficient
@@ -717,15 +717,38 @@ while time < model.advection.advection_duration
                 
                 %%
                 if model.sigma.Smag.bool
+%                     if model.sigma.a0_SS > eps
+%                         if model.sigma.Smag.epsi_without_noise
+%                             sigma_on_sq_dt = ...
+%                                 sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
+%                                 * sigma_on_sq_dt;
+%                             %                             model.advection.coef_diff = 1;
+%                         else
+%                             sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
+%                                 * sigma_on_sq_dt;
+%                             %                             model.advection.coef_diff = 1 + ...
+%                             %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
+%                         end
+%                     elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+%                         % The absolute diffusivity diagnosed from the large-scale
+%                         % kinematic spectrum is too weak. It suggests that there
+%                         % are few small scales and no subgrid terms is needed.
+%                         % Moreover, setting subgris terms to zero prevent numerical
+%                         % errors.
+%                         sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
+%                         model.advection.coef_diff = 0;
+%                     else
+%                         error('Unknow case');
+%                     end
                     if model.sigma.a0_SS > eps
                         if model.sigma.Smag.epsi_without_noise
-                            sigma_on_sq_dt = ...
+                            sigma = ...
                                 sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
-                                * sigma_on_sq_dt;
+                                * sigma;
                             %                             model.advection.coef_diff = 1;
                         else
-                            sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
-                                * sigma_on_sq_dt;
+                            sigma = sqrt(2/model.sigma.a0_SS) ...
+                                * sigma;
                             %                             model.advection.coef_diff = 1 + ...
                             %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
                         end
@@ -735,7 +758,7 @@ while time < model.advection.advection_duration
                         % are few small scales and no subgrid terms is needed.
                         % Moreover, setting subgris terms to zero prevent numerical
                         % errors.
-                        sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
+                        sigma = zeros(size(sigma));
                         model.advection.coef_diff = 0;
                     else
                         error('Unknow case');
@@ -755,10 +778,10 @@ while time < model.advection.advection_duration
         % Fourier transform of white noise
         dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
         % Multiplication by the Fourier transform of the kernel \tilde \sigma
-        fft_sigma_dBt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
+        fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
         clear dBt_C_on_sq_dt
         % Homogeneous velocity field
-        sigma_dBt_dt = real(ifft2(fft_sigma_dBt));
+        sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
         clear fft_sigma_dBt
         
         if model.sigma.hetero_energy_flux
@@ -774,7 +797,7 @@ while time < model.advection.advection_duration
             % Coefficient coef_Smag to target a specific diffusive scale
             coef_modulation = model.sigma.Smag.coef_Smag * coef_modulation ;
             
-            %     figure(12);fct_spectrum( model,fft2(sigma_dBt_dt));
+            %     figure(12);fct_spectrum( model,fft2(sigma_dBt_on_sq_dt));
             %   figure(13);fct_spectrum( model,fft2(coef_diff_aa));
             %     figure(14);fct_spectrum( model,fft2(sqrt(coef_diff_aa)));
             %    figure(15);imagesc(sqrt(coef_diff_aa)');axis xy;axis equal
@@ -821,13 +844,13 @@ while time < model.advection.advection_duration
         end
         
         % Heterogeneous small-scale velocity
-        sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
-            sigma_dBt_dt);
+        sigma_dBt_on_sq_dt = bsxfun(@times, sqrt(coef_modulation) , ...
+            sigma_dBt_on_sq_dt);
         
         if model.sigma.proj_free_div
             % nrj_before_proj_div = mean(sigma_dBt_dt(:).^2)
-            sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
-            % nrj_after_proj_div = mean(sigma_dBt_dt(:).^2)
+            sigma_dBt_on_sq_dt = fct_proj_free_div(model,sigma_dBt_on_sq_dt);
+            % nrj_after_proj_div = mean(sigma_dBt_on_sq_dt(:).^2)
         end
         
         % Maximum of the variance tensor
@@ -886,7 +909,7 @@ while time < model.advection.advection_duration
     %% Adding time-correlated and time decorrelated velocity
     % w_fv = w;
     if  model.sigma.sto & ~model.sigma.no_noise
-        w = w + sigma_dBt_dt;
+        w = w + sigma_dBt_on_sq_dt/sqrt(model.advection.dt_adv);
     end
     % if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     %         w(:,:,1) = w(:,:,1) + Vy;
@@ -969,8 +992,7 @@ while time < model.advection.advection_duration
         % t_last_plot = t;
         if model.plots
             fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
-            a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
-            %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
+            a_0_LS = mean(sigma_dBt_on_sq_dt(:).^2);
             if model.sigma.sto
                 a_0_LS
             end
@@ -1063,7 +1085,7 @@ while time < model.advection.advection_duration
                 fct_plot(model,fft_b,day);
             
             if model.advection.plot_dissip
-                fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day);
+                fct_plot_dissipation(model,fft_b,sigma,day);
             end
             
             if model.sigma.sto & ...
@@ -1108,9 +1130,9 @@ while time < model.advection.advection_duration
         
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
-            'model','time','fft_b','w','sigma_dBt_dt', ...
+            'model','time','fft_b','w','sigma_dBt_on_sq_dt', ...
             'sigma_on_sq_dt');
-        %             'model','t','fft_b','w','sigma_dBt_dt', ...
+        %             'model','t','fft_b','w','sigma_dBt_on_sq_dt', ...
         %             'sigma_on_sq_dt');
         %         %             'sigma_on_sq_dt','cov_w','abs_diff');
     end
