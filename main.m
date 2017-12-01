@@ -11,9 +11,72 @@ if nargin == 0
 end
 
 %% Main parameters to choose
+
+%% Type of flow
+
 % Type of dynamics
 dynamics = 'SQG';
 %dynamics = '2D';
+
+bool_parfor = false;
+
+% Duration of the simulation (in seconds)
+advection_duration = 3600*24*30;
+%advection_duration = 3600*24*1000;
+% % advection_duration = 3600*24*20; % 20 days
+
+if nargin == 0
+    bool_parfor = true;
+
+    % Type of initial condtions
+    type_data ='Vortices';
+    % 'Vortices' : 2 large anticyclones and 2 large cyclones
+    %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
+    %    Memin E., Chapron B.)
+    % 'Vortices2' : same as 'Vortices' but properly periodized (by Pierre Derian).
+    % 'Perturbed_vortices' : Same flow with slight small-scale modifications
+    %   (used in "Chaotic transitions and location uncertainty in geophysical
+    %    fluid flows", Resseguier V., Memin E., Chapron B.)
+    % 'Spectrum' : Gaussian random field with a spectrum slope deined by
+    %   the variable slop_b_ini (default value  = -5/3)
+    % 'Zero' : Field equal to zero everywhere
+    % 'Constantin_case1'
+    % 'Constantin_case2'
+    
+    % Resolution
+    %resolution = 64;
+    resolution = 128;
+    %resolution = 256;
+    % resolution = 512;
+    %resolution = 1024;
+    % resolution = 2048;
+    
+    % The number of grid point is resolution^2
+    % It has to be an even integer
+    
+    % Forcing
+    
+    % Forcing or not
+    forcing = false;
+    % If yes, there is a forcing
+    % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
+    % % If yes, there is an additionnal velocity V = (0 Vy)
+    % % with Vy = ampli_forcing * odg_b *  sin( 2 freq_f pi y/L_y)
+end
+
+% Type de forcing
+% forcing_type = 'Kolmogorov';
+forcing_type = 'Spring';
+
+% Amplitude of the forcing
+ampli_forcing = 10;
+% ampli_forcing = 1;
+
+% Frequency of the forcing
+freq_f = [3 2];
+% freq_f = [0 1];
+
+%%
 
 
 if nargin == 0
@@ -143,65 +206,68 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=1;
+N_ech=2
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
 
-% Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
-%advection_duration = 3600*24*1000;
-% % advection_duration = 3600*24*20; % 20 days
-
-if nargin == 0
-    % Type of initial condtions
-    type_data = 'Vortices2';
-    % 'Vortices' : 2 large anticyclones and 2 large cyclones
-    %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
-    %    Memin E., Chapron B.)
-    % 'Vortices2' : same as 'Vortices' but properly periodized (by Pierre Derian).
-    % 'Perturbed_vortices' : Same flow with slight small-scale modifications
-    %   (used in "Chaotic transitions and location uncertainty in geophysical
-    %    fluid flows", Resseguier V., Memin E., Chapron B.)
-    % 'Spectrum' : Gaussian random field with a spectrum slope deined by
-    %   the variable slop_b_ini (default value  = -5/3)
-    % 'Zero' : Field equal to zero everywhere
-    % 'Constantin_case1'
-    % 'Constantin_case2'
-    
-    % Resolution
-    %resolution = 64;
-    resolution = 128;
-    %resolution = 256;
-    % resolution = 512;
-    %resolution = 1024;
-    % resolution = 2048;
-    
-    % The number of grid point is resolution^2
-    % It has to be an even integer
-    
-    % Forcing
-    
-    % Forcing or not
-    forcing = false;
-    % If yes, there is a forcing
-    % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
-    % % If yes, there is an additionnal velocity V = (0 Vy)
-    % % with Vy = ampli_forcing * odg_b *  sin( 2 freq_f pi y/L_y)
-end
-
-% Type de forcing
-% forcing_type = 'Kolmogorov';
-forcing_type = 'Spring';
-
-% Amplitude of the forcing
-ampli_forcing = 10;
-% ampli_forcing = 1;
-
-% Frequency of the forcing
-freq_f = [3 2];
-% freq_f = [0 1];
-
+% <<<<<<< HEAD
+% % Duration of the simulation (in seconds)
+% advection_duration = 3600*24*30;
+% %advection_duration = 3600*24*1000;
+% % % advection_duration = 3600*24*20; % 20 days
+% 
+% if nargin == 0
+%     % Type of initial condtions
+%     type_data = 'Vortices2';
+%     % 'Vortices' : 2 large anticyclones and 2 large cyclones
+%     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
+%     %    Memin E., Chapron B.)
+%     % 'Vortices2' : same as 'Vortices' but properly periodized (by Pierre Derian).
+%     % 'Perturbed_vortices' : Same flow with slight small-scale modifications
+%     %   (used in "Chaotic transitions and location uncertainty in geophysical
+%     %    fluid flows", Resseguier V., Memin E., Chapron B.)
+%     % 'Spectrum' : Gaussian random field with a spectrum slope deined by
+%     %   the variable slop_b_ini (default value  = -5/3)
+%     % 'Zero' : Field equal to zero everywhere
+%     % 'Constantin_case1'
+%     % 'Constantin_case2'
+%     
+%     % Resolution
+%     %resolution = 64;
+%     resolution = 128;
+%     %resolution = 256;
+%     % resolution = 512;
+%     %resolution = 1024;
+%     % resolution = 2048;
+%     
+%     % The number of grid point is resolution^2
+%     % It has to be an even integer
+%     
+%     % Forcing
+%     
+%     % Forcing or not
+%     forcing = false;
+%     % If yes, there is a forcing
+%     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
+%     % % If yes, there is an additionnal velocity V = (0 Vy)
+%     % % with Vy = ampli_forcing * odg_b *  sin( 2 freq_f pi y/L_y)
+% end
+% 
+% % Type de forcing
+% % forcing_type = 'Kolmogorov';
+% forcing_type = 'Spring';
+% 
+% % Amplitude of the forcing
+% ampli_forcing = 10;
+% % ampli_forcing = 1;
+% 
+% % Frequency of the forcing
+% freq_f = [3 2];
+% % freq_f = [0 1];
+% 
+% =======
+% >>>>>>> 2f701f9e482ddfb0b6d3c011752609307c624b4c
 
 %% Deterministic subgrid tensor
 
@@ -217,8 +283,8 @@ if nargin == 0
     HV.bool = true;
     
     if HV.bool
-        HV.order=4;
-        % model.advection.HV.order=8;
+        % HV.order=4;
+        HV.order=8;
     end
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
@@ -297,7 +363,7 @@ end
 cov_and_abs_diff = false;
 
 % Choose to plot one-point one-time moments each day
-plot_moments = false;
+plot_moments = true;
 
 % Choose to plot the dissipation by scale
 plot_epsilon_k = false;
@@ -371,11 +437,11 @@ if nargin == 0
     if sigma.sto
         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
             if sigma.Smag.bool | ...
-                    Lap_visco.bool | ( HV.bool & (HV.order<=2) )
+                    Lap_visco.bool | ( HV.bool & (HV.order<=4) )
                 % sigma.kappamin_on_kappamax = 1/2;
                 sigma.kappamin_on_kappamax = 1/4;
                 % sigma.kappamin_on_kappamax = 1/8;
-            elseif ( HV.bool & (HV.order==4) )
+            elseif ( HV.bool & (HV.order==8) )
                 sigma.kappamin_on_kappamax = 1/2;
             else
                 warning('kappamin_on_kappamax may be inapropriate');
@@ -453,4 +519,11 @@ model.plots = plots_bool;
 [fft_buoy,model] = fct_buoyancy_init(model,resolution);
 
 %% Advection
-[fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
+if bool_parfor
+    [fft_buoy_final, model] = fct_fft_advection_sto_parfor(model, fft_buoy);
+else
+    [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
+end
+
+
+

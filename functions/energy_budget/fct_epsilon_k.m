@@ -1,4 +1,4 @@
-function epsilon = fct_epsilon_k(model,fft_b,day)
+function epsi2 = fct_epsilon_k(model,fft_b,day)
 % Compute the spectrum of a function and superimposed a slope -5/3
 %
 
@@ -49,13 +49,17 @@ w_aa = real(ifft2( bsxfun(@times, ft_w, mask_aa) ));
     
 
 %% Deterministic case or other model than SelfSim_from_LS
-if model.sigma.a0 == 0 | ...
+if ~ model.sigma.sto | ...
         ~ strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     %model.sigma.km_LS = kappa(2);
     [~,~,~,....
         ~,~,...
         model.sigma.km_LS] = ...
         fct_sigma_spectrum_abs_diff(model,fft_w,false);
+end
+if ~ model.sigma.sto
+    model.sigma.kappamin_on_kappamax = 1/2;
+    model.sigma.kappaLS_on_kappamax = 1/8;
 end
 %% Gradient of b, anti-aliased
 % in Fourier space, de-aliased, then in physical space.

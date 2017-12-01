@@ -232,9 +232,10 @@ if nargin == 0
             
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
-            Smag.dealias_ratio_mask_LS = 1/8;
-            %     dealias_ratio_mask_LS = 1/8;
-            %     %dealias_ratio_mask_LS = 1/2;
+            % Smag.dealias_ratio_mask_LS = 1/8;
+            %     Smag.dealias_ratio_mask_LS = 1/8;
+            %     %Smag.dealias_ratio_mask_LS = 1/2;
+            Smag.dealias_ratio_mask_LS = 1;
             warning('Redondant argument that for heterogeneous small-scale velocity')
             
             % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
@@ -298,7 +299,7 @@ cov_and_abs_diff = false;
 plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = false;
+plot_epsilon_k = true;
 if sigma.sto & sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
@@ -364,6 +365,21 @@ if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     %     sigma.slope_sigma = nan;
 end
 
+% <<<<<<< HEAD
+% % Rate between the smallest and the largest wave number of sigma dBt
+% if sigma.sto & strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+%     sigma.kappamin_on_kappamax = 1/2;
+%     % sigma.kappamin_on_kappamax = 1/4;
+%     % sigma.kappamin_on_kappamax = 1/8;
+%
+%     sigma.kappaLS_on_kappamax = 1/8;
+% else
+%     %kappamin_on_kappamax = 1/32;
+%     sigma.kappamin_on_kappamax = 1/2;
+%     % sigma.kappamin_on_kappamax = 1/128;
+%     %         sigma.slope_sigma = - 5;
+%     % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+% =======
 if sigma.sto
     % Rate between the smallest and the largest wave number of sigma dBt
     if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
@@ -381,6 +397,7 @@ if sigma.sto
         
         sigma.kappaLS_on_kappamax = 1/8;
     end
+    % >>>>>>> 66e0d274c3dc3d35c2b1138c12b022fd3a0806f5
     
     % Rate between the largest wave number of sigma dBt and the largest wave
     % number of the simulation
@@ -560,11 +577,11 @@ nb_modes = 200;
 % if model.sigma.no_noise
 %     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
 % end
-% 
+%
 % % if model.sigma.SelfSim_from_LS.bool
 % %     add_subgrid_deter = [add_subgrid_deter '_SelfSim_from_LS'];
 % % end
-% 
+%
 % if ~ model.sigma.sto % Deterministic case
 %     model.folder.folder_simu = [ 'images/usual_' model.dynamics ...
 %         add_subgrid_deter '/' model.type_data ];
@@ -624,14 +641,14 @@ nb_modes = 200;
 %         '_kappamin_on_kappamax_' ....
 %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
 % end
-% 
+%
 % % Create the folders
 % fct_create_folder_plots(model)
-% 
+%
 % % Colormap
 % load('BuYlRd.mat');
 % model.folder.colormap = BuYlRd; clear BuYlRd
-% 
+%
 % % Version of matlab
 % vers = version;
 % year = str2double(vers(end-5:end-2));
@@ -802,6 +819,9 @@ F_save = [];
 F_save2 = [];
 bt1_HR_vect = [];
 bt1_LR_vect = [];
+v_epsilon_dissip = [];
+v_epsilon_th_scale = [];
+v_time = [];
 
 
 trigger = false;
@@ -948,7 +968,9 @@ for t_loop=t_ini:N_t
             fct_plot(model,fft_b,day);
         
         if model.advection.plot_dissip
-            fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day);
+            epsilon_dissip = fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day);
+            v_epsilon_dissip = [ v_epsilon_dissip epsilon_dissip];
+            v_time = [ v_time time];
         end
         
         if model.sigma.sto & ...
@@ -984,9 +1006,10 @@ for t_loop=t_ini:N_t
         
         % Dissipation by scale
         if plot_epsilon_k
-        % if model.advection.plot_epsilon_k
-            fct_plot_epsilon_k(model,fft_b,day);
+            %if model.advection.plot_epsilon_k
+            epsilon_th_scales = fct_plot_epsilon_k(model,fft_b,day);
             % fct_plot_epsilon_k(model,fft_b,int_epsilon,day);
+            v_epsilon_th_scale = [ v_epsilon_th_scale epsilon_th_scales];
         end
         dt = model.advection.dt_adv
         
@@ -1020,4 +1043,12 @@ for t_loop=t_ini:N_t
     %         fct_plot_epsilon_k(model,fft_buoy_part,int_epsilon,day);
     %     end
 end
+
+
+figure(88);plot(v_time,v_epsilon_th_scale,'r');
+hold on;plot(v_time,v_epsilon_dissip,'b');
+eval( ['print -depsc ' model.folder.folder_simu '/epsilon_vs_time.eps']);
+
+
+
 end

@@ -227,6 +227,10 @@ abs_diff_w = sum(spectrum_w_a) * d_kappa;
 % Get the large-scale "length scale" km_LS and the spectral window for the
 % linear regression
 % threshold_k = 1/2;
+if ~ model.sigma.sto
+    model.sigma.kappamin_on_kappamax = 1/2;
+    model.sigma.kappaLS_on_kappamax = 1/8;
+end
 threshold_k = model.sigma.kappamin_on_kappamax;
 threshold_k_LS = model.sigma.kappaLS_on_kappamax;
 %threshold_k_LS = 1/8;

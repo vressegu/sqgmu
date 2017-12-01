@@ -1,4 +1,4 @@
-function [spectrum,name_plot] = fct_plot_epsilon_k(model,...
+function [epsi2,spectrum,name_plot] = fct_plot_epsilon_k(model,...
                 fft_b_adv_part,day)
 %                fft_b_adv_part,int_epsilon_dt_m_1,day)
 % This function creates some plot online and save it
@@ -31,7 +31,7 @@ heighttemp = 6;
 set(figure8,'Units','inches', ...
     'Position',[X0(1) X0(2) widthtemp heighttemp], ...
     'PaperPositionMode','auto');
-PI_K = fct_epsilon_k( model,fft_b_adv_part(:,:,:,id_part),day);
+epsi2 = fct_epsilon_k( model,fft_b_adv_part(:,:,:,id_part),day);
 %    int_epsilon_dt_m_1,'b');
 set(gca,'XGrid','on','XTickMode','manual');
 width = 4;

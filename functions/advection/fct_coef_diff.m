@@ -12,8 +12,10 @@ if nargin < 3
     
     %% Gradient of b, anti-aliased
     % in Fourier space, de-aliased, then in physical space.
-    gradb_aa(:,:,1,:) = real(ifft2( ikx_aa.*fft_b ));
-    gradb_aa(:,:,2,:) = real(ifft2( iky_aa.*fft_b ));
+    gradb_aa(:,:,1,:) = real(ifft2( bsxfun( @times, ikx_aa , fft_b) ));
+    gradb_aa(:,:,2,:) = real(ifft2( bsxfun( @times, iky_aa , fft_b) ));
+    %     gradb_aa(:,:,1,:) = real(ifft2( ikx_aa.*fft_b ));
+%     gradb_aa(:,:,2,:) = real(ifft2( iky_aa.*fft_b ));
     
 end
 
@@ -25,5 +27,5 @@ coef_diff = sum(gradb_aa.^2,3) .^(1/4) ;
 
 % Filtering the diffusivity coefficient at large scales
 coef_diff = fft2(coef_diff );
-coef_diff_aa = real(ifft2( bsxfun(@times, coef_diff, mask_aa_LS) ));
+coef_diff_aa = real(ifft2( bsxfun(@times, mask_aa_LS, coef_diff) ));
 
