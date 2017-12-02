@@ -176,6 +176,7 @@ for i_kappa = 1:P_kappa
 end
 
 PI_loc_smoothK = PI_loc_sum / nb_term_PI_loc_sum;
+epsilon_smoothK = bsxfun(@times,mean(mean(PI_loc_smoothK,2),1),ones(P_kappa,1));
 %%
 
 

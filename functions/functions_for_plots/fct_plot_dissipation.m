@@ -1,4 +1,4 @@
-function epsilon = fct_plot_dissipation(model,fft_b,sigma,day)
+function mean_epsilon = fct_plot_dissipation(model,fft_b,sigma,day)
 % This function creates plot online for the dissipation terms and save it
 %
 

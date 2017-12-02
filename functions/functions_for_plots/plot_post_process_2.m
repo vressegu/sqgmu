@@ -205,22 +205,22 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = true;
+    Lap_visco.bool = false;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = false;
+    HV.bool = true;
     
     if HV.bool
-        HV.order=4;
-        % model.advection.HV.order=8;
+        % HV.order=4;
+        HV.order=8;
     end
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = true;
+    Smag.bool = false;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
@@ -835,8 +835,10 @@ model.advection.step='finite_variation';
 
 t_ini=1;
 
+folder_ref = model.folder.folder_simu;
 name_file = [model.folder.folder_simu '/files/' num2str(0) '.mat'];
 load(name_file)
+model.folder.folder_simu = folder_ref;
 
 dt=model.advection.dt_adv;
 N_t = ceil(model.advection.advection_duration/dt);
@@ -896,6 +898,7 @@ for t_loop=t_ini:N_t
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
         if exist( name_file,'file')==2
             load(name_file)
+            model.folder.folder_simu = folder_ref;
         else
             warning('Cannot find the following file');
             fprintf([ name_file ' \n']);
@@ -910,7 +913,15 @@ for t_loop=t_ini:N_t
         %fprintf([ num2str(t*dt/(24*3600)) ' days of advection \n'])
         
         %%
-        %time =t*dt;
+        if ~(exist('time','var')==1)
+            time =t*dt;
+        end
+        if ~(exist('fft_b','var')==1)
+            fft_b =fft_buoy_part;
+        end
+        if ~isfield(model.sigma,'sto')
+            model.sigma.sto = (model.sigma.a0>0);
+        end
         fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
         a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
         %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
@@ -920,8 +931,9 @@ for t_loop=t_ini:N_t
         
         %%
         if model.advection.Smag.bool || model.sigma.Smag.bool ...
-                || model.sigma.hetero_modulation ...
-                || model.sigma.hetero_modulation_V2
+                || ( model.sigma.sto && ( ...
+                model.sigma.hetero_modulation ...
+                || model.sigma.hetero_modulation_V2 ))
             id_part=1;
             % Coefficient coef_Smag to target a specific diffusive scale
             if model.advection.Smag.bool

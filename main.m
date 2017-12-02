@@ -24,10 +24,10 @@ advection_duration = 3600*24*30;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    bool_parfor = false;
+    bool_parfor = true;
 
     % Type of initial condtions
-    type_data ='Vortices2';
+    type_data ='Vortices';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -204,7 +204,7 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=1
+N_ech=200
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -256,8 +256,8 @@ if nargin == 0
             %     % %    %  Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     Smag.kappamax_on_kappad = 1.1; % Stable mais petit artefact
             %     %  d'aliasing
-            % Smag.kappamax_on_kappad = 0.5;
-            Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
+            Smag.kappamax_on_kappad = 0.5;
+            % Smag.kappamax_on_kappad = 1; % Stable mais petit artefact
             %  d'aliasing  % (better(?))
             
             % Factor in front of the additional constant dissipation
