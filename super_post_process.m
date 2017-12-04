@@ -43,12 +43,12 @@ forcing = false;
 
 %% Deterministic Smag model
 % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-Smag.bool = true;
+Smag.bool = false;
 
 %% Stochastic terms
 
 % Deterministic or random model
-stochastic_simulation = false;
+stochastic_simulation = true;
 sigma.sto = stochastic_simulation;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
@@ -170,6 +170,7 @@ if sigma.sto
         %             sigma.kappaMaxUnresolved_on_kappaShanon;
         %%
         
+        
         % Ratio between the Shanon resolution and filtering frequency used to
         % filter the heterogenous diffusion coefficient
         v_dealias_ratio_mask_LS = 1./ [1 2 4 8]';
@@ -179,16 +180,31 @@ if sigma.sto
         % and the targeted diffusion scale
         v_kappamax_on_kappad = 1./ [1 2 4 8]' ;
         
+        % Rate between the smallest and the largest wave number of sigma dBt
+        v_kappamin_on_kappamax = 1 ./ [ 2 4 ];
+        
+%         sigma_ref = sigma;
+%         Smag_ref = Smag;
+%         for r=1:length(v_kappamin_on_kappamax)
+%             Smag(r) = catstruct(Smag_ref,Smag(1));
+%             sigma(r) = catstruct(sigma_ref, sigma(1));
+%             sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+%         end
+        
+        
         sigma_ref = sigma;
         Smag_ref = Smag;
         for p=1:length(v_dealias_ratio_mask_LS)
             for q=1:length(v_kappamax_on_kappad)
-                Smag(p,q) = catstruct(Smag_ref,Smag(1,1));
-                %Smag(p,q) = Smag_ref;
-                Smag(p,q).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
-                sigma(p,q) = catstruct(sigma_ref, sigma(1,1));
-                %sigma(p,q) = sigma_ref;
-                sigma(p,q).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+                for r=1:length(v_kappamin_on_kappamax)
+                    Smag(p,q,r) = catstruct(Smag_ref,Smag(1,1,1));
+                    %Smag(p,q) = Smag_ref;
+                    Smag(p,q,r).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
+                    sigma(p,q,r) = catstruct(sigma_ref, sigma(1,1,1));
+                    %sigma(p,q) = sigma_ref;
+                    sigma(p,q,r).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+                    sigma(p,q,r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+                end
             end
         end
         %%
@@ -204,7 +220,7 @@ end
 
 
 % Viscosity
-Lap_visco.bool = true;
+Lap_visco.bool = false;
 
 % % Smagorinsky-like viscosity
 % Smag.bool = false;

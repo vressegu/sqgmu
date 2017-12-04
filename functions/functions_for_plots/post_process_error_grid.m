@@ -735,18 +735,20 @@ if model.sigma.sto
             subgrid_details = [ subgrid_details '_proj_free_div'];
         end
     end
-    model.folder.folder_simu = [ model.folder.folder_simu ...
-        '_kappamin_on_kappamax_' ....
-        fct_num2str(model.sigma.kappamin_on_kappamax) ];
-    if ~ ( exist('subgrid_details','file')==1)
+%     model.folder.folder_simu = [ model.folder.folder_simu ...
+%         '_kappamin_on_kappamax_' ....
+%         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
     subgrid_details = [ subgrid_details ...
         '_kappamin_on_kappamax_' ....
         fct_num2str(model.sigma.kappamin_on_kappamax) ];
-    subgrid_details = [ subgrid_details ...
-        '_N_ech_' ....
-        fct_num2str(model.advection.N_ech) ];
+    if model.advection.N_ech>1
+        subgrid_details = [ subgrid_details ...
+            '_N_ech_' ....
+            fct_num2str(model.advection.N_ech) ];
+    end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
@@ -787,8 +789,10 @@ model.advection.step='finite_variation';
 
 t_ini=1;
 
+folder_ref = model.folder.folder_simu;
 name_file = [model.folder.folder_simu '/files/' num2str(0) '.mat'];
 load(name_file)
+model.folder.folder_simu = folder_ref;
 
 dt=model.advection.dt_adv;
 N_t = ceil(model.advection.advection_duration/dt);
@@ -845,7 +849,14 @@ for t_loop=t_ini:N_t
         %% Load
         model_ref = model;
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
-        load(name_file)
+        if exist( name_file,'file')==2
+            load(name_file);
+            model.folder.folder_simu = folder_ref;
+        else
+            warning('Cannot find the following file');
+            fprintf([ name_file ' \n']);
+            return
+        end
         
         %model.odg_b = model.odg_b*3;
         %

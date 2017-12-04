@@ -24,10 +24,10 @@ advection_duration = 3600*24*30;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    bool_parfor = true;
+    bool_parfor = false;
 
     % Type of initial condtions
-    type_data ='Vortices';
+    type_data ='Constantin_case2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -117,7 +117,7 @@ if nargin == 0
         
         % if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux = false;
+        sigma.hetero_energy_flux = true;
         
         % Modulation by local V L (estimated from the velocity and from
         % thegradient of the velocity)
@@ -134,6 +134,8 @@ if nargin == 0
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
             % Smag.dealias_ratio_mask_LS = 1/4;
+            % Smag.dealias_ratio_mask_LS = 1/2;
+            % Smag.dealias_ratio_mask_LS = 1;
             
         end
         % end
@@ -204,7 +206,7 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=200
+N_ech=1
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -382,8 +384,8 @@ if nargin == 0
         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
             if sigma.Smag.bool | ...
                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
-                % sigma.kappamin_on_kappamax = 1/2;
-                sigma.kappamin_on_kappamax = 1/4;
+                sigma.kappamin_on_kappamax = 1/2;
+                % sigma.kappamin_on_kappamax = 1/4;
                 % sigma.kappamin_on_kappamax = 1/8;
             elseif ( HV.bool & (HV.order==8) )
                 sigma.kappamin_on_kappamax = 1/2;
