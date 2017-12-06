@@ -684,7 +684,7 @@ while time < model.advection.advection_duration
     
     %% Time-uncorrelated velocity (isotropic and homogeneous in space)
     if ~ model.sigma.sto % Deterministic case
-        sigma_dBt_dt = 0;
+        sigma_dBt_on_sq_dt = 0;
     else % Stochastic case
         
         if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')

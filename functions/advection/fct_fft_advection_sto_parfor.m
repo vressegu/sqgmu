@@ -484,7 +484,7 @@ if model.sigma.sto
         model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
         
         % Muliplicative constant of the kernel \tilde sigma
-        sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) * sigma; clear sigma
+        % sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) * sigma; clear sigma
         
         if model.sigma.assoc_diff
             if ~ strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
@@ -687,7 +687,7 @@ while time < model.advection.advection_duration
     
     %% Time-uncorrelated velocity (isotropic and homogeneous in space)
     if ~ model.sigma.sto % Deterministic case
-        sigma_dBt_dt = 0;
+        sigma_dBt_on_sq_dt = 0;
     else % Stochastic case
         
         if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
