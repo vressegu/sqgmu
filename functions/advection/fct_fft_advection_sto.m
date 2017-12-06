@@ -487,7 +487,7 @@ if model.sigma.sto
         model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
         
         % Muliplicative constant of the kernel \tilde sigma
-        sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) * sigma; clear sigma
+        % sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) * sigma; clear sigma
         
         if model.sigma.assoc_diff
             if ~ strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
@@ -506,7 +506,7 @@ if model.sigma.sto
                 model.sigma.a0_on_dt = coef_temp * model.sigma.a0_on_dt;
                 
                 sigma = sqrt(coef_temp) * sigma;
-                sigma_on_sq_dt = sqrt(coef_temp) * sigma_on_sq_dt;
+                % sigma_on_sq_dt = sqrt(coef_temp) * sigma_on_sq_dt;
             end
             % Diffusion coefficient
             model.advection.coef_diff = 1/2 * model.sigma.a0;
@@ -514,13 +514,18 @@ if model.sigma.sto
         elseif model.sigma.Smag.bool
             if model.sigma.a0_SS > eps
                 if model.sigma.Smag.epsi_without_noise
-                    sigma_on_sq_dt = ...
+%                     sigma_on_sq_dt = ...
+%                         sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
+%                         * sigma_on_sq_dt;
+                    sigma = ...
                         sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
-                        * sigma_on_sq_dt;
+                        * sigma;
                     model.advection.coef_diff = 1;
                 else
-                    sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
-                        * sigma_on_sq_dt;
+                    sigma = sqrt(2/model.sigma.a0_SS) ...
+                        * sigma;
+%                     sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
+%                         * sigma_on_sq_dt;
                     model.advection.coef_diff = 1 + ...
                         model.sigma.a0_LS / model.sigma.a0_SS ;
                 end
@@ -530,7 +535,8 @@ if model.sigma.sto
                 % are few small scales and no subgrid terms is needed.
                 % Moreover, setting subgris terms to zero prevent numerical
                 % errors.
-                sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
+                sigma = zeros(size(sigma));
+                % sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
                 model.advection.coef_diff = 0;
             else
                 error('Unknow case');
@@ -577,7 +583,8 @@ if model.sigma.sto
     clear missed_var_small_scale_spectrum
     % warning('This formula may changed if k inf > la resolution');
 else
-    sigma_on_sq_dt = 0;
+    sigma = 0;
+    % sigma_on_sq_dt = 0;
 end
 
 %% Possibly reset velocity to zero
