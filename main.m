@@ -24,10 +24,10 @@ advection_duration = 3600*24*30;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    bool_parfor = false;
+    bool_parfor = true;
 
     % Type of initial condtions
-    type_data ='Constantin_case2';
+    type_data ='Vortices';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -46,7 +46,7 @@ if nargin == 0
     resolution = 128;
     %resolution = 256;
     % resolution = 512;
-    %resolution = 1024;
+    % resolution = 1024;
     % resolution = 2048;
     
     % The number of grid point is resolution^2
@@ -80,14 +80,14 @@ freq_f = [3 2];
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = true;
+    stochastic_simulation = false;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
     
     if sigma.sto
         % Type of spectrum for sigma dBt
-        % type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+        type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
         %type_spectrum = 'Low_Pass_w_Slope';
         % Spectrum cst for k<km ans slope for k>km
         % type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -96,7 +96,7 @@ if nargin == 0
         % ~ k2 for k<km ans slope for k>km
         % type_spectrum = 'BB';
         % type_spectrum = 'Bidouille';
-        sigma.type_spectrum = 'SelfSim_from_LS';
+        % sigma.type_spectrum = 'SelfSim_from_LS';
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -117,7 +117,7 @@ if nargin == 0
         
         % if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux = true;
+        sigma.hetero_energy_flux = false;
         
         % Modulation by local V L (estimated from the velocity and from
         % thegradient of the velocity)
@@ -206,7 +206,7 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=1
+N_ech=200
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )

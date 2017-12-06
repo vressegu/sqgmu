@@ -17,7 +17,7 @@ dynamics = 'SQG';
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = false;
+    stochastic_simulation = true;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -138,10 +138,15 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=1;
+if nargin == 0
+    N_ech=200;
+else
+    N_ech=1;
+end
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
+
 
 % Duration of the simulation (in seconds)
 advection_duration = 3600*24*30;
@@ -150,7 +155,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Constantin_case2';
+    type_data = 'Vortices';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -205,22 +210,22 @@ freq_f = [3 2];
 
 if nargin == 0
     % Viscosity
-    Lap_visco.bool = true;
+    Lap_visco.bool = false;
     
     % % Smagorinsky-like viscosity
     % Smag.bool = false;
     % % HV.bool = false;
     
     % Hyper-viscosity
-    HV.bool = false;
+    HV.bool = true;
     
     if HV.bool
-        HV.order=4;
-        % model.advection.HV.order=8;
+        % HV.order=4;
+        HV.order=8;
     end
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-    Smag.bool = true;
+    Smag.bool = false;
     
     % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
     if Smag.bool
@@ -754,7 +759,7 @@ if model.sigma.sto
 end
 
 % Create the folders
-fct_create_folder_plots(model)
+% fct_create_folder_plots(model)
 
 % Colormap
 load('BuYlRd.mat');

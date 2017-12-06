@@ -16,7 +16,7 @@ dynamics = 'SQG';
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = false;
+    stochastic_simulation = true;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -141,7 +141,11 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=1;
+if nargin == 0
+    N_ech=200;
+else
+    N_ech=1;
+end
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -153,7 +157,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Constantin_case2';
+    type_data = 'Vortices';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -805,7 +809,7 @@ if model.sigma.sto
 end
 
 % Create the folders
-fct_create_folder_plots(model)
+% fct_create_folder_plots(model)
 
 % Colormap
 load('BuYlRd.mat');
@@ -925,8 +929,9 @@ for t_loop=t_ini:N_t
             model.sigma.sto = (model.sigma.a0>0);
         end
         fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
-        a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
-        %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
+        a_0_LS = mean(sigma_dBt_on_sq_dt(:).^2);
+%         a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
+%         %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
         if model.sigma.sto
             a_0_LS
         end
