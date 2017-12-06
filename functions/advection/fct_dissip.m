@@ -53,7 +53,7 @@ else % Stochastic case
         [sigma, ~, tr_a ] ...
             = fct_sigma_spectrum_abs_diff( model,fft_w,false);
         a0 = tr_a/2;
-        sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
+        % sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
         model.sigma.a0 = a0;
         model.sigma.a0_on_dt = model.sigma.a0 / dt;
         % Diffusion coefficient
@@ -71,7 +71,7 @@ else % Stochastic case
                 *(pi/sqrt(prod(model.grid.dX))));
             model.sigma.a0_LS = a0 ;
             model.sigma.a0 = a0 + model.sigma.a0_SS;
-            model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
+            % model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
             % Diffusion coefficient
             model.advection.coef_diff = 1/2 * model.sigma.a0;
             
@@ -79,15 +79,20 @@ else % Stochastic case
             if model.sigma.Smag.bool
                 if model.sigma.a0_SS > eps
                     if model.sigma.Smag.epsi_without_noise
-                        sigma_on_sq_dt = ...
+                        sigma = ...
                             sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
-                            * sigma_on_sq_dt;
-                        %                             model.advection.coef_diff = 1;
+                            * sigma;
+%                         sigma_on_sq_dt = ...
+%                             sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
+%                             * sigma_on_sq_dt;
+%                         %                             model.advection.coef_diff = 1;
                     else
-                        sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
-                            * sigma_on_sq_dt;
-                        %                             model.advection.coef_diff = 1 + ...
-                        %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
+                        sigma = sqrt(2/model.sigma.a0_SS) ...
+                            * sigma;
+%                         sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
+%                             * sigma_on_sq_dt;
+%                         %                             model.advection.coef_diff = 1 + ...
+%                         %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
                     end
                 elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
                     % The absolute diffusivity diagnosed from the large-scale
@@ -95,7 +100,8 @@ else % Stochastic case
                     % are few small scales and no subgrid terms is needed.
                     % Moreover, setting subgris terms to zero prevent numerical
                     % errors.
-                    sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
+                    sigma = zeros(size(sigma));
+                    % sigma_on_sq_dt = zeros(size(sigma_on_sq_dt));
                     model.advection.coef_diff = 0;
                 else
                     error('Unknow case');
@@ -107,22 +113,29 @@ else % Stochastic case
         %%
         
     elseif model.sigma.Smag.bool | model.sigma.assoc_diff
-        sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
+        % sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
         model.sigma.a0 = model.sigma.a0_LS + model.sigma.a0_SS;
     else
-        sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
+        % sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
         % Variance tensor
         model.sigma.a0 = 2 * model.physical_constant.f0 ...
             / model.sigma.k_c^2;
         
     end
     
-    fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
+    % Multiplication by the Fourier transform of the kernel \tilde \sigma
+    fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
     clear dBt_C_on_sq_dt
+    % Homogeneous velocity field
+    sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
+    clear fft_sigma_dBt
+        
+%     fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
+%     clear dBt_C_on_sq_dt
     
     % warning('need case self similar');
     
-    sigma_dBt_dt = real(ifft2(fft_sigma_dBt_dt));
+    % sigma_dBt_dt = real(ifft2(fft_sigma_dBt_dt));
     if model.sigma.Smag.bool
         % Heterogeneous dissipation coefficient
         %coef_diff_aa = fct_coef_diff(model,fft_buoy_part);
@@ -180,16 +193,27 @@ else % Stochastic case
         % model.advection.coef_diff = 1/2 * model.sigma.a0;
     end
     
+    
     % Heterogeneous small-scale velocity
-    sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
-        sigma_dBt_dt);
+    sigma_dBt_on_sq_dt = bsxfun(@times, sqrt(coef_modulation) , ...
+        sigma_dBt_on_sq_dt);
+    
     if model.sigma.proj_free_div
-        sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
-        %             for sampl=1:N_ech_local
-        %                 sigma_dBt_dt(:,:,:,sampl) = fct_proj_free_div(...
-        %                     model,sigma_dBt_dt(:,:,:,sampl));
-        %             end
+        % nrj_before_proj_div = mean(sigma_dBt_dt(:).^2)
+        sigma_dBt_on_sq_dt = fct_proj_free_div(model,sigma_dBt_on_sq_dt);
+        % nrj_after_proj_div = mean(sigma_dBt_on_sq_dt(:).^2)
     end
+%     % Heterogeneous small-scale velocity
+%     sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
+%         sigma_dBt_dt);
+%     if model.sigma.proj_free_div
+%         sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
+%         %             for sampl=1:N_ech_local
+%         %                 sigma_dBt_dt(:,:,:,sampl) = fct_proj_free_div(...
+%         %                     model,sigma_dBt_dt(:,:,:,sampl));
+%         %             end
+%     end
+    sigma_dBt_dt = sigma_dBt_on_sq_dt/sqrt(model.advection.dt_adv);
     fft_sigma_dBt_dt = fft2(sigma_dBt_dt); clear sigma_dBt_dt
     
     % dealisasing of the velocity: FT, apply mask, iFT
