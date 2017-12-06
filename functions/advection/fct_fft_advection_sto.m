@@ -562,13 +562,16 @@ if model.sigma.sto
         %         model.advection.coef_diff = 1/2 * model.sigma.a0;
     else
         % Muliplicative constant of the kernel \tilde sigma
-        model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
-        sigma_on_sq_dt = ...
-            sqrt(2*model.sigma.a0_on_dt/missed_var_small_scale_spectrum) ...
-            * sigma; clear sigma
-        %             * sigma_on_sq_dt;
-        % the factor d=2 is for the dimension d of the space R^d
-        % the variance of sigma_dBt/dt is tr(a)/dt = 2 a0 /dt
+        sigma = ...
+            sqrt(2*model.sigma.a0/missed_var_small_scale_spectrum) ...
+            * sigma;
+%         model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
+%         sigma_on_sq_dt = ...
+%             sqrt(2*model.sigma.a0_on_dt/missed_var_small_scale_spectrum) ...
+%             * sigma; clear sigma
+%         %             * sigma_on_sq_dt;
+%         % the factor d=2 is for the dimension d of the space R^d
+%         % the variance of sigma_dBt/dt is tr(a)/dt = 2 a0 /dt
         
     end
     clear missed_var_small_scale_spectrum
@@ -1142,10 +1145,11 @@ while time < model.advection.advection_duration
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
             'model','time','fft_b','w','sigma_dBt_on_sq_dt', ...
-            'sigma_on_sq_dt');
-        %             'model','t','fft_b','w','sigma_dBt_on_sq_dt', ...
-        %             'sigma_on_sq_dt');
-        %         %             'sigma_on_sq_dt','cov_w','abs_diff');
+            'sigma');
+%             'sigma_on_sq_dt');
+%         %             'model','t','fft_b','w','sigma_dBt_on_sq_dt', ...
+%         %             'sigma_on_sq_dt');
+%         %         %             'sigma_on_sq_dt','cov_w','abs_diff');
     end
     
     %     % Dissipation by scale

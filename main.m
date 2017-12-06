@@ -27,7 +27,7 @@ if nargin == 0
     bool_parfor = false;
 
     % Type of initial condtions
-    type_data ='Constantin_case2';
+    type_data ='Vortices';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -87,16 +87,16 @@ if nargin == 0
     
     if sigma.sto
         % Type of spectrum for sigma dBt
-        % type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
-        %type_spectrum = 'Low_Pass_w_Slope';
+        sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+        % sigma.type_spectrum = 'Low_Pass_w_Slope';
         % Spectrum cst for k<km ans slope for k>km
-        % type_spectrum = 'Low_Pass_streamFct_w_Slope';
+        % sigma.type_spectrum = 'Low_Pass_streamFct_w_Slope';
         % Matern covariance for the streamfunction
         % spectrum = cst. * k2 .* ( 1 + (k/km)^2 )^slope )
         % ~ k2 for k<km ans slope for k>km
-        % type_spectrum = 'BB';
-        % type_spectrum = 'Bidouille';
-        sigma.type_spectrum = 'SelfSim_from_LS';
+        % sigma.type_spectrum = 'BB';
+        % sigma.type_spectrum = 'Bidouille';
+        % sigma.type_spectrum = 'SelfSim_from_LS';
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -117,7 +117,7 @@ if nargin == 0
         
         % if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux = true;
+        sigma.hetero_energy_flux = false;
         
         % Modulation by local V L (estimated from the velocity and from
         % thegradient of the velocity)
@@ -132,10 +132,10 @@ if nargin == 0
                 | sigma.hetero_modulation_V2
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
-            Smag.dealias_ratio_mask_LS = 1/8;
+            % Smag.dealias_ratio_mask_LS = 1/8;
             % Smag.dealias_ratio_mask_LS = 1/4;
             % Smag.dealias_ratio_mask_LS = 1/2;
-            % Smag.dealias_ratio_mask_LS = 1;
+            Smag.dealias_ratio_mask_LS = 1;
             
         end
         % end
