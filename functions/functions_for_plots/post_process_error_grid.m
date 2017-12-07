@@ -915,6 +915,7 @@ for t_loop=t_ini:N_t
         %         day = num2str(day);
         
         %% Load meth with random IC
+        clear fft_b;
         if plot_random_IC & (model.advection.N_ech>1)
             name_file_randomIC = [model_randomIC.folder.folder_simu ...
                 '/files/' num2str(day) '.mat'];
@@ -927,7 +928,7 @@ for t_loop=t_ini:N_t
             else
                 error('Cannot find buoyancy field')
             end
-            fft_b_classic = fft_b;
+            fft_b_classic = fft_b;clear fft_b;
         end
         
         %% Load
