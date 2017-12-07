@@ -72,27 +72,31 @@ kappa= d_kappa * ( 0:(P_kappa-1) ) ;
 %% Masks associated with the rings of iso wave number
 d_kappa = kappa(2) - kappa(1);
 kappa_shift = [ kappa(2:end) kappa(end)+d_kappa ];
-kappa_rep = repmat(kappa,[1 1 1 model.advection.N_ech ]);
-kappa_shift_rep = repmat(kappa_shift,[1 1 1 model.advection.N_ech ]);
-k_rep = repmat(k,[1 1 1 model.advection.N_ech ]);
-idx = sparse( bsxfun(@le,kappa_rep, k_rep ) );
-idx = idx & sparse( bsxfun(@lt,k_rep, kappa_shift_rep ) );
-% idx = sparse( bsxfun(@le,kappa, k ) );
+% kappa_rep = repmat(kappa,[1 1 1 model.advection.N_ech ]);
+% kappa_shift_rep = repmat(kappa_shift,[1 1 1 model.advection.N_ech ]);
+% k_rep = repmat(k,[1 1 1 model.advection.N_ech ]);
+% idx = sparse( bsxfun(@le,kappa_rep, k_rep ) );
+% idx = idx & sparse( bsxfun(@lt,k_rep, kappa_shift_rep ) );
+idx = sparse( bsxfun(@le,kappa, k ) );
 % idx = idx & sparse( bsxfun(@lt,k, [ kappa(2:end) kappa(end)+d_kappa ] ) );
+idx = idx & sparse( bsxfun(@lt,k, kappa_shift ) );
 
 kappa = kappa';
 
 %% Spectrum
 % Integration over the rings of iso wave number
-ft_w2 = reshape(ft_w2 , [prod(model.grid.MX) 1 1 model.advection.N_ech ]);
-% idx = repmat (idx , [1 1 1 model.advection.N_ech ]);
-spectrum_w = sum( idx .* ft_w2 , 1);
-% spectrum_w = sum( bsxfun( @times, idx, ft_w2 ) , 1);
-spectrum_w = multitrans(spectrum_w); %  [ P_kappa 1 1 model.advection.N_ech ] 
-% spectrum_w = idx' * ft_w2(:);
-% % if nargin>2
-% %     spectrum_w2 = idx' * ft2(:);
-% % end
+ft_w2 = reshape(ft_w2 , [prod(model.grid.MX) model.advection.N_ech ]);
+spectrum_w = idx' * ft_w2; %  [ P_kappa model.advection.N_ech ] 
+
+% ft_w2 = reshape(ft_w2 , [prod(model.grid.MX) 1 1 model.advection.N_ech ]);
+% % idx = repmat (idx , [1 1 1 model.advection.N_ech ]);
+% spectrum_w = sum( idx .* ft_w2 , 1);
+% % spectrum_w = sum( bsxfun( @times, idx, ft_w2 ) , 1);
+% spectrum_w = multitrans(spectrum_w); %  [ P_kappa 1 1 model.advection.N_ech ] 
+% % spectrum_w = idx' * ft_w2(:);
+% % % if nargin>2
+% % %     spectrum_w2 = idx' * ft2(:);
+% % % end
 
 % Division by prod(model.grid.MX) because of the Parseval theorem for
 % discrete Fourier transform

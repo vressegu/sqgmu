@@ -303,7 +303,7 @@ cov_and_abs_diff = false;
 plot_moments = false;
 
 % Choose to plot the dissipation by scale
-plot_epsilon_k = true;
+plot_epsilon_k = false;
 if sigma.sto & sigma.hetero_energy_flux
     plot_epsilon_k = true;
 end
@@ -735,7 +735,7 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
-% 
+%
 % if model.sigma.sto & model.sigma.Smag.bool
 %     subgrid_details = ['kappamax_on_kappad_' ...
 %         fct_num2str(model.sigma.Smag.kappamax_on_kappad) ...
@@ -790,9 +790,9 @@ if model.sigma.sto
             subgrid_details = [ subgrid_details '_proj_free_div'];
         end
     end
-%     model.folder.folder_simu = [ model.folder.folder_simu ...
-%         '_kappamin_on_kappamax_' ....
-%         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    %     model.folder.folder_simu = [ model.folder.folder_simu ...
+    %         '_kappamin_on_kappamax_' ....
+    %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
     if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
@@ -930,8 +930,8 @@ for t_loop=t_ini:N_t
         end
         fprintf([ num2str(time/(24*3600)) ' days of advection \n'])
         a_0_LS = mean(sigma_dBt_on_sq_dt(:).^2);
-%         a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
-%         %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
+        %         a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv;
+        %         %a_0_LS = mean(sigma_dBt_dt(:).^2)*model.advection.dt_adv/2;
         if model.sigma.sto
             a_0_LS
         end
@@ -1101,11 +1101,12 @@ for t_loop=t_ini:N_t
 end
 
 
-figure(88);plot(v_time,v_epsilon_th_scale,'r');
-hold on;plot(v_time,v_epsilon_dissip,'b');
-hold off
-eval( ['print -depsc ' model.folder.folder_simu '/epsilon_vs_time.eps']);
-
+if plot_epsilon_k && model.advection.plot_dissip
+    figure(88);plot(v_time,v_epsilon_th_scale,'r');
+    hold on;plot(v_time,v_epsilon_dissip,'b');
+    hold off
+    eval( ['print -depsc ' model.folder.folder_simu '/epsilon_vs_time.eps']);
+end
 
 
 end

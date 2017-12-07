@@ -33,6 +33,18 @@ end
 if ~ (exist([folder_simu '/Epsilon_k_meth'],'dir')==7)
     mkdir([folder_simu '/Epsilon_k_meth']);
 end
+if ~ (exist([folder_simu '/spatial_error'],'dir')==7)
+    mkdir([folder_simu '/spatial_error']);
+end
+if ~ (exist([folder_simu '/Estim_spatial_bias'],'dir')==7)
+    mkdir([folder_simu '/Estim_spatial_bias']);
+end
+if ~ (exist([folder_simu '/spatial_bias'],'dir')==7)
+    mkdir([folder_simu '/spatial_bias']);
+end
+if ~ (exist([folder_simu '/Estim_spectral_error'],'dir')==7)
+    mkdir([folder_simu '/Estim_spectral_error']);
+end
 if model.sigma.sto ... % Stochastic case
     & strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)

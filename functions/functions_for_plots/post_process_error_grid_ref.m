@@ -17,6 +17,7 @@ dynamics = 'SQG';
 if nargin == 0
     % Deterministic or random model
     stochastic_simulation = false;
+    sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
 end
@@ -34,7 +35,7 @@ N_ech=1;
 
 if nargin == 0
     % Type of initial condtions
-    type_data ='Constantin_case2' ;
+    type_data ='Vortices' ;
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -48,7 +49,7 @@ if nargin == 0
     
     % Resolution
     %resolution = 128;
-    %resolution = 512;
+    % resolution = 512;
     %resolution = 128;
     resolution = 1024;
     %resolution = 2048;
@@ -90,6 +91,11 @@ if nargin == 0
     
     % Hyper-viscosity
     HV.bool = true;
+    
+    if HV.bool
+        % HV.order=4;
+        HV.order=8;
+    end
     
     % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
     Smag.bool = false;
@@ -202,15 +208,15 @@ end
 % Spectrum slope of sigma dBt
 switch dynamics
     case 'SQG'
-        slope_sigma = - 5/3;
+        sigma.slope_sigma = - 5/3;
     case '2D'
-        slope_sigma = - 3;
+        sigma.slope_sigma = - 3;
     otherwise
         error('Unknown type of dynamics');
 end
 
 % Rate between the smallest and the largest wave number of sigma dBt
-kappamin_on_kappamax = 1/2;
+sigma.kappamin_on_kappamax = 1/2;
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
 switch dynamics
@@ -226,8 +232,9 @@ end
 model = fct_physical_param(dynamics);
 
 % Gather parameters in the structure model
-model.sigma.slope_sigma = slope_sigma;
-model.sigma.kappamin_on_kappamax = kappamin_on_kappamax;
+% model.sigma.slope_sigma = slope_sigma;
+% model.sigma.kappamin_on_kappamax = kappamin_on_kappamax;
+model.sigma = sigma;
 if strcmp(type_data,'Spectrum')
     model.slope_b_ini = slope_b_ini;
 end
@@ -346,7 +353,8 @@ nb_modes = 200;
 
 %% Folder to save plots and files
 if model_HR.advection.HV.bool
-    add_subgrid_deter = '_HV';
+    % add_subgrid_deter = '_HV';
+    add_subgrid_deter = ['_HV' '_' fct_num2str(model_HR.advection.HV.order/2)];
 elseif model_HR.advection.Lap_visco.bool
     add_subgrid_deter = '_Lap_visco';
 else
@@ -432,7 +440,9 @@ t_ini=1;
 % name_file = [model.folder.folder_simu_ref '/files/' num2str(0) '.mat'];
 name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(0) '.mat'];
 load(name_file_HR)
+model_HR_ref = model_HR;
 model_HR = model; clear model;
+model_HR.folder = model_HR_ref.folder;
 % model.folder.folder_simu_ref = model_ref.folder.folder_simu_ref;
 
 dt=model_HR.advection.dt_adv;
@@ -492,7 +502,26 @@ for t_loop=t_ini:N_t
         name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(day) '.mat'];
         load(name_file_HR)
         model_HR = model; clear model;
+        model_HR.folder = model_HR_ref.folder;
 %         model = model_ref;
+
+
+        if ~(exist('time','var')==1)
+            time =t*dt;
+        end
+        if (exist('fft_b','var')==1)
+        elseif (exist('fft_buoy_part','var')==1)
+            fft_b = fft_buoy_part;
+        elseif (exist('fft_T_adv_part','var')==1)
+            fft_b = fft_T_adv_part;
+        else
+            error('Cannot find buoyancy field')
+        end
+        if ~isfield(model_HR, 'sigma')
+            model_HR.sigma.sto = false;
+        elseif ~isfield(model_HR.sigma,'sto')
+            model_HR.sigma.sto = (model_HR.sigma.a0>0);
+        end
         
         %model.odg_b = model.odg_b*3;
         %
@@ -500,13 +529,13 @@ for t_loop=t_ini:N_t
         
         %% Anti-aliasing filtering and subsampling
         % Filtering
-        fft_buoy_part((model_LR.grid.MX(1)/2+1): ...
+        fft_b((model_LR.grid.MX(1)/2+1): ...
             (end-1-model_LR.grid.MX(1)/2+1),:,:,:)=0;
-        fft_buoy_part(:,(model_LR.grid.MX(2)/2+1): ...
+        fft_b(:,(model_LR.grid.MX(2)/2+1): ...
             (end-1-model_LR.grid.MX(2)/2+1),:,:)=0;
         % Subsampling
-        buoy_part = real(ifft2(fft_buoy_part));
-        clear fft_buoy_part
+        buoy_part = real(ifft2(fft_b));
+        clear fft_b
         buoy_part = buoy_part( ...
             1:model_HR.grid.MX(1)/model_LR.grid.MX(1):end, ...
             1:model_HR.grid.MX(2)/model_LR.grid.MX(2):end,:,:);
@@ -549,7 +578,7 @@ for t_loop=t_ini:N_t
          
         %% Save files
         save( [model_LR.folder.folder_simu '/files/' day '.mat'], ...
-            'model_LR','t','fft_buoy_part_ref','spectrum_ref');
+            'model_LR','time','fft_buoy_part_ref','spectrum_ref');
         
     end
 end
