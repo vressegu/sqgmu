@@ -1,4 +1,4 @@
-function fct_create_folder_plots(model)
+function fct_create_folder_plots(model,random_IC_large)
 % Create folders to save plots and files
 %
 
@@ -33,21 +33,35 @@ end
 if ~ (exist([folder_simu '/Epsilon_k_meth'],'dir')==7)
     mkdir([folder_simu '/Epsilon_k_meth']);
 end
-if ~ (exist([folder_simu '/spatial_error'],'dir')==7)
-    mkdir([folder_simu '/spatial_error']);
-end
-if ~ (exist([folder_simu '/Estim_spatial_bias'],'dir')==7)
-    mkdir([folder_simu '/Estim_spatial_bias']);
-end
-if ~ (exist([folder_simu '/spatial_bias'],'dir')==7)
-    mkdir([folder_simu '/spatial_bias']);
-end
-if ~ (exist([folder_simu '/Estim_spectral_error'],'dir')==7)
-    mkdir([folder_simu '/Estim_spectral_error']);
-end
 if model.sigma.sto ... % Stochastic case
-    & strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+        & strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)
         mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t']);
+    end
+end
+if nargin > 1
+    comp_large_IC_perturb(folder_simu,random_IC_large);
+end
+
+    function comp_large_IC_perturb(folder_simu,random_IC_large)
+        if  random_IC_large
+            folder_simu = [ folder_simu ...
+                '/large_IC_perturb' ];
+        else
+            folder_simu = [ folder_simu ...
+                '/small_IC_perturb' ];
+        end
+        if ~ (exist([folder_simu '/spatial_error'],'dir')==7)
+            mkdir([folder_simu '/spatial_error']);
+        end
+        if ~ (exist([folder_simu '/Estim_spatial_bias'],'dir')==7)
+            mkdir([folder_simu '/Estim_spatial_bias']);
+        end
+        if ~ (exist([folder_simu '/spatial_bias'],'dir')==7)
+            mkdir([folder_simu '/spatial_bias']);
+        end
+        if ~ (exist([folder_simu '/Estim_spectral_error'],'dir')==7)
+            mkdir([folder_simu '/Estim_spectral_error']);
+        end
     end
 end

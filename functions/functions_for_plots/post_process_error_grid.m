@@ -14,7 +14,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 plot_random_IC = true;
-random_IC_large = false;
+random_IC_large = false
 
 
 if nargin == 0
@@ -822,7 +822,7 @@ if model.sigma.sto
 end
 
 % Create the folders
-fct_create_folder_plots(model)
+fct_create_folder_plots(model,random_IC_large)
 
 % Colormap
 load('BuYlRd.mat');
