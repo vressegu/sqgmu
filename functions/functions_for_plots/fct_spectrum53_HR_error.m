@@ -123,6 +123,15 @@ ax(1:2)=kidx(2)*[1 128/2];
 if max(spectrum(2:end))>ax(4)
     ax(4)=max(spectrum(2:end));
 end
+sp = spectrum(2:end);
+% if min(sp(sp>0))<ax(3)
+%     ax(3)=min(sp(sp>0));
+%     axis(ax)
+% end
 if ax(4)>0
+    dax=ax(4)-ax(3);
+    ax(4)=ax(4)+dax/10;
+    ax(3)=ax(3)-dax/10;
+    axis(ax);
     axis(ax)
 end

@@ -919,9 +919,9 @@ for t_loop=t_ini:N_t
         %fprintf([ num2str(t*dt/(24*3600)) ' days of advection \n'])
         
         %%
-        if ~(exist('time','var')==1)
+        % if ~(exist('time','var')==1)
             time =t*dt;
-        end
+        % end
         if ~(exist('fft_b','var')==1)
             fft_b =fft_buoy_part;
         end

@@ -120,9 +120,9 @@ spectrum_w = spectrum_w / d_kappa;
 
 % From velocity spectrum to absolute diffusity by scale
 spectrum_w_a = zeros(size(spectrum_w));
-spectrum_w_a(2:end,:,:,:) = bsxfun( @times, kappa(2:end).^(-3/2) , ...
-                                     spectrum_w(2:end,:,:,:).^(1/2) );
-                                 %  [ P_kappa 1 1 model.advection.N_ech ] 
+spectrum_w_a(2:end,:) = bsxfun( @times, kappa(2:end).^(-3/2) , ...
+                                     spectrum_w(2:end,:).^(1/2) );
+                                 %  [ P_kappa model.advection.N_ech ] 
 % spectrum_w_a = zeros(size(kappa));
 % spectrum_w_a(2:end) = kappa(2:end).^(-3/2) .* spectrum_w(2:end).^(1/2);
 
@@ -141,7 +141,7 @@ spectrum_w_a_comp = bsxfun( @times, kappa.^(-slope_ref_a) , ...
 
 %% Absosute diffusivity
 abs_diff_w = sum(spectrum_w_a,1) * d_kappa;
-                                 %  [ 1 1 1 model.advection.N_ech ] 
+                                 %  [ 1 model.advection.N_ech ] 
 
 % %% Time integral of the dissipation per scale epsilon(k)
 % int_epsilon = - cumsum(spectrum) * d_kappa;
@@ -184,108 +184,63 @@ abs_diff_w = sum(spectrum_w_a,1) * d_kappa;
 %% Estimation of slope of the spectral absolute diffusivity of
 % % the large-scale velocity
 
-
-% % [~,i_first]=max(spectrum_w_a_comp(2:end));
-% % i_first = i_first +1;
-% % iii_k_LS = i_first:length(spectrum_w_a_comp);
-% % spectrum_w_a_comp_for_estim = spectrum_w_a_comp(iii_k_LS);
-% % kkk=kappa(iii_k_LS);
-% % km_LS=kkk(1);
-% % threshold_k = 1/2;
-% % %threshold_k = 1/6;
-% % iii_reliable=~(isinf(abs(spectrum_w_a_comp_for_estim))|...
-% %     isnan(spectrum_w_a_comp_for_estim)|...
-% %     (spectrum_w_a_comp_for_estim/max(spectrum_w_a_comp_for_estim(:)) ...
-% %     <=eps)|...
-% %     (kkk>kappa(end)*threshold_k));
-% % %     (kkk'>kidx(end)/3));
-% % %     (kkk'>10*km));
-% % logspectrum_w_a_comp_for_estim = ...
-% %     log10(spectrum_w_a_comp_for_estim(iii_reliable));
-% % logkkk=log10(kkk(iii_reliable));
-% % Z = logkkk;
-% % Z(:,2) = 1;
-% % beta = Z\logspectrum_w_a_comp_for_estim;
-% % slope_w_a_comp_for_estim = beta(1) + slope_ref_a;
-% % slope_w_comp_for_estim = 2 * slope_w_a_comp_for_estim + 3;
-% % offset = beta(2);
-% % clear beta
-% 
-% 
-% % threshold_k = 1/2;
-% threshold_k = model.sigma.kappamin_on_kappamax;
-% threshold_k_LS = model.sigma.kappaLS_on_kappamax;
-% %threshold_k_LS = 1/8;
-% spectrum_w_a_comp_cut = spectrum_w_a_comp(kappa < kappa(end)*threshold_k);
-% % %spectrum_w_a_comp_cut = spectrum_w_a_comp;
-% % [~,i_first]=max(spectrum_w_a_comp_cut(2:end));
-% [~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
-%     ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
-% %[~,i_first]=max(spectrum_w_a_comp(2:end));
-% i_first = i_first +1;
-% iii_k_LS = i_first:length(spectrum_w_a_comp_cut);
-% spectrum_w_a_comp_for_estim = spectrum_w_a_comp_cut(iii_k_LS);
-% kappa_cut = kappa(kappa<kappa(end)*threshold_k);
-% kkk=kappa_cut(iii_k_LS);
-% km_LS=kkk(1);
-% %threshold_k = 1/6;
-% iii_reliable=~(isinf(abs(spectrum_w_a_comp_for_estim))|...
-%     isnan(spectrum_w_a_comp_for_estim)|...
-%     (spectrum_w_a_comp_for_estim/max(spectrum_w_a_comp_for_estim(:)) ...
-%     <=eps)|...
-%     (kkk>kappa(end)*threshold_k));
-% %     (kkk'>kidx(end)/3));
-% %     (kkk'>10*km));
-% logspectrum_w_a_comp_for_estim = ...
-%     log10(spectrum_w_a_comp_for_estim(iii_reliable));
-% logkkk=log10(kkk(iii_reliable));
-% Z = logkkk;
-% Z(:,2) = 1;
-% beta = Z\logspectrum_w_a_comp_for_estim;
-% beta(1)=min([0 beta(1)]); % Prevent unstable behavior of this parametrisation.
-% slope_w_a_comp_for_estim = beta(1) + slope_ref_a;
-% slope_w_comp_for_estim = 2 * slope_w_a_comp_for_estim + 3;
-% offset = beta(2);
-% clear beta
-
 % Get the large-scale "length scale" km_LS and the spectral window for the
 % linear regression
-% threshold_k = 1/2;
 if ~ model.sigma.sto
     model.sigma.kappamin_on_kappamax = 1/2;
     model.sigma.kappaLS_on_kappamax = 1/8;
 end
 threshold_k = model.sigma.kappamin_on_kappamax;
 threshold_k_LS = model.sigma.kappaLS_on_kappamax;
-%threshold_k_LS = 1/8;
-spectrum_w_a_comp_cut = spectrum_w_a_comp(kappa < kappa(end)*threshold_k);
-% %spectrum_w_a_comp_cut = spectrum_w_a_comp;
-% [~,i_first]=max(spectrum_w_a_comp_cut(2:end));
-[~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
-    ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
-%[~,i_first]=max(spectrum_w_a_comp(2:end));
+spectrum_w_a_comp_cut = spectrum_w_a_comp( kappa < kappa(end)*threshold_k , :);
+[~,i_first] = max(spectrum_w_a_comp_cut( [ false; ...
+    ( kappa(2:end) < kappa(end)*threshold_k_LS )] , :) ,[], 1 );
 i_first = i_first +1;
-iii_k_LS = i_first:length(spectrum_w_a_comp_cut);
-spectrum_w_a_comp_for_estim = spectrum_w_a_comp_cut(iii_k_LS);
-kappa_cut = kappa(kappa<kappa(end)*threshold_k);
-kkk=kappa_cut(iii_k_LS);
-km_LS=kkk(1);
-offset_w_a = spectrum_w_a(iii_k_LS(1));
-offset_w_a_comp = spectrum_w_a_comp(iii_k_LS(1));
+mask_iii_k_LS = (1:length(spectrum_w_a_comp_cut))' ...
+    * ones(1,model.advection.N_ech);
+mask_iii_k_LS = bsxfun( @ge,  mask_iii_k_LS , i_first );
+% % iii_k_LS = [ ones(1,i_first-1) i_first:length(spectrum_w_a_comp_cut) ];
+% iii_k_LS = i_first:length(spectrum_w_a_comp_cut);
+spectrum_w_a_comp_for_estim = mask_iii_k_LS .* spectrum_w_a_comp_cut;
+% spectrum_w_a_comp_for_estim = spectrum_w_a_comp_cut(iii_k_LS);
+kappa_cut = kappa( kappa<kappa(end)*threshold_k );
+kkk = bsxfun( @times, mask_iii_k_LS , kappa_cut );
+% kkk=kappa_cut(iii_k_LS);
+mask_iii_k_LS_one_value = (1:length(spectrum_w_a_comp_cut))' ...
+    * ones(1,model.advection.N_ech);
+mask_iii_k_LS_one_value = bsxfun( @eq,  mask_iii_k_LS_one_value , i_first );
+km_LS = sum( bsxfun( @times,mask_iii_k_LS_one_value , kappa_cut ) ,1);
+% km_LS=kkk(1);
+% % offset_w_a = spectrum_w_a(iii_k_LS(1));
+offset_w_a_comp = sum( mask_iii_k_LS_one_value .* spectrum_w_a_comp_cut ,1);
+% offset_w_a_comp = spectrum_w_a_comp(iii_k_LS(1));
 
 % Linear regression
-%threshold_k = 1/6;
-iii_reliable=~(isinf(abs(spectrum_w_a_comp_for_estim))|...
+
+% %threshold_k = 1/6;
+% iii_reliable =~ bsxfun( @or , ...
+%     (isinf(abs(spectrum_w_a_comp_for_estim))|...
+%     isnan(spectrum_w_a_comp_for_estim)|...
+%     (spectrum_w_a_comp_for_estim/max(spectrum_w_a_comp_for_estim(:)) ...
+%     <=eps)) , ...
+%     (kkk>kappa(end)*threshold_k) );
+iii_reliable =~ (isinf(abs(spectrum_w_a_comp_for_estim))|...
     isnan(spectrum_w_a_comp_for_estim)|...
     (spectrum_w_a_comp_for_estim/max(spectrum_w_a_comp_for_estim(:)) ...
     <=eps)|...
     (kkk>kappa(end)*threshold_k));
 %     (kkk'>kidx(end)/3));
 %     (kkk'>10*km));
-logspectrum_w_a_comp_for_estim_centered = ...
-    log10(spectrum_w_a_comp_for_estim(iii_reliable))...
-    - log10(offset_w_a_comp);
-logkkk = log10(kkk(iii_reliable)) - log10(km_LS);
+logspectrum_w_a_comp_for_estim_centered = bsxfun( @plus, ...
+    log10(spectrum_w_a_comp_for_estim.* iii_reliable) .* iii_reliable , ...
+    - log10( offset_w_a_comp) );
+% logspectrum_w_a_comp_for_estim_centered = ...
+%     log10(spectrum_w_a_comp_for_estim(iii_reliable))...
+%     - log10(offset_w_a_comp);
+logkkk = bsxfun( @plus, ...
+    log10(kkk.* iii_reliable) .* iii_reliable , ...
+    - log10( km_LS ) );
+% logkkk = log10(kkk(iii_reliable)) - log10(km_LS);
 % Z = logkkk;
 % Z(:,2) = 1;
 beta = logkkk \ logspectrum_w_a_comp_for_estim_centered;

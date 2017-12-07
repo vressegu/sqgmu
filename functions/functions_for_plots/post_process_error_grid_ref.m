@@ -464,14 +464,25 @@ N_t = ceil(model_HR.advection.advection_duration/dt);
 % bt1_HR_vect = [];
 % bt1_LR_vect = [];
 % 
+day_last_plot = - inf;
+dt_loop = dt;
 % 
 % trigger = false;
 % %t_ini=1700000
 for t_loop=t_ini:N_t
-    %     %% Plot
+%     %     %% Plot
+%     % t_loop=1;
+%     if (t_loop - t_last_plot)*dt >= 3600*24*1
+%         day = num2str(floor(t_loop*dt/24/3600));
     % t_loop=1;
-    if (t_loop - t_last_plot)*dt >= 3600*24*1
-        day = num2str(floor(t_loop*dt/24/3600));
+    day_num = (floor(t_loop*dt_loop/24/3600));
+    
+    if day_num > day_last_plot
+    % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        day_num = (floor(t_loop*dt/24/3600));
+        day = num2str(day_num);
+        day
+        day_last_plot = day_num;
         fprintf([ num2str(t_loop*dt/(24*3600)) ' days of advection \n'])
         
 %       model_LR.advection.plot_modes = plot_modes;

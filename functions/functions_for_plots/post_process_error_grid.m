@@ -13,14 +13,14 @@ end
 dynamics = 'SQG';
 %dynamics = '2D';
 
-plot_random_IC = true;
+plot_random_IC = false;
 random_IC_large = false
 
 
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = true;
+    stochastic_simulation = false;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -142,7 +142,8 @@ end
 
 % Number of realizations in the ensemble
 if nargin == 0
-    N_ech=200;
+    N_ech=1;
+    % N_ech=200;
 else
     N_ech=1;
 end
@@ -853,6 +854,7 @@ N_ech=model.advection.N_ech;
 %%
 
 t_last_plot = -inf;
+day_last_plot = - inf;
 model.advection.step='finite_variation';
 
 t_ini=1;
@@ -885,16 +887,30 @@ error_vs_t = [];
 
 
 trigger = false;
+dt_loop = dt;
 %t_ini=1700000
 for t_loop=t_ini:N_t
     %     %% Plot
     % t_loop=1;
-    if (t_loop - t_last_plot)*dt >= 3600*24*1
-        day = num2str(floor(t_loop*dt/24/3600));
+    day_num = (floor(t_loop*dt_loop/24/3600));
+    
+    if day_num > day_last_plot
+    % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        day_num = (floor(t_loop*dt/24/3600));
+        day = num2str(day_num);
+        day
+        if day_num >= 19
+            3;
+        end
+        
+        % if ~(exist('time','var')==1)
+        time =t_loop*dt_loop;
+        % end
         
         model.advection.plot_modes = plot_modes;
         model.advection.nb_modes = nb_modes;
         t_last_plot=t_loop;
+        day_last_plot = day_num;
         id_part=1;
         
         width=1.2e3;
@@ -935,8 +951,12 @@ for t_loop=t_ini:N_t
         model_ref = model;
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
         if exist( name_file,'file')==2
+            clear fft_b fft_buoy_part;
             load(name_file);
             model.folder.folder_simu = folder_ref;
+            if ~(exist('fft_b','var')==1)
+                fft_b = fft_buoy_part;
+            end
         else
             warning('Cannot find the following file');
             fprintf([ name_file ' \n']);
