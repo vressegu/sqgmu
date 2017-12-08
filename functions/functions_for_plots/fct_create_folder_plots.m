@@ -38,6 +38,10 @@ if model.sigma.sto ... % Stochastic case
     if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)
         mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t']);
     end
+    if ~ (exist([folder_simu ...
+            '/AbsDiffByScale_sigma_dB_t_PostProcess'],'dir')==7)
+        mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t_PostProcess']);
+    end
 end
 if nargin > 1
     comp_large_IC_perturb(folder_simu,random_IC_large);

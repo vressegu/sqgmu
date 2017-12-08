@@ -30,7 +30,8 @@ ft_w2=sum(ft_w2,3);
 %     otherwise
 %         error('Unknown type of dynamics');
 % end
-slope_ref = model.sigma.slope_sigma;
+slope_ref = model.sigma.slope_sigma_ref;
+% slope_ref = model.sigma.slope_sigma;
 slope_ref_a = (slope_ref-3)/2;
 
 % Get parameters

@@ -376,6 +376,15 @@ switch dynamics
     otherwise
         error('Unknown type of dynamics');
 end
+sigma.slope_sigma_ref = sigma.slope_sigma;
+% switch model.dynamics
+%     case 'SQG'
+%         sigma.slope_sigma_ref = -5/3;
+%     case '2D'
+%         sigma.slope_sigma_ref = -3;
+%     otherwise
+%         error('Unknown type of dynamics');
+% end
 if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
     % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')

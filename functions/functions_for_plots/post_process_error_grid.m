@@ -13,14 +13,14 @@ end
 dynamics = 'SQG';
 %dynamics = '2D';
 
-plot_random_IC = false;
+plot_random_IC = true;
 random_IC_large = false
 
 
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = false;
+    stochastic_simulation = true;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -142,8 +142,8 @@ end
 
 % Number of realizations in the ensemble
 if nargin == 0
-    N_ech=1;
-    % N_ech=200;
+    % N_ech=1;
+    N_ech=200;
 else
     N_ech=1;
 end
@@ -1021,6 +1021,13 @@ for t_loop=t_ini:N_t
         
         if model.advection.N_ech > 1
             plot_error_ensemble
+        end
+        
+        %%
+        if strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
+            fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
+            fct_sigma_spectrum_abs_diff_postprocess(...
+                model,fft_w,true,day);
         end
         
     end

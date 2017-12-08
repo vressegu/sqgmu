@@ -2,7 +2,7 @@ function [sigma_on_sq_dt,f_sigma,trace_a,....
     slope_w_a_comp_for_estim,mult_offset_spectrum_a_estim,...
     km_LS, ...
     spectrum_a_sigma] = ...
-    fct_sigma_spectrum_abs_diff(model,ft_w,bool_plot,day)
+    fct_sigma_spectrum_abs_diff_postprocess(model,ft_w,bool_plot,day)
 % - sigma_on_sq_dt is the Fourier transform of the kernel \tilde sigma up to a multiplicative
 % constant
 % - f_sigma is the Fourier transform of the associted streamfunction
@@ -10,6 +10,24 @@ function [sigma_on_sq_dt,f_sigma,trace_a,....
 % set the muliplicative constant
 % - spectrum_a_sigma is the spectrum
 %
+
+%%
+
+LineWidth = 1.3;
+MarkerSize = 8;
+Color1=[0.8 0.1 0.1];
+%             Color1=[0.8 0.0 0.1];
+Color2=[0.1 0.0 0.8];
+Color3=[0.0 0.5 0.0];
+%         Color3=[0.0 0.8 0.2];
+
+
+%         set(name_plot,'LineWidth',LineWidth,...
+%             'MarkerSize',MarkerSize,...
+%             'Color',Color2);
+%         hold on;
+
+%%
 
 % Average over realizations
 ft_w2=mean(abs(ft_w).^2,4);
@@ -21,16 +39,19 @@ ft_w2=sum(ft_w2,3);
 %     ft2=sum(ft2,3);
 % end
 
-% switch model.dynamics
-%     case 'SQG'
-%         slope_ref = -5/3;
-%     case '2D'
-%         slope_ref = -3;
-%     otherwise
-%         error('Unknown type of dynamics');
-% end
-slope_ref = model.sigma.slope_sigma_ref;
+if ~isfield(model.sigma,'slope_sigma_ref')
+    warning('No field slope_sigma_ref -> default values');
+    switch model.dynamics
+        case 'SQG'
+            model.sigma.slope_sigma_ref = -5/3;
+        case '2D'
+            model.sigma.slope_sigma_ref = -3;
+        otherwise
+            error('Unknown type of dynamics');
+    end
+end
 % slope_ref = model.sigma.slope_sigma;
+slope_ref = model.sigma.slope_sigma_ref;
 slope_ref_a = (slope_ref-3)/2;
 
 % Get parameters
@@ -123,107 +144,8 @@ abs_diff_w = sum(spectrum_w_a) * d_kappa;
 % %% Time integral of the dissipation per scale epsilon(k)
 % int_epsilon = - cumsum(spectrum) * d_kappa;
 
-%% Test
-% fft_grad_v(:,:,:,1) = fct_grad(model,ft_w(:,:,1,1));
-% fft_grad_v(:,:,:,2) = fct_grad(model,ft_w(:,:,2,1));
-% fft_grad_v = permute(fft_grad_v,[1 2 4 3]);
-% grad_v = real(ifft2(fft_grad_v));
-% n_grad_v = sqrt(sum(sum(grad_v.^2,4),3));
-% v = real(ifft2(ft_w));
-% n_v2 = sum(v.^2,3);
-%
-% % mask_aa_LS = model.grid.k_aa.mask; %anti-aliasing mask
-% mask_aa_LS = model.grid.k_aa_LS.mask; %anti-aliasing mask
-%
-% % Filtering the diffusivity coefficient at large scales
-% n_v2 = fft2(n_v2 );
-% n_v2 = real(ifft2( bsxfun(@times, n_v2, mask_aa_LS) ));
-%
-% % Filtering the diffusivity coefficient at large scales
-% n_grad_v = fft2(n_grad_v );
-% n_grad_v = real(ifft2( bsxfun(@times, n_grad_v, mask_aa_LS) ));
-%
-%
-% abs_diff_estim_local = n_v2 ./ (n_grad_v/sqrt(2)); %
-% abs_diff_w_estim_global1 = mean(abs_diff_estim_local(:))
-% abs_diff_w_estim_global2 = mean(n_v2(:))/mean(n_grad_v(:)/sqrt(2))
-%
-% coef_a = 1/abs_diff_w * abs_diff_estim_local ;
-%
-% % warning('ft_w2 can be replaced by ft_w');
-% % warning('This treatement should be done realisation by realisation');
-%
-% figure;imagesc(abs_diff_estim_local');
-% figure;imagesc(n_v2');
-% figure;imagesc(n_grad_v');
-% figure;imagesc(coef_a');
-
 %% Estimation of slope of the spectral absolute diffusivity of
 % % the large-scale velocity
-
-
-% % [~,i_first]=max(spectrum_w_a_comp(2:end));
-% % i_first = i_first +1;
-% % iii_k_LS = i_first:length(spectrum_w_a_comp);
-% % spectrum_w_a_comp_for_estim = spectrum_w_a_comp(iii_k_LS);
-% % kkk=kappa(iii_k_LS);
-% % km_LS=kkk(1);
-% % threshold_k = 1/2;
-% % %threshold_k = 1/6;
-% % iii_reliable=~(isinf(abs(spectrum_w_a_comp_for_estim))|...
-% %     isnan(spectrum_w_a_comp_for_estim)|...
-% %     (spectrum_w_a_comp_for_estim/max(spectrum_w_a_comp_for_estim(:)) ...
-% %     <=eps)|...
-% %     (kkk>kappa(end)*threshold_k));
-% % %     (kkk'>kidx(end)/3));
-% % %     (kkk'>10*km));
-% % logspectrum_w_a_comp_for_estim = ...
-% %     log10(spectrum_w_a_comp_for_estim(iii_reliable));
-% % logkkk=log10(kkk(iii_reliable));
-% % Z = logkkk;
-% % Z(:,2) = 1;
-% % beta = Z\logspectrum_w_a_comp_for_estim;
-% % slope_w_a_comp_for_estim = beta(1) + slope_ref_a;
-% % slope_w_comp_for_estim = 2 * slope_w_a_comp_for_estim + 3;
-% % offset = beta(2);
-% % clear beta
-% 
-% 
-% % threshold_k = 1/2;
-% threshold_k = model.sigma.kappamin_on_kappamax;
-% threshold_k_LS = model.sigma.kappaLS_on_kappamax;
-% %threshold_k_LS = 1/8;
-% spectrum_w_a_comp_cut = spectrum_w_a_comp(kappa < kappa(end)*threshold_k);
-% % %spectrum_w_a_comp_cut = spectrum_w_a_comp;
-% % [~,i_first]=max(spectrum_w_a_comp_cut(2:end));
-% [~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
-%     ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
-% %[~,i_first]=max(spectrum_w_a_comp(2:end));
-% i_first = i_first +1;
-% iii_k_LS = i_first:length(spectrum_w_a_comp_cut);
-% spectrum_w_a_comp_for_estim = spectrum_w_a_comp_cut(iii_k_LS);
-% kappa_cut = kappa(kappa<kappa(end)*threshold_k);
-% kkk=kappa_cut(iii_k_LS);
-% km_LS=kkk(1);
-% %threshold_k = 1/6;
-% iii_reliable=~(isinf(abs(spectrum_w_a_comp_for_estim))|...
-%     isnan(spectrum_w_a_comp_for_estim)|...
-%     (spectrum_w_a_comp_for_estim/max(spectrum_w_a_comp_for_estim(:)) ...
-%     <=eps)|...
-%     (kkk>kappa(end)*threshold_k));
-% %     (kkk'>kidx(end)/3));
-% %     (kkk'>10*km));
-% logspectrum_w_a_comp_for_estim = ...
-%     log10(spectrum_w_a_comp_for_estim(iii_reliable));
-% logkkk=log10(kkk(iii_reliable));
-% Z = logkkk;
-% Z(:,2) = 1;
-% beta = Z\logspectrum_w_a_comp_for_estim;
-% beta(1)=min([0 beta(1)]); % Prevent unstable behavior of this parametrisation.
-% slope_w_a_comp_for_estim = beta(1) + slope_ref_a;
-% slope_w_comp_for_estim = 2 * slope_w_a_comp_for_estim + 3;
-% offset = beta(2);
-% clear beta
 
 % Get the large-scale "length scale" km_LS and the spectral window for the
 % linear regression
@@ -531,7 +453,7 @@ if bool_plot
     % figure(10);plot(kappa(2:end),reference_spectrum);hold on
     % plot(kappa(2:end),reference_spectrum2);
     
-    %% Plot spectrum
+    %% Plot
     
     % % Make the plots appear at the same level thant the large-scale velocity spectrum
     % spectrum_a_sigma_plot = spectrum_a_sigma * mult_offset;
@@ -541,26 +463,49 @@ if bool_plot
     taille_police = 12;
     X0 = [10 20];
     
+    %     figure10=figure(10);
+    %     widthtemp = 12 ;
+    %     heighttemp = 6;
+    %     set(figure10,'Units','inches', ...
+    %         'Position',[X0 widthtemp 2*heighttemp], ...
+    %         'PaperPositionMode','auto');
+    
+    
+    close(figure(10))
     figure10=figure(10);
     widthtemp = 12;
     heighttemp = 6;
     set(figure10,'Units','inches', ...
-        'Position',[X0 widthtemp heighttemp], ...
+        'Position',[X0(1) X0(2) 2*widthtemp heighttemp], ...
         'PaperPositionMode','auto');
+    
+    
+    %% Plot absolute diffusivity by scale
+    
+    subplot(1,2,2)
+    
     loglog(kappa(2:end),reference_spectrum_a,'k')
     hold on;
     loglog(kappa(2:end),reference_spectrum_a_estim,'k--')
-    loglog(kappa(2:end),spectrum_w_a(2:end))
+    name_plot = loglog(kappa(2:end),spectrum_w_a(2:end));
+    set(name_plot,'LineWidth',LineWidth,...
+        'MarkerSize',MarkerSize,...
+        'Color',Color2);
     %     if nargin>2
     %         loglog(kappa(2:end),spectrum_w2_a(2:end),'c')
     %     end
-    loglog(kappa(2:end),spectrum_a_sigma_plot(2:end),'r.-')
+    
+    name_plot = loglog(kappa(2:end),spectrum_a_sigma_plot(2:end));
+    set(name_plot,'LineWidth',LineWidth,...
+        'MarkerSize',MarkerSize,...
+        'Color',Color3);
+    
     %     loglog(kappa(2:end),spectrum_w_a(2:end) + ...
     %         spectrum_a_sigma_plot(2:end),'g')
     ax=axis;
-    ax(4)=max([spectrum_w_a; reference_spectrum_a_estim ; ...
+    ax(4)=max([spectrum_w_a ; ...
         reference_spectrum_a ; spectrum_a_sigma_plot]);
-    ax(4)=ax(4)*2;
+    % ax(4)=ax(4)*2;
     % ax(3)=(kappa(2)/kappa(end))*min([max(spectrum_w_a); ...
     %     max(spectrum_a_sigma_plot)]);
     ax(3)=(kappa(2)/kappa(end))*min([max(spectrum_w_a); ...
@@ -578,42 +523,192 @@ if bool_plot
     loglog(model.sigma.kappamin_on_kappamax * kappa(end)*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k-.')
     hold off
-    set(gca,'XGrid','on','XTickMode','manual');
-    width = 9;
-    height = 3;
-    set(figure10,'Units','inches', ...
-        'Position',[X0 width height], ...
-        'PaperPositionMode','auto');
-    set(gca,'YGrid','on')
-    set(gca,...
-        'Units','normalized',...
-        'FontUnits','points',...
-        'FontWeight','normal',...
-        'FontSize',taille_police,...
-        'FontName','Times')
-    ylabel('$|\hat{f}(\kappa)|^2 \tau_\kappa$',...
+%     set(gca,'XGrid','on','XTickMode','manual');
+%     width = 9;
+%     height = 3;
+%     set(figure10,'Units','inches', ...
+%         'Position',[X0 2*width height], ...
+%         'PaperPositionMode','auto');
+%     set(gca,'YGrid','on')
+%     set(gca,...
+%         'Units','normalized',...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'FontSize',taille_police,...
+%         'FontName','Times')
+%     ylabel('$E(\kappa) \tau(\kappa) \bigl ( m^{3}.s^{-1}.{rad}^{-1} \bigr )$',...
+    ylabel('$A(\kappa) = E(\kappa) \  \tau(\kappa) $',...
         'FontUnits','points',...
         'interpreter','latex',...
         'FontSize',taille_police,...
         'FontName','Times')
-    xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+%     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+    xlabel('$\kappa $',...
         'FontUnits','points',...
         'FontWeight','normal',...
         'FontSize',taille_police,...
         'interpreter','latex',...
         'FontName','Times')
-    title('Absolute diffusivity by scale for $w$ and $\sigma dB_t$',...
+    title('Absolute diffusivity by scale',...
         'FontUnits','points',...
         'FontWeight','normal',...
         'interpreter','latex',...
         'FontSize',12,...
         'FontName','Times')
     
+    ax = axis;
+    delta_ax = ax(4)-ax(3);
+    
+    %% Plot Spectrum
+    subplot(1,2,1)
+    idx_not_inf=~(isinf(log10(spectrum_w(2:end))) ...
+        | spectrum_w(2:end)<1e-4*max(spectrum_w(2:end)) | isinf(kappa(2:end)));
+    idx_not_inf = [false; idx_not_inf];
+    line1= slope_ref * log10(kappa(2:end))  ;
+    %     offset = -1 + mean(  log10(spectrum_w(idx_not_inf))  ...
+    %         - line1(idx_not_inf(2:end)));
+    offset = log10(spectrum_w(iii_k_LS(1))) ...
+        - line1(iii_k_LS(1)-1);
+    line1 = line1 + offset;
+    ref=10.^line1;
+    loglog(kappa(2:end),ref,'k');
+    %loglog(kappa(2:end),ref,'--k');
+    hold on;
+    name_plot = loglog(kappa(2:end) , spectrum_w(2:end));
+    set(name_plot,'LineWidth',LineWidth,...
+        'MarkerSize',MarkerSize,...
+        'Color',Color2);
+    hold off;
+    ax=axis;
+    ax(4)=max([spectrum_w(2:end); ref(1:end)]);
+    % ax(4)=ax(4)*2;
+    
+    min_ax= 10 ^(slope_ref * log10(kappa(2)*512/2) + offset) ;
+    ax(3) = (model.odg_b/(1e-3))^2 * ...
+        6e-2*(kappa(2)/kappa(end))*min([max(spectrum_w); max(ref)]);
+    % ax(3)=6e-2*(kappa(2)/kappa(end))*min([max(spectrum_w); max(ref)']);
+    ax(3) = min( [ax(3) min(ref) min_ax]);
+    ax(1:2)=kappa(2)*[1 min(model.grid.MX)/2];
+    if ax(4)>0
+        axis(ax)
+    end
+    
+    ax=axis;
+    ax(3) = ax(4)-delta_ax;
+    axis(ax);
+    
+    
+%     set(gca,'XGrid','on','XTickMode','manual');
+%     width = 4;
+%     height = 3;
+%     set(figure10,'Units','inches', ...
+%         'Position',[X0(1) X0(2) width height], ...
+%         'PaperPositionMode','auto');
+%     set(gca,'YGrid','on')
+    
+    set(gca,...
+        'Units','normalized',...
+        'FontUnits','points',...
+        'FontWeight','normal',...
+        'FontSize',taille_police,...
+        'FontName','Times')
+    % ylabel('$|\hat{b}(\kappa)|^2$',...
+%     ylabel('$E(\kappa) \bigl ( m^{3}.s^{-2}.{rad}^{-1} \bigr )$',...
+    ylabel('$E(\kappa) $',...
+        'FontUnits','points',...
+        'interpreter','latex',...
+        'FontSize',taille_police,...
+        'FontName','Times')
+%     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+    xlabel('$\kappa $',...
+        'FontUnits','points',...
+        'FontWeight','normal',...
+        'FontSize',taille_police,...
+        'interpreter','latex',...
+        'FontName','Times')
+    title('Spectrum',...
+        'FontUnits','points',...
+        'FontWeight','normal',...
+        'interpreter','latex',...
+        'FontSize',12,...
+        'FontName','Times')
+%         'FontUnits','points',...
+%         'interpreter','latex',...
+%         'FontSize',taille_police,...
+%         'FontName','Times')
+% %     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+%     xlabel('$\kappa $',...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'FontSize',taille_police,...
+%         'interpreter','latex',...
+%         'FontName','Times')
+%     title('Spectrum',...
+%         'FontUnits','points',...
+%         'FontWeight','normal',...
+%         'interpreter','latex',...
+%         'FontSize',12,...
+%         'FontName','Times')
+    
+    
+    
+    drawnow
+    
+    %%
+    
+    subplot(1,2,2)
+    set(gca,'XGrid','on','XTickMode','manual');
+    %set(gca,'YGrid','on')
+    drawnow
+    subplot(1,2,1)
+    set(gca,'XGrid','on','XTickMode','manual');
+    %set(gca,'YGrid','on')
+    drawnow
+    
+    %%
+    
+    subplot(1,2,2)
+    width = 9;
+    height = 3;
+    set(figure10,'Units','inches', ...
+        'Position',[X0 width height], ...
+        'PaperPositionMode','auto');
+    %set(gca,'YGrid','on')
+    drawnow
+    
+    
+    subplot(1,2,1)
+    width = 9;
+    height = 3;
+    set(figure10,'Units','inches', ...
+        'Position',[X0 width height], ...
+        'PaperPositionMode','auto');
+    %set(gca,'YGrid','on')
+    
+    
+    subplot(1,2,2)
+    set(gca,...
+        'Units','normalized',...
+        'FontUnits','points',...
+        'FontWeight','normal',...
+        'FontSize',taille_police,...
+        'FontName','Times')
+    
+    subplot(1,2,1)
+    set(gca,...
+        'Units','normalized',...
+        'FontUnits','points',...
+        'FontWeight','normal',...
+        'FontSize',taille_police,...
+        'FontName','Times')
+    drawnow
+    
     %% Save plot
     drawnow
     
     folder_simu = model.folder.folder_simu;
-    eval( ['print -depsc ' folder_simu '/AbsDiffByScale_sigma_dB_t/'...
+    eval( ['print -depsc ' folder_simu ...
+        '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
         day '.eps']);
     
     % slope_w_a_comp_for_estim
