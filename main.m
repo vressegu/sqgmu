@@ -25,13 +25,13 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     bool_parfor = false;
-    bool_mat = true;
+    bool_mat = false;
     if bool_mat & bool_parfor
         error('No compatible');
     end
 
     % Type of initial condtions
-    type_data ='Vortices';
+    type_data ='Vortices2';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -84,7 +84,7 @@ freq_f = [3 2];
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = true;
+    stochastic_simulation = false;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -210,7 +210,7 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=2
+N_ech=1
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
