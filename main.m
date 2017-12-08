@@ -25,7 +25,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     bool_parfor = false;
-    bool_mat = true;
+    bool_mat = false;
     if bool_mat & bool_parfor
         error('No compatible');
     end
@@ -210,7 +210,7 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=2
+N_ech=1
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -376,6 +376,15 @@ switch dynamics
     otherwise
         error('Unknown type of dynamics');
 end
+sigma.slope_sigma_ref = sigma.slope_sigma;
+% switch model.dynamics
+%     case 'SQG'
+%         sigma.slope_sigma_ref = -5/3;
+%     case '2D'
+%         sigma.slope_sigma_ref = -3;
+%     otherwise
+%         error('Unknown type of dynamics');
+% end
 if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
     sigma.slope_sigma = 0;
     % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
