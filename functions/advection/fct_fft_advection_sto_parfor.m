@@ -2,6 +2,7 @@ function [fft_b, model] = fct_fft_advection_sto_parfor(model,  fft_b)
 % Advection of buoyancy using SQG or SQG_MU model
 %
 
+tic
 %% Folder to save plots and files
 if model.advection.HV.bool
     add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
@@ -1109,6 +1110,8 @@ while time < model.advection.advection_duration
         % day = num2str(floor(t*model.advection.dt_adv/24/3600));
         % t_last_plot = t;
         if model.plots
+            toc
+            tic
             
             if ~model.sigma.sto
                 model_sampl = model;
@@ -1274,3 +1277,4 @@ while time < model.advection.advection_duration
     %     end
     
 end
+toc

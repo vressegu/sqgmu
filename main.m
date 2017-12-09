@@ -24,7 +24,7 @@ advection_duration = 3600*24*30;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    bool_parfor = true;
+    bool_parfor = false;
     bool_mat = false;
     if bool_mat & bool_parfor
         error('No compatible');
@@ -483,7 +483,9 @@ if bool_parfor
 elseif bool_mat
     [fft_buoy_final, model] = fct_fft_advection_sto_mat(model, fft_buoy);
 else
-    [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
+    % [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
+    warning('BIDOUILLE!!!!')
+    [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
 end
 
 
