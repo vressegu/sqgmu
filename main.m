@@ -25,7 +25,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     bool_parfor = false;
-    bool_mat = false;
+    bool_mat = true;
     if bool_mat & bool_parfor
         error('No compatible');
     end
@@ -210,7 +210,7 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=200
+N_ech=2
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -483,9 +483,9 @@ if bool_parfor
 elseif bool_mat
     [fft_buoy_final, model] = fct_fft_advection_sto_mat(model, fft_buoy);
 else
-    % [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
-    warning('BIDOUILLE!!!!')
-    [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
+    [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
+%     warning('BIDOUILLE!!!!')
+%     [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
 end
 
 

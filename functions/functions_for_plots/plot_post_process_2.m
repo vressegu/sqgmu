@@ -16,7 +16,7 @@ dynamics = 'SQG';
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = true;
+    stochastic_simulation = false;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
@@ -173,10 +173,10 @@ if nargin == 0
     
     % Resolution
     %resolution = 64;
-    resolution = 128;
+    % resolution = 128;
     %resolution = 256;
     % resolution = 512;
-    %resolution = 1024;
+    resolution = 1024;
     % resolution = 2048;
     
     % The number of grid point is resolution^2
@@ -869,18 +869,38 @@ v_epsilon_th_scale = [];
 v_time = [];
 
 
+% trigger = false;
+% %t_ini=1700000
+% for t_loop=t_ini:N_t
+%     %     %% Plot
+%     % t_loop=1;
+%     if (t_loop - t_last_plot)*dt >= 3600*24*1
+%         day = num2str(floor(t_loop*dt/24/3600));
+%         t_last_plot = t_loop;
+%         model.advection.plot_modes = plot_modes;
+%         model.advection.nb_modes = nb_modes;
+%         t_last_plot=t_loop;
+%         id_part=1;
+
+day_last_plot = -inf;
 trigger = false;
+dt_loop = dt;
 %t_ini=1700000
 for t_loop=t_ini:N_t
     %     %% Plot
     % t_loop=1;
-    if (t_loop - t_last_plot)*dt >= 3600*24*1
-        day = num2str(floor(t_loop*dt/24/3600));
-        t_last_plot = t_loop;
-        model.advection.plot_modes = plot_modes;
-        model.advection.nb_modes = nb_modes;
-        t_last_plot=t_loop;
-        id_part=1;
+    day_num = (floor(t_loop*dt_loop/24/3600));
+    
+    if day_num > day_last_plot
+    % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        day_num = (floor(t_loop*dt_loop/24/3600));
+        day = num2str(day_num);
+        day
+        day_last_plot = day_num;
+        
+        % if ~(exist('time','var')==1)
+        time =t_loop*dt_loop;
+        % end
         
         width=1.2e3;
         height=0.5e3;
@@ -902,6 +922,7 @@ for t_loop=t_ini:N_t
         %% Load
         model_ref = model;
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
+        clear fft_b fft_buoy fft_buoy_part fft_T_adv_part
         if exist( name_file,'file')==2
             load(name_file)
             model.folder.folder_simu = folder_ref;
@@ -920,11 +941,21 @@ for t_loop=t_ini:N_t
         
         %%
         % if ~(exist('time','var')==1)
+        if (exist('t','var')==1)
             time =t*dt;
-        % end
-        if ~(exist('fft_b','var')==1)
-            fft_b =fft_buoy_part;
         end
+        %         if ~(exist('fft_b','var')==1)
+        %             fft_b =fft_buoy_part;
+        %         end
+        if (exist('fft_b','var')==1)
+        elseif (exist('fft_buoy_part','var')==1)
+            fft_b = fft_buoy_part;
+        elseif (exist('fft_T_adv_part','var')==1)
+            fft_b = fft_T_adv_part;
+        else
+            error('Cannot find buoyancy field')
+        end
+        
         if ~isfield(model.sigma,'sto')
             model.sigma.sto = (model.sigma.a0>0);
         end
@@ -937,7 +968,8 @@ for t_loop=t_ini:N_t
         end
         
         %%
-        if model.advection.Smag.bool || model.sigma.Smag.bool ...
+        if model.advection.Smag.bool || ...
+                ( model.sigma.sto && model.sigma.Smag.bool) ...
                 || ( model.sigma.sto && ( ...
                 model.sigma.hetero_modulation ...
                 || model.sigma.hetero_modulation_V2 ))
@@ -1021,9 +1053,13 @@ for t_loop=t_ini:N_t
         %%
         % Plots
         [spectrum,name_plot,int_epsilon] = ...
-            fct_plot(model,fft_b,day);
+            fct_plot_post_process(model,fft_b,day);
+        %    fct_plot(model,fft_b,day);
         
         if model.advection.plot_dissip
+            if ~model.sigma.sto
+                sigma_on_sq_dt = 0;
+            end
             epsilon_dissip = fct_plot_dissipation(model,fft_b,sigma_on_sq_dt,day);
             v_epsilon_dissip = [ v_epsilon_dissip epsilon_dissip];
             v_time = [ v_time time];
@@ -1050,15 +1086,15 @@ for t_loop=t_ini:N_t
             a0_SS=model.sigma.a0_SS
         end
         
-        if model.advection.cov_and_abs_diff
-            abs_diff = sum(cov_w(t_ref_cov:end))*model.advection.dt_adv;
-            figure(36)
-            plot(model.advection.dt_adv*(0:(N_t-1))/3600/24,cov_w);
-            hold on;
-            plot(t_ref_cov*[1 1]*model.advection.dt_adv/3600/24,...
-                max(abs(cov_w(~isnan(cov_w))))*[-1 1],'r');
-            hold off
-        end
+%         if model.advection.cov_and_abs_diff
+%             abs_diff = sum(cov_w(t_ref_cov:end))*model.advection.dt_adv;
+%             figure(36)
+%             plot(model.advection.dt_adv*(0:(N_t-1))/3600/24,cov_w);
+%             hold on;
+%             plot(t_ref_cov*[1 1]*model.advection.dt_adv/3600/24,...
+%                 max(abs(cov_w(~isnan(cov_w))))*[-1 1],'r');
+%             hold off
+%         end
         
         % Dissipation by scale
         if plot_epsilon_k

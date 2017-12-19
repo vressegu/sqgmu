@@ -14,7 +14,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 plot_random_IC = true;
-random_IC_large = false
+random_IC_large = true
 
 
 if nargin == 0
@@ -648,6 +648,62 @@ else
 end
 
 
+
+%% Folder with deterministic model with random initial condition
+model_deter = model;
+model_deter.sigma.sto = false;
+% if model.advection.HV.bool
+% add_subgrid_deter = '_HV';
+add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
+% elseif model.advection.Lap_visco.bool
+%     add_subgrid_deter = '_Lap_visco';
+% else
+%     add_subgrid_deter = '_no_deter_subgrid';
+%     %add_subgrid_deter = [];
+% end
+% % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
+% %         model.advection.Smag.bool
+% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+%         model.advection.Smag.bool
+%     add_subgrid_deter = [add_subgrid_deter '_Smag'];
+%     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
+%     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
+%     %         '_dealias_ratio_mask_LS_' ...
+%     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
+% end
+%
+% if isinf(model.sigma.k_c) % Deterministic case
+model_deter.folder.folder_simu = [ 'images/usual_' model.dynamics ...
+    add_subgrid_deter '/' model.type_data ];
+% else % Stochastic case
+%     model.folder.folder_simu = [ 'images/' model.dynamics ...
+%         '_MU' add_subgrid_deter '/' model.type_data ];
+% end
+if model.advection.forcing.bool
+    model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
+        '_forced_turb' ];
+else
+    model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
+        '_free_turb' ];
+end
+model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
+    '/' num2str(model_deter.grid.MX(1)) 'x' num2str(model_deter.grid.MX(2)) ];
+% % % if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
+% % %         model.advection.Smag.bool
+% % %     subgrid_details = ['kappamax_on_kappad_' ...
+% % %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
+% % %         '_dealias_ratio_mask_LS_' ...
+% % %         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
+% % %     model.folder.folder_simu = [ model.folder.folder_simu ...
+% % %         '/' subgrid_details ];
+% % % end
+% % model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
+% %     '/Low_Pass_fitlered_version_' ...
+% %     num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
+% model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
+%         '/deter' ];
+
+
 %% Folder to save plots and files
 % if model.advection.HV.bool
 %     add_subgrid_deter = '_HV';
@@ -896,12 +952,10 @@ for t_loop=t_ini:N_t
     
     if day_num > day_last_plot
     % if (t_loop - t_last_plot)*dt >= 3600*24*1
-        day_num = (floor(t_loop*dt/24/3600));
+        day_num = (floor(t_loop*dt_loop/24/3600));
         day = num2str(day_num);
         day
-        if day_num >= 19
-            3;
-        end
+        day_last_plot = day_num;
         
         % if ~(exist('time','var')==1)
         time =t_loop*dt_loop;
@@ -910,7 +964,6 @@ for t_loop=t_ini:N_t
         model.advection.plot_modes = plot_modes;
         model.advection.nb_modes = nb_modes;
         t_last_plot=t_loop;
-        day_last_plot = day_num;
         id_part=1;
         
         width=1.2e3;
@@ -947,6 +1000,26 @@ for t_loop=t_ini:N_t
             fft_b_classic = fft_b;clear fft_b;
         end
         
+        %% Load determinsitic meth without random IC
+        clear fft_b;
+        if (model.advection.N_ech>1)
+            name_file_deter = [model_deter.folder.folder_simu ...
+                '/files/' num2str(day) '.mat'];
+            load(name_file_deter,'fft_T_adv_part','fft_buoy_part','fft_b');
+            if (exist('fft_b','var')==1)
+            elseif (exist('fft_buoy_part','var')==1)
+                fft_b = fft_buoy_part;
+            elseif (exist('fft_T_adv_part','var')==1)
+                fft_b = fft_T_adv_part;
+            else
+                error('Cannot find buoyancy field')
+            end
+            fft_b_deter = fft_b;clear fft_b;
+            model_deter.grid.x=model_deter.grid.x_ref;
+            model_deter.grid.y=model_deter.grid.y_ref;
+            model_deter.folder.colormap=model.folder.colormap;
+        end
+        
         %% Load
         model_ref = model;
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
@@ -970,6 +1043,9 @@ for t_loop=t_ini:N_t
         %% Load reference
         name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(day) '.mat'];
         load(name_file_HR,'fft_buoy_part_ref','spectrum_ref');
+        model_HR.grid.x=model_HR.grid.x_ref;
+        model_HR.grid.y=model_HR.grid.y_ref;
+        model_HR.folder.colormap=model.folder.colormap;
         
         %%
         
@@ -992,15 +1068,32 @@ for t_loop=t_ini:N_t
         %%
         % Plots
         
+        % Colormap
+        load('BuYlRd.mat');
+        model.folder.colormap = BuYlRd; clear BuYlRd
+        
+        % Version of matlab
+        vers = version;
+        year = str2double(vers(end-5:end-2));
+        subvers = vers(end-1);
+        model.folder.colormap_freeze = ...
+            (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
+        %%
+        
         if model.advection.N_ech > 1
             model.advection.plot_moments = true;
-            fct_plot(model,fft_b,day);
+            fct_plot_post_process(model,fft_b,day);
             pause(0.1);
         end
         
+        fct_plot_post_process(model_deter,fft_b_deter,day);
+%         fct_plot_post_process(model_HR,fft_buoy_part_ref,day);
+        
         model.advection.plot_moments = false;
-        [spectrum,name_plot] = fct_plot(model,fft_b,day);
+        [spectrum,name_plot] = fct_plot_post_process(model,fft_b,day);
+        fct_spectrum_multi(model,fft_b_deter,'m');
         fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+        legend('-5/3','LU 128','Deter. 128','Deter. 1024')
         eval( ['print -depsc ' model.folder.folder_simu '/Spectrum/' day '.eps']);
         %         if model.advection.plot_dissip
         %             fct_plot_dissipation(model,fft_buoy_part,sigma_on_sq_dt,day);
