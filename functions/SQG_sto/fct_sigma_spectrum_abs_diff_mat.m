@@ -1,5 +1,5 @@
 function [sigma_on_sq_dt,f_sigma,trace_a,....
-    slope_w_a_comp_for_estim,mult_offset_spectrum_a_estim,...
+    slope_w_a_estim,mult_offset_spectrum_a_estim,...
     km_LS, ...
     spectrum_a_sigma] = ...
     fct_sigma_spectrum_abs_diff_mat(model,ft_w,bool_plot,day)
@@ -197,7 +197,7 @@ spectrum_w_a_comp_cut = spectrum_w_a_comp( kappa < kappa(end)*threshold_k , :);
 [~,i_first] = max(spectrum_w_a_comp_cut( [ false; ...
     ( kappa(2:end) < kappa(end)*threshold_k_LS )] , :) ,[], 1 );
 i_first = i_first +1;
-mask_iii_k_LS = (1:length(spectrum_w_a_comp_cut))' ...
+mask_iii_k_LS = (1:size(spectrum_w_a_comp_cut,1))' ...
     * ones(1,model.advection.N_ech);
 mask_iii_k_LS = bsxfun( @ge,  mask_iii_k_LS , i_first );
 % % iii_k_LS = [ ones(1,i_first-1) i_first:length(spectrum_w_a_comp_cut) ];
@@ -207,7 +207,7 @@ spectrum_w_a_comp_for_estim = mask_iii_k_LS .* spectrum_w_a_comp_cut;
 kappa_cut = kappa( kappa<kappa(end)*threshold_k );
 kkk = bsxfun( @times, mask_iii_k_LS , kappa_cut );
 % kkk=kappa_cut(iii_k_LS);
-mask_iii_k_LS_one_value = (1:length(spectrum_w_a_comp_cut))' ...
+mask_iii_k_LS_one_value = (1:size(spectrum_w_a_comp_cut,1))' ...
     * ones(1,model.advection.N_ech);
 mask_iii_k_LS_one_value = bsxfun( @eq,  mask_iii_k_LS_one_value , i_first );
 km_LS = sum( bsxfun( @times,mask_iii_k_LS_one_value , kappa_cut ) ,1);
@@ -232,22 +232,50 @@ iii_reliable =~ (isinf(abs(spectrum_w_a_comp_for_estim))|...
     (kkk>kappa(end)*threshold_k));
 %     (kkk'>kidx(end)/3));
 %     (kkk'>10*km));
+% logspectrum_w_a_comp_for_estim_centered = bsxfun( @plus, ...
+%     log10(spectrum_w_a_comp_for_estim.* iii_reliable) .* iii_reliable , ...
+%     - log10( offset_w_a_comp) );
+% % logspectrum_w_a_comp_for_estim_centered = ...
+% %     log10(spectrum_w_a_comp_for_estim(iii_reliable))...
+% %     - log10(offset_w_a_comp);
+% logkkk = bsxfun( @plus, ...
+%     log10(kkk.* iii_reliable) .* iii_reliable , ...
+%     - log10( km_LS ) );
+% % logkkk = log10(kkk(iii_reliable)) - log10(km_LS);
+
+% Centering in the point ( km_LS, spectrum_w_a_comp(km_LS) )
 logspectrum_w_a_comp_for_estim_centered = bsxfun( @plus, ...
-    log10(spectrum_w_a_comp_for_estim.* iii_reliable) .* iii_reliable , ...
-    - log10( offset_w_a_comp) );
-% logspectrum_w_a_comp_for_estim_centered = ...
-%     log10(spectrum_w_a_comp_for_estim(iii_reliable))...
-%     - log10(offset_w_a_comp);
-logkkk = bsxfun( @plus, ...
-    log10(kkk.* iii_reliable) .* iii_reliable , ...
-    - log10( km_LS ) );
-% logkkk = log10(kkk(iii_reliable)) - log10(km_LS);
-% Z = logkkk;
-% Z(:,2) = 1;
-beta = logkkk \ logspectrum_w_a_comp_for_estim_centered;
-beta =min([0 beta]); % Prevent unstable behavior of this parametrisation.
-slope_w_a_comp_for_estim = beta + slope_ref_a;
-slope_w_comp_for_estim = 2 * slope_w_a_comp_for_estim + 3;
+    log10(spectrum_w_a_comp_for_estim) , - log10( offset_w_a_comp) );
+logkkk_centered = bsxfun( @plus, log10(kkk)  , - log10( km_LS ) );
+
+% Set to zero the unwanted points 
+siz = size(iii_reliable);
+iii_reliable = iii_reliable(:);
+logspectrum_w_a_comp_for_estim_centered( ~ iii_reliable ) = 0; % P_kappa_cut*N_ech
+logkkk_centered( ~ iii_reliable ) = 0; % P_kappa*N_ech
+logspectrum_w_a_comp_for_estim_centered = reshape ( ...
+    logspectrum_w_a_comp_for_estim_centered, siz ); % P_kappa_cut x N_ech
+logkkk_centered = reshape ( ...
+    logkkk_centered, siz ); % P_kappa_cut x N_ech
+
+% Linear regression
+beta_num = sum( ...
+    logkkk_centered .* logspectrum_w_a_comp_for_estim_centered , 1);
+beta_den = sum( ...
+    logkkk_centered .* logkkk_centered , 1);
+beta = beta_num ./ beta_den; % 1 x N_ech
+% beta =min([zeros([1 model.advection.N_ech]) ; beta]); 
+
+% beta = logkkk_centered \ logspectrum_w_a_comp_for_estim_centered;
+% beta =min([0 beta]); % Prevent unstable behavior of this parametrisation.
+slope_w_a_estim = beta + slope_ref_a;
+
+% Prevent some possible unstable behaviors of this parametrisation:
+% The maximum allowed slope corresponds to a velocity white in space
+slope_w_a_estim = min( [zeros([1 model.advection.N_ech]) ; ...
+    slope_w_a_estim]); 
+
+slope_w_estim = 2 * slope_w_a_estim + 3;
 %offset = beta(2);
 clear beta
 
@@ -260,29 +288,63 @@ k_inf = kappa(min(PX));
 % Smallest wave number
 k0 = model.sigma.kappamin_on_kappamax * k_inf;
 
-% Slope of the absolute diffusitiy distribution by scale
-model.sigma.slope_absDif_sigma = (model.sigma.slope_sigma-3)/2;
+% % Slope of the absolute diffusitiy distribution by scale
+% model.sigma.slope_absDif_sigma = (model.sigma.slope_sigma-3)/2;
 
 % Absolute diffusivity by scale with estimated slope
-reference_spectrum_a_estim = kappa(2:end) .^ slope_w_a_comp_for_estim ;
-
-% Setting offset
-mult_offset_spectrum_a_estim = spectrum_w_a(iii_k_LS(1)) ...
-    / reference_spectrum_a_estim(iii_k_LS(1)-1);
-%10^offset
-% reference_spectrum_a_estim = 10^offset...
-%     * reference_spectrum_a_estim;
-reference_spectrum_a_estim = mult_offset_spectrum_a_estim...
-    * reference_spectrum_a_estim;
+reference_spectrum_a_estim = bsxfun(@power, kappa(2:end), ...
+                                          slope_w_a_estim ) ;
+%reference_spectrum_a_estim = kappa(2:end) .^ slope_w_a_estim ;
 
 % Absolute diffusivity by scale with theoretical slope
-reference_spectrum_a = kappa(2:end) .^ slope_ref_a ;
-%reference_spectrum_a = kappa(2:end) .^ model.sigma.slope_sigma ;
+if bool_plot
+    reference_spectrum_a = kappa(2:end) .^ slope_ref_a ;
+    reference_spectrum_a = repmat( reference_spectrum_a , ...
+        [ 1 model.advection.N_ech ]);
+end
+% reference_spectrum_a = bsxfun(@power, kappa(2:end) , slope_ref_a );
+% %reference_spectrum_a = kappa(2:end) .^ model.sigma.slope_sigma ;
 
-% Setting offset
-mult_offset_spectrum_a = spectrum_w_a(iii_k_LS(1)) ...
-    / reference_spectrum_a(iii_k_LS(1)-1) ;
-reference_spectrum_a = mult_offset_spectrum_a * reference_spectrum_a;
+%% Offsets
+mask_iii_k_LS_one_value_long = (1:size(spectrum_w_a,1))' ...
+    * ones(1,model.advection.N_ech);
+mask_iii_k_LS_one_value_long = bsxfun( @eq,  ...
+    mask_iii_k_LS_one_value_long , i_first );
+spectrum_w_a_km_LS = ...
+    sum( bsxfun( @times,mask_iii_k_LS_one_value_long , spectrum_w_a ) ,1);
+
+mask_iii_k_LS_one_value_long_m1 = (1:size(reference_spectrum_a_estim,1))' ...
+    * ones(1,model.advection.N_ech);
+mask_iii_k_LS_one_value_long_m1 = bsxfun( @eq,  ...
+    mask_iii_k_LS_one_value_long_m1 , i_first - 1 );
+reference_spectrum_a_estim_km_LS = ...
+    sum( bsxfun( @times,mask_iii_k_LS_one_value_long_m1 , ...
+    reference_spectrum_a_estim ) ,1);
+if bool_plot
+    reference_spectrum_a_km_LS = ...
+        sum( bsxfun( @times,mask_iii_k_LS_one_value_long_m1 , ...
+        reference_spectrum_a ) ,1);
+end
+
+% Apply offset
+mult_offset_spectrum_a_estim = spectrum_w_a_km_LS ...
+    / reference_spectrum_a_estim_km_LS;
+% mult_offset_spectrum_a_estim = spectrum_w_a(iii_k_LS(1)) ...
+%     / reference_spectrum_a_estim(iii_k_LS(1)-1);
+% %10^offset
+% % reference_spectrum_a_estim = 10^offset...
+% %     * reference_spectrum_a_estim;
+reference_spectrum_a_estim = bsxfun(@times, ...
+    mult_offset_spectrum_a_estim , reference_spectrum_a_estim );
+
+if bool_plot
+    mult_offset_spectrum_a = spectrum_w_a_km_LS ...
+        / reference_spectrum_a_km_LS ;
+    % mult_offset_spectrum_a = spectrum_w_a_km_LS ...
+    %     / reference_spectrum_a(iii_k_LS(1)-1) ;
+    reference_spectrum_a = bsxfun(@times, ...
+        mult_offset_spectrum_a , reference_spectrum_a );
+end
 
 % % Compute the offset to superimpose the slop -5/3 and the spectrum of w
 % idx_not_inf=~(isinf(log10(spectrum_w_a(2:end)))| ...
@@ -299,17 +361,23 @@ reference_spectrum_a = mult_offset_spectrum_a * reference_spectrum_a;
 
 % Residual absolute diffusivity by scale
 residual_spectrum_a = ...
-    reference_spectrum_a_estim - spectrum_w_a(2:end);
+    reference_spectrum_a_estim - spectrum_w_a(2:end,:);
+
+% Clean it
+siz = size(residual_spectrum_a);
+residual_spectrum_a = residual_spectrum_a(:);
 residual_spectrum_a(residual_spectrum_a<0)=0;
-% residual_spectrum_a = ...
-%     reference_spectrum_a_estim ./ spectrum_w_a(2:end);
-% % residual_spectrum_a = ...
-% %     reference_spectrum_a ./ reference_spectrum_a_estim;
-% % % residual_spectrum_a = ...
-% % %     (mult_offset_spectrum_a / mult_offset_spectrum_a_estim) * ...
-% % %     reference_spectrum_a ./ reference_spectrum_a_estim;
-residual_spectrum_a(1:(iii_k_LS(1)-1))=0;
-residual_spectrum_a(1:2)=0;
+residual_spectrum_a = reshape( residual_spectrum_a, siz);
+
+mask_iii_k_LS_long_m1 = (1:size(reference_spectrum_a_estim,1))' ...
+    * ones(1,model.advection.N_ech);
+mask_iii_k_LS_long_m1 = bsxfun( @gt,  ...
+    mask_iii_k_LS_long_m1 , i_first - 1 );
+residual_spectrum_a = bsxfun( @times,mask_iii_k_LS_long_m1 , ...
+                                                residual_spectrum_a);
+
+% residual_spectrum_a(1:(iii_k_LS(1)-1))=0;
+residual_spectrum_a(1:2,:)=0;
 
 %% Spectre of random small-scale velocity
 f_sigma = residual_spectrum_a;
@@ -333,7 +401,7 @@ unit_approx = fct_unity_approx_(sum(idx2));
 % warning('Above line modified for debug !!!!!')
 
 f_sigma(idx1 | idx3)=0;
-f_sigma(idx2) = f_sigma(idx2) .* unit_approx';
+f_sigma(idx2) = bsxfun(@times, unit_approx' , f_sigma(idx2,:) ) ;
 
 %     case 'Low_Pass_w_Slope'
 %         f_sigma = (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2) ;
@@ -351,25 +419,30 @@ f_sigma(idx2) = f_sigma(idx2) .* unit_approx';
 % To remove the 2 pi which appear when we integrate the spectrum over the
 % wave-vector angles and add the (2 pi)^2 which appear when we go from k to
 % 2*pi*k
-f_sigma = f_sigma * (2*pi);
+% And discretisation to go from continuous to discrete Fourier transform
+% f_sigma = f_sigma * (2*pi);
+% f_sigma = 1/prod(model.grid.dX) * f_sigma;
+f_sigma = (2*pi/prod(model.grid.dX)) * f_sigma;
 
 % Division by prod(model.grid.MX) because of the variance white-in-space
 % noise
-f_sigma = 1/prod(model.grid.MX) * f_sigma;
-
 % Multiplication by prod(model.grid.MX) because the spectrum respresent
 % an energy by unit of space and not the sum over the space
-f_sigma = prod(model.grid.MX) * f_sigma;
+% f_sigma = 1/prod(model.grid.MX) * f_sigma;
+% f_sigma = prod(model.grid.MX) * f_sigma;
 
-% Discretisation to go from continuous to discrete Fourier transform
-f_sigma = 1/prod(model.grid.dX) * f_sigma;
 
 % Division by k^2 to get the spectrum of the streamfunction
-f_sigma = f_sigma ./ ( kappa(2:end) .^2 );
-
-% From omnidirectional spectrum to Fourier tranform square modulus
+% And from omnidirectional spectrum to Fourier tranform square modulus
 % Division by k in dimension 2
-f_sigma = f_sigma ./ ( kappa(2:end) );
+f_sigma = bsxfun(@times, 1 ./ ( kappa(2:end).^3) , f_sigma );
+
+% % Division by k^2 to get the spectrum of the streamfunction
+% f_sigma = bsxfun(@times, 1 ./ ( kappa(2:end) .^2) , f_sigma );
+% 
+% % From omnidirectional spectrum to Fourier tranform square modulus
+% % Division by k in dimension 2
+% f_sigma = f_sigma ./ ( kappa(2:end) );
 
 % % Influence of discretisation
 % f_sigma = f_sigma * d_kappa ;
