@@ -717,7 +717,8 @@ while time < model.advection.advection_duration
             model.sigma.a0 = model.sigma.tr_a/2;
             model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
             % Diffusion coefficient
-            model.advection.coef_diff =  1/2 * model.sigma.a0;
+            model.advection.coef_diff = permute( 1/2 * model.sigma.a0 , ...
+                                                [1 3 4 2]);
             if model.sigma.assoc_diff | model.sigma.Smag.bool
                 % warning('deal with slope when there are several realizations')
                 model.sigma.a0_SS = ...
@@ -735,8 +736,8 @@ while time < model.advection.advection_duration
                 model.sigma.a0_on_dt = model.sigma.a0 ...
                     / model.advection.dt_adv;
                 % Diffusion coefficient
-                model.advection.coef_diff = ...
-                    1/2 * model.sigma.a0;
+                model.advection.coef_diff = permute(...
+                    1/2 * model.sigma.a0 ,[1 3 4 2]);
                 %end
                 
                 
@@ -745,28 +746,35 @@ while time < model.advection.advection_duration
                     %if model.sigma.a0_SS > eps
                     if model.sigma.Smag.epsi_without_noise
                         sigma(:,:,:,iii_non_degenerate_a0_SS) = ...
-                            sqrt(2/(...
+                            bsxfun(@times,...
+                            permute( ...
+                            sqrt(2./(...
                             model.sigma.a0_LS(iii_non_degenerate_a0_SS) ...
                             + model.sigma.a0_SS(iii_non_degenerate_a0_SS))) ...
-                            * sigma(:,:,:,(iii_non_degenerate_a0_SS));
+                            , [ 1 3 4 2]) , ...
+                            sigma(:,:,:,(iii_non_degenerate_a0_SS)) );
                     else
                         sigma(:,:,:,iii_non_degenerate_a0_SS) = ...
-                            sqrt(2/...
+                            bsxfun( @times, ...
+                            permute( ...
+                            sqrt(2./...
                             model.sigma.a0_SS(iii_non_degenerate_a0_SS)) ...
-                            * sigma(:,:,:,iii_non_degenerate_a0_SS);
+                            , [ 1 3 4 2]) , ...
+                            sigma(:,:,:,iii_non_degenerate_a0_SS) );
                     end
-                    if any(~iii_non_degenerate_a0_SS) & ...
-                            strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
-                        % The absolute diffusivity diagnosed from the large-scale
-                        % kinematic spectrum is too weak. It suggests that there
-                        % are few small scales and no subgrid terms is needed.
-                        % Moreover, setting subgris terms to zero prevent numerical
-                        % errors.
-                        sigma(:,:,:,~iii_non_degenerate_a0_SS) = ...
-                            zeros(size(sigma(:,:,:,~iii_non_degenerate_a0_SS)));
-                        model.advection.coef_diff(~iii_non_degenerate_a0_SS) = 0;
-                    else
-                        error('Unknow case');
+                    if any(~iii_non_degenerate_a0_SS)
+                        if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+                            % The absolute diffusivity diagnosed from the large-scale
+                            % kinematic spectrum is too weak. It suggests that there
+                            % are few small scales and no subgrid terms is needed.
+                            % Moreover, setting subgris terms to zero prevent numerical
+                            % errors.
+                            sigma(:,:,:,~iii_non_degenerate_a0_SS) = ...
+                                zeros(size(sigma(:,:,:,~iii_non_degenerate_a0_SS)));
+                            model.advection.coef_diff(~iii_non_degenerate_a0_SS) = 0;
+                        else
+                            error('Unknow case');
+                        end
                     end
                     %                     if model.sigma.a0_SS > eps
                     %                         if model_sampl(sampl).sigma.Smag.epsi_without_noise
@@ -834,24 +842,29 @@ while time < model.advection.advection_duration
             % Coefficient coef_Smag to target a specific diffusive scale
             iii_non_degenerate_a0_SS = (model.sigma.a0_SS > eps);
             %if model_sampl(sampl).sigma.a0_SS > eps
+            model.advection.coef_diff = zeros([1 1 1 model.advection.N_ech]);
             if model.sigma.Smag.epsi_without_noise
-                model.advection.coef_diff(:,:,:,iii_non_degenerate_a0_SS) = 1;
+                model.advection.coef_diff(iii_non_degenerate_a0_SS) = 1;
             else
                 % Taking into account the noise in the energy budget
-                model.advection.coef_diff(:,:,:,iii_non_degenerate_a0_SS) = ...
-                    (1 + model.sigma.a0_LS(iii_non_degenerate_a0_SS) / ...
-                    model.sigma.a0_SS(iii_non_degenerate_a0_SS)) ;
+%                 model.advection.coef_diff(:,:,:,iii_non_degenerate_a0_SS) = ...
+                model.advection.coef_diff(iii_non_degenerate_a0_SS) = ...
+                    permute( ...
+                    (1 + model.sigma.a0_LS(iii_non_degenerate_a0_SS) ./ ...
+                    model.sigma.a0_SS(iii_non_degenerate_a0_SS)) , ...
+                    [1 4 3 2] );
             end
-            if any(~iii_non_degenerate_a0_SS) & ...
-                    strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
-                % The absolute diffusivity diagnosed from the large-scale
-                % kinematic spectrum is too weak. It suggests that there
-                % are few small scales and no subgrid terms is needed.
-                % Moreover, setting subgris terms to zero prevent numerical
-                % errors.
-                model.advection.coef_diff(~iii_non_degenerate_a0_SS) = 0;
-            else
-                error('Unknow case');
+            if any(~iii_non_degenerate_a0_SS)
+                if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+                    % The absolute diffusivity diagnosed from the large-scale
+                    % kinematic spectrum is too weak. It suggests that there
+                    % are few small scales and no subgrid terms is needed.
+                    % Moreover, setting subgris terms to zero prevent numerical
+                    % errors.
+                    model.advection.coef_diff(~iii_non_degenerate_a0_SS) = 0;
+                else
+                    error('Unknow case');
+                end
             end
             %                 if model_sampl(sampl).sigma.a0_SS > eps
             %                     if model_sampl(sampl).sigma.Smag.epsi_without_noise
@@ -873,7 +886,9 @@ while time < model.advection.advection_duration
             %                     error('Unknow case');
             %                 end
             model.advection.coef_diff = ...
-                model.advection.coef_diff .* coef_modulation;
+                        bsxfun( @times, ...
+                        model.advection.coef_diff,...
+                        coef_modulation) ;
             %end
             
             if model.sigma.Smag.SS_vel_homo
@@ -899,7 +914,7 @@ while time < model.advection.advection_duration
             %                     coef_modulation * ...
             %                     1/2 * model.sigma.a0;
             model.advection.coef_diff = bsxfun(@times, ...
-                permute( 1/2 * model.sigma.a0 , [ 2 3 4 1]) , ...
+                permute( 1/2 * model.sigma.a0 , [ 1 3 4 2]) , ...
                 coef_modulation ) ;
             %end
         end
@@ -919,7 +934,7 @@ while time < model.advection.advection_duration
         %parfor sampl=1:N_ech
         
         model.sigma.a0 = bsxfun(@times, ...
-            permute(model.sigma.a0 , [ 2 3 4 1]) , ...
+            permute(model.sigma.a0 , [ 1 3 4 2]) , ...
             coef_modulation ) ;
         
         
@@ -930,25 +945,25 @@ while time < model.advection.advection_duration
             if model.sigma.Smag.epsi_without_noise
                 model.sigma.a0(iii_non_degenerate_a0_SS) = ...
                     model.sigma.a0(iii_non_degenerate_a0_SS) ...
-                    / (model.sigma.a0_SS(iii_non_degenerate_a0_SS) ...
+                    ./ (model.sigma.a0_SS(iii_non_degenerate_a0_SS) ...
                     + model.sigma.a0_LS(iii_non_degenerate_a0_SS));
             else
                 % Taking into account the noise in the energy budget
                 model.sigma.a0(iii_non_degenerate_a0_SS) = ...
                     model.sigma.a0(iii_non_degenerate_a0_SS) ...
-                    / model.sigma.a0_SS(iii_non_degenerate_a0_SS);
+                    ./ model.sigma.a0_SS(iii_non_degenerate_a0_SS);
             end
-            if any(~iii_non_degenerate_a0_SS) & ...
-                    strcmp(model.sigma.type_spectrum,...
-                    'SelfSim_from_LS')
-                % The absolute diffusivity diagnosed from the large-scale
-                % kinematic spectrum is too weak. It suggests that there
-                % are few small scales and no subgrid terms is needed.
-                % Moreover, setting subgris terms to zero prevent numerical
-                % errors.
-                model.sigma.a0(~iii_non_degenerate_a0_SS) = 0;
-            else
-                error('Unknow case');
+            if any(~iii_non_degenerate_a0_SS)
+                if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+                    % The absolute diffusivity diagnosed from the large-scale
+                    % kinematic spectrum is too weak. It suggests that there
+                    % are few small scales and no subgrid terms is needed.
+                    % Moreover, setting subgris terms to zero prevent numerical
+                    % errors.
+                    model.sigma.a0(~iii_non_degenerate_a0_SS) = 0;
+                else
+                    error('Unknow case');
+                end
             end
         end
         
@@ -1141,22 +1156,23 @@ while time < model.advection.advection_duration
                     
                 elseif model.sigma.hetero_modulation ...
                         | model.sigma.hetero_modulation_V2
+%                     coef_diff_aa = ...
+%                         model.sigma.a0(id_part)/2  ;
+                    [coef_diff_aa,coef_diff] = ...
+                        fct_coef_estim_AbsDiff_heterogeneous(...
+                        model,fft_w(:,:,:,id_part));
                     coef_diff_aa = ...
-                        model.sigma.a0(id_part)/2  ;
-                    %                     [coef_diff_aa,coef_diff] = ...
-                    %                         fct_coef_estim_AbsDiff_heterogeneous(...
-                    %                         model,fft_w(:,:,:,id_part));
-                    %                     coef_diff_aa = ...
-                    %                         model_sampl(id_part).sigma.a0/2 * coef_diff_aa ;
-                    %                     coef_diff = ...
-                    %                         model_sampl(id_part).sigma.a0/2 * coef_diff ;
+                        model.sigma.a0(id_part)/2 * coef_diff_aa ;
+                    coef_diff = ...
+                        model.sigma.a0(id_part)/2 * coef_diff ;
                 elseif model.sigma.hetero_energy_flux
+%                     coef_diff_aa = ...
+%                         model.sigma.a0(id_part)/2  ;
                     coef_diff_aa = ...
-                        model.sigma.a0(id_part)/2  ;
-                    %                     coef_diff_aa = ...
-                    %                         fct_epsilon_k_onLine(model,fft_b,fft_w);
-                    %                     coef_diff_aa = ...
-                    %                         model.sigma.a0(id_part)/2 * coef_diff_aa ;
+                        fct_epsilon_k_onLine(model,fft_b,fft_w);
+                    coef_diff_aa = ...
+                        model.sigma.a0(id_part)/2 * coef_diff_aa ;
+                    coef_diff=nan(size(coef_diff_aa));
                 end
                 figure(9);
                 subplot(1,2,1);

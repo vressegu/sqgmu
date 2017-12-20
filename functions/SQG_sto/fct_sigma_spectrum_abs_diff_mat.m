@@ -462,7 +462,10 @@ ft_sigma=sum(ft_sigma,3);
 % buoyancy averaged (not just integrated) over the space
 % One has to multiply by prod(model.grid.MX) because of the variance of
 % the white in space noise
-trace_a = 1/(prod(model.grid.MX)*model.advection.N_ech) * sum(ft_sigma(:));
+trace_a = 1/prod(model.grid.MX) * sum(sum(ft_sigma,2),1);
+trace_a = permute( trace_a, [ 1 4 3 2]);
+% trace_a = 1/(prod(model.grid.MX)*model.advection.N_ech) * sum(ft_sigma(:));
+% % trace_a = 1/(prod(model.grid.MX) * sum(ft_sigma(:));
 
 if bool_plot
     
