@@ -11,6 +11,9 @@ function [sigma_on_sq_dt,f_sigma,trace_a,....
 % - spectrum_a_sigma is the spectrum
 %
 
+% label of the chosen particle for plot
+id_part = 1;
+
 % Average over realizations
 ft_w2=abs(ft_w).^2;
 % ft_w2=mean(abs(ft_w).^2,4);
@@ -381,16 +384,7 @@ residual_spectrum_a(1:2,:)=0;
 
 %% Spectre of random small-scale velocity
 f_sigma = residual_spectrum_a;
-%f_sigma = f_sigma * d_kappa;
 
-% switch model.sigma.type_spectrum
-%     case 'Band_Pass_w_Slope'
-%         f_sigma = reference_spectrum;
-%
-%         % % Parseval ( * prod(model.grid.MX) )
-%         % % and integrated over the space ( * prod(model.grid.MX) )
-%         % f_sigma = prod(model.grid.MX)^2 * f_sigma;
-%
 % Band-pass filter
 idx1 = (kappa(2:end) <= k0);
 idx3 = (kappa(2:end) > k_inf);
@@ -400,21 +394,8 @@ unit_approx = fct_unity_approx_(sum(idx2));
 % unit_approx = ones([1,sum(idx2)]);
 % warning('Above line modified for debug !!!!!')
 
-f_sigma(idx1 | idx3)=0;
-f_sigma(idx2) = bsxfun(@times, unit_approx' , f_sigma(idx2,:) ) ;
-
-%     case 'Low_Pass_w_Slope'
-%         f_sigma = (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2) ;
-%     case  'Low_Pass_streamFct_w_Slope'
-%         f_sigma = kappa(2:end).^2 .* ...
-%             (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2-1) ;
-%     case  'BB'
-%         f_sigma = ones(size(kappa(2:end))) ;
-%     case  'Bidouille'
-%         f_sigma = 1/10 * ones(size(kappa(2:end))) ;
-%     otherwise
-%         error('Unknown spectrum type for the small-scale velocity');
-% end
+f_sigma(idx1 | idx3,:)=0;
+f_sigma(idx2,:) = bsxfun(@times, unit_approx' , f_sigma(idx2,:) ) ;
 
 % To remove the 2 pi which appear when we integrate the spectrum over the
 % wave-vector angles and add the (2 pi)^2 which appear when we go from k to
@@ -452,43 +433,26 @@ f_sigma = bsxfun(@times, 1 ./ ( kappa(2:end).^3) , f_sigma );
 f_sigma = sqrt( f_sigma );
 
 % From 1D function to 2D function
-f_sigma = interp1(kappa,[0; f_sigma],k);
+f_sigma = interp1(kappa,[zeros(1,model.advection.N_ech); f_sigma],k);
+%f_sigma = interp1(kappa,[0; f_sigma],k);
 
-% % Cleaning
-% if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
-%     f_sigma(k<=k0)=0;
-% end
-f_sigma(k>k_inf)=0;
-f_sigma=reshape(f_sigma,MX);
+% Cleaning
+f_sigma(k<=k0,:)=0;
+f_sigma(k>k_inf,:)=0;
+f_sigma=reshape(f_sigma,[model.grid.MX 1 model.advection.N_ech]);
 
 % Antialiasing
-f_sigma(PX(1)+1,:)=0;
-f_sigma(:,PX(2)+1)=0;
-
-% % Influence of the complex brownian variance
-% f_sigma = 1/sqrt(prod(MX))*f_sigma;
-
-% % Choice to make the variance tensor explicitely independent of the
-% % resolution (i.e. independent of MX and of dX, but dependent on dX.*MX)
-% f_sigma = sqrt(prod(MX))*f_sigma;
+f_sigma(PX(1)+1,:,:,:)=0;
+f_sigma(:,PX(2)+1,:,:)=0;
 
 % Orthogonal gradient (from streamfunction to velocity)
-sigma_on_sq_dt(:,:,1)= 1i * ( - ky ) .* f_sigma;
-sigma_on_sq_dt(:,:,2)= 1i * ( + kx ) .* f_sigma;
+sigma_on_sq_dt(:,:,1,:)= 1i * bsxfun(@times, - ky , f_sigma );
+sigma_on_sq_dt(:,:,2,:)= 1i * bsxfun(@times,  + kx , f_sigma );
 
 
 % Compute the bi-directional spectrum of sigma dBt
 ft_sigma=abs(sigma_on_sq_dt).^2;
 ft_sigma=sum(ft_sigma,3);
-
-% % % Calcul of energy
-% % % One has to divid by prod(model.grid.MX) because of the form of Parseval
-% % % theorem for discrete Fourier transform
-% % %trace_a_on_dt = sum(spectrum_a_sigma)
-% % % trace_a_on_dt = 1/prod(model.grid.MX) * sum(spectrum_a_sigma);
-% % % or equivalently
-% % trace_a_on_dt = 1/prod(model.grid.MX) * sum(ft_sigma(:))
-% trace_a = 1/prod(model.grid.MX) * sum(ft_sigma(:))
 
 % Calcul of energy
 % Division by prod(model.grid.MX) because of the Parseval theorem for
@@ -498,31 +462,25 @@ ft_sigma=sum(ft_sigma,3);
 % buoyancy averaged (not just integrated) over the space
 % One has to multiply by prod(model.grid.MX) because of the variance of
 % the white in space noise
-trace_a = 1/prod(model.grid.MX) * sum(ft_sigma(:));
+trace_a = 1/(prod(model.grid.MX)*model.advection.N_ech) * sum(ft_sigma(:));
 
 if bool_plot
     
-    % alpha = ( 3 - model.sigma.slope_absDif_sigma )/2;
-    % eval(['norm_tr_a_theo = fct_norm_tr_a_theo_' ...
-    %     model.sigma.type_spectrum '(model,k0,k_inf,alpha);']);
-    % %norm_tr_a_theo = fct_norm_tr_a_theo(model,k0,k_inf,alpha);
-    %
-    % norm_tr_a_theo/trace_a_on_dt
-    % % d_kappa
-    % % prod(model.grid.MX)
-    % % sqrt(prod(model.grid.MX))
-    % % 1/(sqrt(prod(model.grid.MX))*d_kappa)
-    % % d_kappa*prod(model.grid.MX)
+    figure(38);imagesc(ft_sigma(:,:,:,id_part)');
+    warning('DEBUG')
+
+    % Choose one realization
+    ft_sigma = ft_sigma(:,:,:,id_part);
+    reference_spectrum_a=reference_spectrum_a(:,id_part);
+    spectrum_w_a=spectrum_w_a(:,id_part);
+    reference_spectrum_a_estim=reference_spectrum_a_estim(:,id_part);
+    km_LS_plot = km_LS(id_part);
     
     % Compute the omnidirectional spectrum of sigma dBt
     spectrum_a_sigma = idx' * ft_sigma(:);
     
     % Influence of the complex brownian variance
     spectrum_a_sigma = prod(MX)*spectrum_a_sigma;
-    
-    % % Choice to make the variance tensor explicitely independent of the
-    % % resolution (i.e. independent of MX and of dX, but dependent on dX.*MX)
-    % spectrum_a_sigma = (1/prod(MX))*spectrum_a_sigma;
     
     % Division by prod(model.grid.MX) because of the Parseval theorem for
     % discrete Fourier transform
@@ -531,28 +489,13 @@ if bool_plot
     % buoyancy averaged (not just integrated) over the space
     spectrum_a_sigma = 1/prod(model.grid.MX)^2 * spectrum_a_sigma;
     
-    % % % Division by the wave number step
-    % % spectrum_a_sigma = spectrum_a_sigma / d_kappa;
     %%
-    
-    % % % Division by prod(model.grid.MX) because of the Parseval theorem for
-    % % % discrete Fourier transform
-    % % Multiplication by prod(model.grid.MX) to normalize by the white-in-space noise
-    % % variance
-    % spectrum_a_sigma = prod(model.grid.MX) * spectrum_a_sigma;
-    % %spectrum_a_sigma = 1/prod(model.grid.MX) * spectrum_a_sigma;
     
     % Division by the wave number step
     spectrum_a_sigma = spectrum_a_sigma / d_kappa;
     
-    % % To remove the 2 pi which appear when we integrate k^(3-2-alpha) over the
-    % % wave-vector angles and add the (2 pi)^2 which appear when we go from k to
-    % % 2*pi*k
-    % spectrum_a_sigma = spectrum_a_sigma * (2*pi);
-    
     % Absolute diffusivity of the small-scale velocity (for test)
     trace_a_from_spectrum = d_kappa * sum(spectrum_a_sigma(:));
-    
     
     %%
     
@@ -588,7 +531,6 @@ if bool_plot
     % % Make the plots appear at the same level thant the large-scale velocity spectrum
     % spectrum_a_sigma_plot = spectrum_a_sigma * mult_offset;
     spectrum_a_sigma_plot = spectrum_a_sigma;
-    % reference_spectrum = reference_spectrum * mult_offset;
     
     taille_police = 12;
     X0 = [10 20];
@@ -625,7 +567,7 @@ if bool_plot
         axis(ax)
     end
     ax = axis;
-    loglog(km_LS*[1 1],...
+    loglog(km_LS_plot*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k--')
     loglog(model.sigma.kappamin_on_kappamax * kappa(end)*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k-.')
@@ -669,7 +611,7 @@ if bool_plot
         day '.eps']);
     
     % slope_w_a_comp_for_estim
-    % km_LS
+    % km_LS_plot
     % abs_diff_w
     % trace_a_on_2 = trace_a/2
 end

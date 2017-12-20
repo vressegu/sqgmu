@@ -24,6 +24,10 @@ if model.sigma.sto & ...
         strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     model.sigma.a0 = model.sigma.a0(id_part);
     model.sigma.a0_on_dt =model.sigma.a0_on_dt(id_part);
+    if model.sigma.Smag.bool
+        model.sigma.a0_SS=model.sigma.a0_SS(id_part);
+        model.sigma.a0_LS = model.sigma.a0_LS(id_part);
+    end
     model.advection.coef_diff = ...
         model.advection.coef_diff(id_part);
 end

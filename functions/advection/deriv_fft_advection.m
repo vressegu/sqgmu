@@ -25,13 +25,13 @@ ikx = 1i*model.grid.k.kx;
 iky = 1i*model.grid.k.ky;
 
 %% Gradient of b
-gradb(:,:,1,:) = real(ifft2( ikx.*fft_b ));
-gradb(:,:,2,:) = real(ifft2( iky.*fft_b ));
+gradb(:,:,1,:) = real(ifft2( bsxfun(@times, ikx, fft_b )));
+gradb(:,:,2,:) = real(ifft2( bsxfun(@times, iky, fft_b )));
 
 %% Gradient of b, anti-aliased
 % in Fourier space, de-aliased, then in physical space.
-gradb_aa(:,:,1,:) = real(ifft2( ikx_aa.*fft_b ));
-gradb_aa(:,:,2,:) = real(ifft2( iky_aa.*fft_b ));
+gradb_aa(:,:,1,:) = real(ifft2( bsxfun(@times, ikx_aa, fft_b )));
+gradb_aa(:,:,2,:) = real(ifft2( bsxfun(@times, iky_aa, fft_b )));
 
 %% Advection term
 
@@ -45,10 +45,10 @@ gradb_aa(:,:,2,:) = real(ifft2( iky_aa.*fft_b ));
 
 % dealisasing of the velocity: FT, apply mask, iFT
 ft_w = fft2( w );
-w_aa = real(ifft2( bsxfun(@times, ft_w, mask_aa) ));
+w_aa = real(ifft2( bsxfun(@times, mask_aa, ft_w) ));
 
 % Advective term in physical space
-wgradT=sum(bsxfun(@times,w_aa,gradb_aa),3);
+wgradT = sum(bsxfun(@times,w_aa,gradb_aa),3);
 % NB : in the stochastic case, w included both continuous and
 % non-continuous components of the velocity
 
@@ -129,7 +129,9 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             
         elseif model.advection.HV.bool
             % Laplacian at the power p of buoyancy
-            Lap_p_b_aa = (-k2_aa) .^ (model.advection.HV.order/4) .* fft_b;
+            Lap_p_b_aa = bsxfun(@times, ...
+                (-k2_aa) .^ (model.advection.HV.order/4) , ...
+                fft_b );
             Lap_p_b_aa = real(ifft2(Lap_p_b_aa));
             
             %             % Heterogeneous HV coefficient
@@ -148,7 +150,9 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
             %             adv4 = - coef_HV_aa .* Lap_p_b_aa;
             
             adv4 = fft2(adv4);
-            adv4 = (-k2_aa) .^ (model.advection.HV.order/4) .*  adv4;
+            adv4 = bsxfun(@times, ...
+                (-k2_aa) .^ (model.advection.HV.order/4) , ...
+                adv4 );
             
         else
             error('Unknown deterministic subgrid tensor');
@@ -203,8 +207,9 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
     end
     
     % Hyperviscosity term
-    adv4 = adv4 ...
-        - model.advection.HV.val * k2 .^ (model.advection.HV.order/2) .* fft_b;
+    adv4 = adv4 - bsxfun( @times, ...
+        model.advection.HV.val * k2 .^ (model.advection.HV.order/2) ,...
+        fft_b);
 else
     adv4 = 0;
 end
@@ -220,12 +225,12 @@ d_fft_b_adv(:,ZM(2),:,:)=0;
 if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     switch model.advection.forcing.forcing_type
         case 'Kolmogorov'
-            d_fft_b_adv = d_fft_b_adv ...
-                +  model.advection.forcing.F;
+            d_fft_b_adv = bsxfun(@plus, d_fft_b_adv, ...
+                +  model.advection.forcing.F );
         case 'Spring'
             d_fft_b_adv = d_fft_b_adv ...
                 - model.advection.forcing.on_T * ...
-                ( fft_b - model.advection.forcing.F);
+                bsxfun(@plus, fft_b, - model.advection.forcing.F);
             %     d_fft_b_adv = d_fft_b_adv + model.advection.forcing.F;
     end
 end

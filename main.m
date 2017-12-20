@@ -25,7 +25,7 @@ advection_duration = 3600*24*30;
 
 if nargin == 0
     bool_parfor = false;
-    bool_mat = true;
+    bool_mat = false;
     if bool_mat & bool_parfor
         error('No compatible');
     end

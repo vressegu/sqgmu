@@ -7,6 +7,10 @@ function [coef_AbsDiff, PI_loc_smoothKX_pos] ...
 % The result is normalised in order to have a spatial mean equal to 1.
 %
 
+if model.advection.N_ech > 1
+   warning('This function is not optimized for ensemble forecasts'); 
+end
+
 %% Grid of wave vectors
 ZM = model.grid.k.ZM; %index of modes ot be zero'ed out
 mask_aa_LS = model.grid.k_aa_LS.mask; %anti-aliasing mask
@@ -27,51 +31,54 @@ if nargin < 4
     ikx_aa = model.grid.k_aa.ikx; %anti-aliased grid for gradient
     iky_aa = model.grid.k_aa.iky;
     % in Fourier space, de-aliased, then in physical space.
-    fft_gradb_aa(:,:,1,:) = ikx_aa.*fft_b;
-    fft_gradb_aa(:,:,2,:) = iky_aa.*fft_b;
+    fft_gradb_aa(:,:,1,:) = bsxfun(@times,ikx_aa,fft_b);
+    fft_gradb_aa(:,:,2,:) = bsxfun(@times,iky_aa,fft_b);
 end
 
 %% dealisasing of the velocity: FT, apply mask, iFT
 % ft_w = fft2( w );
-w_aa = real(ifft2( bsxfun(@times, fft_w, mask_aa) ));
+w_aa = real(ifft2( bsxfun(@times, mask_aa, fft_w) ));
 
 %%
 PI_loc_smoothK = zeros([model.grid.MX]);
-
-kappa_trunc = ( model.sigma.km_LS + d_kappa) : d_kappa : ...
-    (model.sigma.kappamin_on_kappamax * kappa(end) - d_kappa);
-for  kappa_local = kappa_trunc
-    %% Separating large scales and small-scales
-    
-    % Filter at scale kappa
-    alpha = 1.;
-    order = 19.;
-    steep_filter = exp(-alpha*( 1/(eps+kappa_local) ... 
-     	 .* k ).^order );
-    steep_filter(ZM(1),:) = 0.; %de-alias the single high freq
-    steep_filter(:,ZM(2)) = 0.;
-    
-    % Buoyancy fitlered at scale kappa
-    b_LS = real(ifft2( steep_filter .* fft_b ));
-    
-    % Buoyancy gradient high-pass filtered at scales kappa
-    fft_gradb_aa_SS = bsxfun( @times, (1 - steep_filter) , fft_gradb_aa ) ;
-    fft_gradb_aa_SS(ZM(1),:,:,:) = 0.; %de-alias the single high freq
-    fft_gradb_aa_SS(:,ZM(2),:,:) = 0.;
-    gradb_aa_SS =  real(ifft2(fft_gradb_aa_SS ));
-    
-    %% Advection term
-    
-    % Advective term in physical space
-    wgradT = sum(bsxfun(@times,w_aa,gradb_aa_SS),3);
-    wgradT = real(ifft2( steep_filter .* fft2(wgradT) ));
-    
-    % Spatially local flux at scale kappa
-    PI_loc_smoothK = PI_loc_smoothK + bsxfun( @times, b_LS , wgradT);
-
+for sampl=1:model.advection.N_ech
+    kappa_trunc = ( model.sigma.km_LS(sampl) + d_kappa) : d_kappa : ...
+        (model.sigma.kappamin_on_kappamax * kappa(end) - d_kappa);
+    for  kappa_local = kappa_trunc
+        %% Separating large scales and small-scales
+        
+        % Filter at scale kappa
+        alpha = 1.;
+        order = 19.;
+        steep_filter = exp(-alpha*( 1/(eps+kappa_local) ...
+            .* k ).^order );
+        steep_filter(ZM(1),:) = 0.; %de-alias the single high freq
+        steep_filter(:,ZM(2)) = 0.;
+        
+        % Buoyancy fitlered at scale kappa
+        b_LS = real(ifft2( steep_filter .* fft_b(:,:,:,sampl) ));
+        
+        % Buoyancy gradient high-pass filtered at scales kappa
+        fft_gradb_aa_SS = bsxfun( @times, (1 - steep_filter) , ...
+            fft_gradb_aa(:,:,:,sampl) ) ;
+        fft_gradb_aa_SS(ZM(1),:,:,:) = 0.; %de-alias the single high freq
+        fft_gradb_aa_SS(:,ZM(2),:,:) = 0.;
+        gradb_aa_SS =  real(ifft2(fft_gradb_aa_SS ));
+        
+        %% Advection term
+        
+        % Advective term in physical space
+        wgradT = sum(bsxfun(@times,w_aa(:,:,:,sampl),gradb_aa_SS),3);
+        wgradT = real(ifft2( steep_filter .* fft2(wgradT) ));
+        
+        % Spatially local flux at scale kappa
+        PI_loc_smoothK(:,:,:,sampl) = PI_loc_smoothK + bsxfun( @times, b_LS , wgradT);
+        
+    end
+    % Averaging over spatial frequencies
+    PI_loc_smoothK(:,:,:,sampl) = PI_loc_smoothK(:,:,:,sampl) ...
+        / length(kappa_trunc);
 end
-% Averaging over spatial frequencies
-PI_loc_smoothK = PI_loc_smoothK / length(kappa_trunc);
 % Desaliasing
 PI_loc_smoothK = fft2(PI_loc_smoothK);
 PI_loc_smoothK(ZM(1),:,:,:) = 0.; % de-alias the single high freq
