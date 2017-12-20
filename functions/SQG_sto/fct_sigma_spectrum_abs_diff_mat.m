@@ -469,8 +469,8 @@ trace_a = permute( trace_a, [ 1 4 3 2]);
 
 if bool_plot
     
-    figure(38);imagesc(ft_sigma(:,:,:,id_part)');
-    warning('DEBUG')
+%     figure(38);imagesc(ft_sigma(:,:,:,id_part)');
+%     warning('DEBUG')
 
     % Choose one realization
     ft_sigma = ft_sigma(:,:,:,id_part);
