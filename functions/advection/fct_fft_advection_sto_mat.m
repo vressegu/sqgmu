@@ -250,6 +250,7 @@ elseif model.sigma.sto & ...
     %     model.advection.coef_diff = 1/2 * model.sigma.a0;
 elseif model.sigma.sto & ...
         strcmp(model.sigma.type_spectrum,'EOF')
+    % sigma = nan;
     
     % Load precomputed EOFs and correspond variance tensor
     load([ model.folder.folder_simu '/EOF.mat'],'EOF');
@@ -258,6 +259,7 @@ elseif model.sigma.sto & ...
     
     EOF = permute(EOF,[1 2 3 5 4]);
     model.sigma.nb_EOF = size(EOF,5);
+    sigma = EOF; clear EOF;
     
     % Filtering the variance tensor at large scales
     sigma_loc = permute(a_xx,[3 4 1 2]);
@@ -1175,7 +1177,7 @@ while time < model.advection.advection_duration
             sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
             clear fft_sigma_dBt_on_sq_dt
         else
-            sigma_dBt_on_sq_dt = sum( EOF .* ...
+            sigma_dBt_on_sq_dt = sum( sigma .* ...
                 randn( [ 1 1 1 N_ech model.sigma.nb_EOF ]) , 5);
         end
         

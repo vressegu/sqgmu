@@ -42,9 +42,10 @@ else % Stochastic case
     %% Advection term
     %if model.advection.N_ech <= 10
     N_ech_local = 100;
-    % Fourier transform of white noise
-    dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech_local]));
-    % Multiplication by the Fourier transform of the kernel \tilde \sigma
+    if ~ strcmp(model.sigma.type_spectrum,'EOF')
+        % Fourier transform of white noise
+        dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech_local]));
+    end
     
     if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
         dt = model.advection.dt_adv;
@@ -128,12 +129,17 @@ else % Stochastic case
         
     end
     
-    % Multiplication by the Fourier transform of the kernel \tilde \sigma
-    fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
-    clear dBt_C_on_sq_dt
-    % Homogeneous velocity field
-    sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
-    clear fft_sigma_dBt
+    if ~ strcmp(model.sigma.type_spectrum,'EOF')
+        % Multiplication by the Fourier transform of the kernel \tilde \sigma
+        fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
+        clear dBt_C_on_sq_dt
+        % Homogeneous velocity field
+        sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
+        clear fft_sigma_dBt
+    else
+        sigma_dBt_on_sq_dt = sum( sigma .* ...
+            randn( [ 1 1 1 N_ech_local model.sigma.nb_EOF ]) , 5);
+    end
         
 %     fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
 %     clear dBt_C_on_sq_dt
