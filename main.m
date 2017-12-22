@@ -19,19 +19,20 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
+advection_duration = 3600*24*200;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    bool_parfor = false;
-    bool_mat = false;
+    bool_parfor = false
+    bool_mat = true
     if bool_mat & bool_parfor
         error('No compatible');
     end
 
     % Type of initial condtions
-    type_data ='Vortices';
+    type_data ='disym_Vortices';
+    % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -46,8 +47,8 @@ if nargin == 0
     % 'Constantin_case2'
     
     % Resolution
-    %resolution = 64;
-    resolution = 128;
+    resolution = 64;
+    % resolution = 128;
     %resolution = 256;
     % resolution = 512;
     % resolution = 1024;
@@ -59,7 +60,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -100,7 +101,8 @@ if nargin == 0
         % ~ k2 for k<km ans slope for k>km
         % sigma.type_spectrum = 'BB';
         % sigma.type_spectrum = 'Bidouille';
-        sigma.type_spectrum = 'SelfSim_from_LS';
+        sigma.type_spectrum = 'EOF';
+        % sigma.type_spectrum = 'SelfSim_from_LS';
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -130,6 +132,12 @@ if nargin == 0
         % Modulation by local V^2
         sigma.hetero_modulation_V2 = false;
         
+        if strcmp(sigma.type_spectrum,'EOF')
+            % Ratio between the Shanon resolution and filtering frequency used to
+            % filter the heterogenous diffusion coefficient
+            Smag.dealias_ratio_mask_LS = 1/8;
+            
+        end
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         %     if sigma.hetero_modulation & strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         if sigma.hetero_modulation | sigma.hetero_energy_flux ...
@@ -210,10 +218,16 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech=2
+N_ech = 200;
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
+if ~sigma.sto
+    N_ech = 1;
+else
+    N_ech
+end
+    
 
 if nargin >0
     bool_parfor = false;
@@ -325,9 +339,10 @@ end
 plot_dissip = true;
 
 % Begin simulation from a precomputed field?
-use_save = false;
+use_save = true;
 % In this case, which day should be used as initialisation
-day_save = 7;
+day_save = 100
+%day_save = 150
 
 dealias_method = 'exp';
 % [WIP] Method for mandatory de-aliasing of non-linear terms in
@@ -483,9 +498,9 @@ if bool_parfor
 elseif bool_mat
     [fft_buoy_final, model] = fct_fft_advection_sto_mat(model, fft_buoy);
 else
-%     [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
-    warning('BIDOUILLE!!!!')
-    [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
+    [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
+%     warning('BIDOUILLE!!!!')
+%     [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
 end
 
 

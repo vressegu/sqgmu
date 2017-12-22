@@ -268,11 +268,23 @@ end
         else
             % Visco/diff coef * gradient of buoyancy
             adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
+            if strcmp(model.sigma.type_spectrum,'EOF') % Anisotropic diffusion
+                adv_hetero_diff = sum( adv_hetero_diff , 3);
+                adv_hetero_diff = permute(adv_hetero_diff,[1 2 5 4 3]);
+            end
             adv_hetero_diff = fft2(adv_hetero_diff);
             
             % Divergence of ( Visco/diff coef * gradient of buoyancy )
             adv_hetero_diff = ikx .* adv_hetero_diff(:,:,1,:) ...
                 + iky .* adv_hetero_diff(:,:,2,:);
+%         else
+%             % Visco/diff coef * gradient of buoyancy
+%             adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
+%             adv_hetero_diff = fft2(adv_hetero_diff);
+%             
+%             % Divergence of ( Visco/diff coef * gradient of buoyancy )
+%             adv_hetero_diff = ikx .* adv_hetero_diff(:,:,1,:) ...
+%                 + iky .* adv_hetero_diff(:,:,2,:);
         end
         %% Test
 %         %adv_hetero_diff_ref = real(ifft2(adv_hetero_diff;

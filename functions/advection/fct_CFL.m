@@ -5,7 +5,11 @@ function dt = fct_CFL(model,w)
 
 % CFL of the diffusion (or CFL of the white noise advection)
 dX2=(model.grid.dX /pi).^2;
-bound1=2/model.sigma.a0*prod(dX2)/sum(dX2);
+if model.sigma.sto
+    bound1=2/model.sigma.a0*prod(dX2)/sum(dX2);
+else
+    bound1 = inf;
+end
 
 % CFL of the (large-scale) advection
 dX=permute(model.grid.dX,[1 3 2]);

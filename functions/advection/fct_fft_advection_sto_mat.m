@@ -2,6 +2,7 @@ function [fft_b, model] = fct_fft_advection_sto_mat(model,  fft_b)
 % Advection of buoyancy using SQG or SQG_MU model
 %
 
+tic
 %% Folder to save plots and files
 if model.advection.HV.bool
     add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
@@ -98,15 +99,17 @@ if model.sigma.sto
             subgrid_details = [ subgrid_details '_proj_free_div'];
         end
     end
-    model.folder.folder_simu = [ model.folder.folder_simu ...
-        '_kappamin_on_kappamax_' ....
-        fct_num2str(model.sigma.kappamin_on_kappamax) ];
+%     model.folder.folder_simu = [ model.folder.folder_simu ...
+%         '_kappamin_on_kappamax_' ....
+%         fct_num2str(model.sigma.kappamin_on_kappamax) ];
     if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
-    subgrid_details = [ subgrid_details ...
-        '_kappamin_on_kappamax_' ....
-        fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    if ~ strcmp(model.sigma.type_spectrum,'EOF')
+        subgrid_details = [ subgrid_details ...
+            '_kappamin_on_kappamax_' ....
+            fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    end
     subgrid_details = [ subgrid_details ...
         '_N_ech_' ....
         fct_num2str(model.advection.N_ech) ];
@@ -245,6 +248,75 @@ elseif model.sigma.sto & ...
     %         sqrt( 2 * model.physical_constant.f0 / model.sigma.a0 );
     %     % Diffusion coefficient
     %     model.advection.coef_diff = 1/2 * model.sigma.a0;
+elseif model.sigma.sto & ...
+        strcmp(model.sigma.type_spectrum,'EOF')
+    
+    % Load precomputed EOFs and correspond variance tensor
+    load([ model.folder.folder_simu '/EOF.mat'],'EOF');
+    load([ model.folder.folder_simu '/var_tensor_from_EOF.mat'],...
+        'a_xx','a0');
+    
+    EOF = permute(EOF,[1 2 3 5 4]);
+    model.sigma.nb_EOF = size(EOF,5);
+    
+    % Filtering the variance tensor at large scales
+    sigma_loc = permute(a_xx,[3 4 1 2]);
+    sigma_loc = multi_chol(sigma_loc);
+    sigma_loc = permute(sigma_loc,[3 4 1 2]);
+    sigma_loc_aa = fft2(sigma_loc);
+    sigma_loc_aa = real(ifft2( bsxfun(@times, sigma_loc_aa,...
+        model.grid.k_aa_LS.mask) ));
+    sigma_loc_aa = permute(sigma_loc_aa,[3 4 1 2]);
+    a_xx_aa = multiprod(sigma_loc_aa,multitrans(sigma_loc_aa));
+    a_xx_aa = permute(a_xx_aa,[3 4 1 2]);
+    
+%     % Set negative values to zero
+%     a_xx = fct_smooth_pos_part(a_xx);
+%     a_xx_aa = fct_smooth_pos_part(a_xx_aa);
+    
+    % Plots
+    figure(12);
+    for d1=1:2
+        for d2=1:2
+            subplot(2,2,1+d1-1+2*(d2-1))
+            imagesc(model.grid.x,model.grid.y,a_xx(:,:,d1,d2)');
+            axis equal; axis xy;colorbar;
+            title(['$a_{' num2str(d1) num2str(d2) '}$'],...
+                'FontUnits','points',...
+                'FontWeight','normal',...
+                'interpreter','latex',...
+                'FontSize',12,...
+                'FontName','Times')
+        end
+    end
+    drawnow
+    eval( ['print -depsc ' model.folder.folder_simu ...
+        '/Variance_tensor.eps']);
+    figure(13);
+    for d1=1:2
+        for d2=1:2
+            subplot(2,2,1+d1-1+2*(d2-1))
+            imagesc(model.grid.x,model.grid.y,a_xx_aa(:,:,d1,d2)');
+            axis equal; axis xy;colorbar;
+            title(['Smooth $a_{' num2str(d1) num2str(d2) '}$'],...
+                'FontUnits','points',...
+                'FontWeight','normal',...
+                'interpreter','latex',...
+                'FontSize',12,...
+                'FontName','Times')
+        end
+    end
+    drawnow
+    eval( ['print -depsc ' model.folder.folder_simu ...
+        '/Smooth_Variance_tensor.eps']);
+    
+    % Variance tensor
+    [a0 max(a_xx_aa(:)) ]
+    a0 = max( [a0 max(a_xx_aa(:)) ]);
+    model.sigma.a0 = a0; clear a0;
+    % Diffusion coefficient
+    a_xx_aa = permute( a_xx_aa, [ 1 2 4 5 3]);
+    model.advection.coef_diff = 1/2 * a_xx_aa; clear a_xx;
 else
     % Variance tensor
     model.sigma.a0 = 2 * model.physical_constant.f0 / model.sigma.k_c^2;
@@ -266,22 +338,115 @@ model.sigma.a0 = model.sigma.a0 * max(coef_modulation(:));
 % in the case of heterogreneous variance tensor'])
 
 %% Forcing
+% if isfield(model.advection, 'forcing') && model.advection.forcing.bool
+%     %     Ly = model.grid.MX(2) * model.grid.dX(2);
+%     %     [~,Y]=ndgrid(model.grid.x,model.grid.y);
+%     %     Vy = model.advection.forcing.ampli_forcing * model.odg_b * ...
+%     %         sin( 2 * pi * model.advection.forcing.freq_f * Y / Ly);
+%     %     clear Ly X Y
+%
+%
+%     model.advection.forcing.Lx = model.grid.MX(1) * model.grid.dX(1);
+%     model.advection.forcing.Ly = model.grid.MX(2) * model.grid.dX(2);
+%     [X,Y]=ndgrid(model.grid.x,model.grid.y);
+%
+%     switch model.dynamics
+%         case 'SQG'
+%             U_caract = ...
+%                 model.odg_b / model.physical_constant.buoyancy_freq_N;
+%         case '2D'
+%             U_caract = ...
+%                 model.odg_b * model.advection.forcing.Ly;
+%             U_caract = U_caract /20;
+%             U_caract = U_caract /4;
+%         otherwise
+%             error('Unknown type of dynamics');
+%     end
+%     %     U_caract = U_caract /10;
+%     U_caract = U_caract /3;
+%
+%     %     model.advection.U_caract = sqrt(mean(w(:).^2));
+%     model.advection.forcing.on_T =  U_caract / model.advection.forcing.Ly;
+%
+%     %     model.advection.forcing.on_T = model.advection.forcing.on_T /10;
+%
+%     model.advection.forcing.ampli_forcing = ...
+%         model.advection.forcing.ampli_forcing * model.odg_b ;
+%     %     model.advection.forcing.ampli_forcing = ...
+%     %         model.advection.forcing.ampli_forcing * model.odg_b * ...
+%     %         model.advection.forcing.on_T;
+%
+%     %     ampli_scale = sqrt( ...
+%     %         ( sum(model.advection.forcing.freq_f.^2)/2 ) ...
+%     %             ^(model.sigma.slope_sigma) ...
+%     %             );
+%     ampli_scale = 1;
+%
+%     switch model.advection.forcing.forcing_type
+%         case 'Kolmogorov'
+%             F = ampli_scale * ...
+%                 model.advection.forcing.ampli_forcing * ...
+%                 cos( 2 * pi / model.advection.forcing.Lx ...
+%                 * model.advection.forcing.freq_f(1) * X ...
+%                 + 2 * pi / model.advection.forcing.Ly ...
+%                 * model.advection.forcing.freq_f(2) * Y );
+%             F = F / model.advection.forcing.on_T;
+%         case 'Spring'
+%             F = ampli_scale * ...
+%                 model.advection.forcing.ampli_forcing ...
+%                 * sin( 2 * pi / model.advection.forcing.Lx ...
+%                 * model.advection.forcing.freq_f(1) * X ) ...
+%                 .* sin( 2 * pi / model.advection.forcing.Ly ...
+%                 * model.advection.forcing.freq_f(2) * Y );
+%             %     F = model.advection.forcing.ampli_forcing * ...
+%             %         sin( 2 * pi * model.advection.forcing.freq_f * Y / ...
+%             %         model.advection.forcing.Ly);
+%     end
+%
+%
+%
+%     model.advection.forcing.F = fft2(F);
+%
+%     if strcmp(model.type_data, 'Zero')
+%         fft_w = SQG_large_UQ(model,  ...
+%             model.odg_b / model.advection.forcing.ampli_forcing ...
+%             * model.advection.forcing.F);
+%         %   w(:,:,1) = U_caract / model.advection.forcing.ampli_forcing * F;
+%         %         w(:,:,2) = 0;
+%         %         fft_w = fft2(w);
+%         if strcmp( model.advection.forcing.forcing_type,'Kolmogorov')
+%             fft_w = fft_w * model.advection.forcing.on_T;
+%         end
+%         w = real(ifft2(fft_w));
+%     end
+%
+%     %
+%     %     figure;imagesc(model.grid.x,model.grid.y,model.advection.forcing.F');
+%     %     axis xy; axis equal;
+%     %
+%
+%     %     model.advection.forcing.F = fft2(F);
+%     clear Lx Ly X Y on_T U_caract ampli_scale
+% end
 if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     %     Ly = model.grid.MX(2) * model.grid.dX(2);
-    %     [~,Y]=ndgrid(model.grid.x,model.grid.y);
+    %     [~,Y_forcing]=ndgrid(model.grid.x,model.grid.y);
     %     Vy = model.advection.forcing.ampli_forcing * model.odg_b * ...
-    %         sin( 2 * pi * model.advection.forcing.freq_f * Y / Ly);
-    %     clear Ly X Y
+    %         sin( 2 * pi * model.advection.forcing.freq_f * Y_forcing / Ly);
+    %     clear Ly X_forcing Y_forcing
     
     
     model.advection.forcing.Lx = model.grid.MX(1) * model.grid.dX(1);
     model.advection.forcing.Ly = model.grid.MX(2) * model.grid.dX(2);
-    [X,Y]=ndgrid(model.grid.x,model.grid.y);
+    [X_forcing,Y_forcing]=ndgrid(model.grid.x,model.grid.y);
+    
+    
     
     switch model.dynamics
         case 'SQG'
             U_caract = ...
                 model.odg_b / model.physical_constant.buoyancy_freq_N;
+            U_caract = U_caract /5;
         case '2D'
             U_caract = ...
                 model.odg_b * model.advection.forcing.Ly;
@@ -315,19 +480,19 @@ if isfield(model.advection, 'forcing') && model.advection.forcing.bool
             F = ampli_scale * ...
                 model.advection.forcing.ampli_forcing * ...
                 cos( 2 * pi / model.advection.forcing.Lx ...
-                * model.advection.forcing.freq_f(1) * X ...
+                * model.advection.forcing.freq_f(1) * X_forcing ...
                 + 2 * pi / model.advection.forcing.Ly ...
-                * model.advection.forcing.freq_f(2) * Y );
+                * model.advection.forcing.freq_f(2) * Y_forcing );
             F = F / model.advection.forcing.on_T;
         case 'Spring'
             F = ampli_scale * ...
                 model.advection.forcing.ampli_forcing ...
                 * sin( 2 * pi / model.advection.forcing.Lx ...
-                * model.advection.forcing.freq_f(1) * X ) ...
+                * model.advection.forcing.freq_f(1) * X_forcing ) ...
                 .* sin( 2 * pi / model.advection.forcing.Ly ...
-                * model.advection.forcing.freq_f(2) * Y );
+                * model.advection.forcing.freq_f(2) * Y_forcing );
             %     F = model.advection.forcing.ampli_forcing * ...
-            %         sin( 2 * pi * model.advection.forcing.freq_f * Y / ...
+            %         sin( 2 * pi * model.advection.forcing.freq_f * Y_forcing / ...
             %         model.advection.forcing.Ly);
     end
     
@@ -339,7 +504,7 @@ if isfield(model.advection, 'forcing') && model.advection.forcing.bool
         fft_w = SQG_large_UQ(model,  ...
             model.odg_b / model.advection.forcing.ampli_forcing ...
             * model.advection.forcing.F);
-        %   w(:,:,1) = U_caract / model.advection.forcing.ampli_forcing * F;
+        %         w(:,:,1) = U_caract / model.advection.forcing.ampli_forcing * F;
         %         w(:,:,2) = 0;
         %         fft_w = fft2(w);
         if strcmp( model.advection.forcing.forcing_type,'Kolmogorov')
@@ -354,7 +519,7 @@ if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     %
     
     %     model.advection.forcing.F = fft2(F);
-    clear Lx Ly X Y on_T U_caract ampli_scale
+    clear Lx Ly X_forcing Y_forcing on_T U_caract ampli_scale
 end
 
 %% Hyperviscosity
@@ -457,7 +622,7 @@ if model.sigma.sto
         missed_var_small_scale_spectrum = 2*a0;
         % Diffusion coefficient
         model.advection.coef_diff = 1/2 * model.sigma.a0;
-    else
+    elseif ~ strcmp(model.sigma.type_spectrum,'EOF')
         % Fourier transform of the kernel \tilde sigma up to a multiplicative
         % constant
         %     [sigma_on_sq_dt, ~, missed_var_small_scale_spectrum ] ...
@@ -563,7 +728,7 @@ if model.sigma.sto
         %
         %         % Diffusion coefficient
         %         model.advection.coef_diff = 1/2 * model.sigma.a0;
-    else
+    elseif ~ strcmp(model.sigma.type_spectrum,'EOF')
         % Muliplicative constant of the kernel \tilde sigma
         model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
         sigma = ...
@@ -598,47 +763,7 @@ tt_last = -inf;
 % Number of time step
 % N_t = ceil(model.advection.advection_duration/model.advection.dt_adv);
 
-%% Use a saved files of a former simulation ?
-if model.advection.use_save
-    warning(['The run begin from an older file instead of from the' ...
-        'initial condition']);
-    day = num2str(model.advection.day_save);
-    name_file = [model.folder.folder_simu '/files/' day '.mat']; clear day
-    load(name_file)
-    
-    % Version of matlab
-    vers = version;
-    year = str2double(vers(end-5:end-2));
-    subvers = vers(end-1);
-    model.folder.colormap_freeze = ...
-        (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
-    
-    if ~isfield(model,'plots')
-        model.plots = true;
-    end
-    
-    t_ini=t+1;
-    tt_last = -inf;
-else
-    t_ini=1;
-    
-    
-    if model.advection.cov_and_abs_diff
-        cov_w = nan(1,N_t);
-        day_ref_cov = 100;
-        %day_ref_cov = 1;
-        %warning(['This reference time for the covariance should ' ...
-        %    'correspond to the stationnary regime']);
-        % w_save = w;
-        load( [model.folder.folder_simu '/files/' num2str(day_ref_cov)...
-            '.mat'],'w','t');
-        w_ref_cov = w(:)'; clear w;
-        t_ref_cov = t; clear t;
-        % w = w_save; clear w_save;
-    end
-    
-    
-end
+%% Print informations
 
 if model.plots
     % Printing some information
@@ -671,14 +796,82 @@ if model.plots
     end
 end
 
+%% Use a saved files of a former simulation ?
+if model.advection.use_save
+    warning(['The run begin from an older file instead of from the' ...
+        'initial condition']);
+    day = num2str(model.advection.day_save);
+    name_file = [model.folder.folder_simu '/files/' day '.mat']; clear day
+    clear fft_b
+    model_ref = model;
+    load(name_file)
+    %      model.advection.advection_duration =  ...
+    %          model_ref.advection.advection_duration;
+    %      model = catstruct(model_ref,model);
+    model = model_ref;
+    
+    if (exist('fft_b','var')==1)
+    elseif (exist('fft_buoy_part','var')==1)
+        fft_b = fft_buoy_part;
+    elseif (exist('fft_T_adv_part','var')==1)
+        fft_b = fft_T_adv_part;
+    elseif (exist('fft_T_adv_part','var')==1)
+        fft_b = fft_T_adv_part;
+    elseif (exist('fft_tracer_part','var')==1)
+        fft_b = fft_tracer_part;
+    else
+        error('Cannot find buoyancy field')
+    end
+    
+    % Version of matlab
+    vers = version;
+    year = str2double(vers(end-5:end-2));
+    subvers = vers(end-1);
+    model.folder.colormap_freeze = ...
+        (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
+    
+    if ~isfield(model,'plots')
+        model.plots = true;
+    end
+    
+    %     t_ini=t+1;
+    %     time = time
+    
+    if ~(exist('time','var')==1)
+        time =t*model.advection.dt_adv;
+    end
+    
+    day_last_plot = floor(time/24/3600);
+else
+    %     t_ini=1;
+    
+    
+    if model.advection.cov_and_abs_diff
+        cov_w = nan(1,N_t);
+        day_ref_cov = 100;
+        %day_ref_cov = 1;
+        %warning(['This reference time for the covariance should ' ...
+        %    'correspond to the stationnary regime']);
+        % w_save = w;
+        load( [model.folder.folder_simu '/files/' num2str(day_ref_cov)...
+            '.mat'],'w','t');
+        w_ref_cov = w(:)'; clear w;
+        t_ref_cov = t; clear t;
+        % w = w_save; clear w_save;
+    end
+    
+    time = 0;
+    w_fv = w;
+    
+    day_last_plot = -inf;
+end
+
 % if model.sigma.sto
 %     for sampl=1:N_ech
 %         model_sampl(sampl)=model;
 %     end
 % end
 
-time = 0;
-w_fv = w;
 while time < model.advection.advection_duration
     %% Time-correlated velocity
     fft_w = SQG_large_UQ(model, fft_b);
@@ -706,7 +899,7 @@ while time < model.advection.advection_duration
                 model.sigma.offset_spectrum_a_sigma, ...
                 model.sigma.km_LS ]...
                 = fct_sigma_spectrum_abs_diff_mat(...
-                            model,fft_w,false);
+                model,fft_w,false);
             %             %                 % [sigma(:,:,:,sampl), ~, tr_a(sampl) ] ...
             %             %                 [ sigma(:,:,:,sampl), ~, tr_a(sampl) ,....
             %             %                     slope_sigma(sampl),...
@@ -718,7 +911,7 @@ while time < model.advection.advection_duration
             model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
             % Diffusion coefficient
             model.advection.coef_diff = permute( 1/2 * model.sigma.a0 , ...
-                                                [1 3 4 2]);
+                [1 3 4 2]);
             if model.sigma.assoc_diff | model.sigma.Smag.bool
                 % warning('deal with slope when there are several realizations')
                 model.sigma.a0_SS = ...
@@ -847,7 +1040,7 @@ while time < model.advection.advection_duration
                 model.advection.coef_diff(iii_non_degenerate_a0_SS) = 1;
             else
                 % Taking into account the noise in the energy budget
-%                 model.advection.coef_diff(:,:,:,iii_non_degenerate_a0_SS) = ...
+                %                 model.advection.coef_diff(:,:,:,iii_non_degenerate_a0_SS) = ...
                 model.advection.coef_diff(iii_non_degenerate_a0_SS) = ...
                     permute( ...
                     (1 + model.sigma.a0_LS(iii_non_degenerate_a0_SS) ./ ...
@@ -886,9 +1079,9 @@ while time < model.advection.advection_duration
             %                     error('Unknow case');
             %                 end
             model.advection.coef_diff = ...
-                        bsxfun( @times, ...
-                        model.advection.coef_diff,...
-                        coef_modulation) ;
+                bsxfun( @times, ...
+                model.advection.coef_diff,...
+                coef_modulation) ;
             %end
             
             if model.sigma.Smag.SS_vel_homo
@@ -972,14 +1165,19 @@ while time < model.advection.advection_duration
         
         %% Simulation of sigma dBt
         
-        % Fourier transform of white noise
-        dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
-        % Multiplication by the Fourier transform of the kernel \tilde \sigma
-        fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
-        clear dBt_C_on_sq_dt
-        % Homogeneous velocity field
-        sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
-        clear fft_sigma_dBt_on_sq_dt
+        if ~ strcmp(model.sigma.type_spectrum,'EOF')
+            % Fourier transform of white noise
+            dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
+            % Multiplication by the Fourier transform of the kernel \tilde \sigma
+            fft_sigma_dBt_on_sq_dt = bsxfun(@times,sigma,dBt_C_on_sq_dt);
+            clear dBt_C_on_sq_dt
+            % Homogeneous velocity field
+            sigma_dBt_on_sq_dt = real(ifft2(fft_sigma_dBt_on_sq_dt));
+            clear fft_sigma_dBt_on_sq_dt
+        else
+            sigma_dBt_on_sq_dt = sum( EOF .* ...
+                randn( [ 1 1 1 N_ech model.sigma.nb_EOF ]) , 5);
+        end
         
         %         % Fourier transform of white noise
         %         dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
@@ -1098,14 +1296,40 @@ while time < model.advection.advection_duration
     %% Plots and save
     %     % tt = floor(t ); % Number of days
     %     tt = floor(t *model.advection.dt_adv/ (3600*24)); % Number of days
-    tt = floor(time/ (3600*24)); % Number of days
-    if tt > tt_last
-        tt_last = tt;
-        day = num2str(floor(time/24/3600));
-        % day = num2str(floor(t*model.advection.dt_adv/24/3600));
-        % t_last_plot = t;
+    %     tt = floor(time/ (3600*24)); % Number of days
+    %     if tt > tt_last
+    %         tt_last = tt;
+    %         day = num2str(floor(time/24/3600));
+    %         % day = num2str(floor(t*model.advection.dt_adv/24/3600));
+    %         % t_last_plot = t;
+    
+    day_num = (floor(time/24/3600));
+    
+    %%
+%     warning('DEBUG')
+%     % if (t_loop - t_last_plot)*dt >= 3600*24*1
+%     day_num = (floor(time/24/3600));
+%     day = num2str(day_num);
+%     day
+%     day_last_plot = day_num;
+%     
+%     nb=2;
+%     fft_w=fft_w(:,:,:,1:nb);
+%     model.advection.N_ech =nb;
+%     fct_sigma_spectrum_abs_diff_mat(model,fft_w,true,day);
+    %%
+
+
+    if day_num > day_last_plot
+        % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        day_num = (floor(time/24/3600));
+        day = num2str(day_num);
+        day
+        day_last_plot = day_num;
+        
         if model.plots
-            
+            toc
+            tic
             %             if ~model.sigma.sto
             %                 model_sampl = model;
             %             end
@@ -1156,8 +1380,8 @@ while time < model.advection.advection_duration
                     
                 elseif model.sigma.hetero_modulation ...
                         | model.sigma.hetero_modulation_V2
-%                     coef_diff_aa = ...
-%                         model.sigma.a0(id_part)/2  ;
+                    %                     coef_diff_aa = ...
+                    %                         model.sigma.a0(id_part)/2  ;
                     [coef_diff_aa,coef_diff] = ...
                         fct_coef_estim_AbsDiff_heterogeneous(...
                         model,fft_w(:,:,:,id_part));
@@ -1166,8 +1390,8 @@ while time < model.advection.advection_duration
                     coef_diff = ...
                         model.sigma.a0(id_part)/2 * coef_diff ;
                 elseif model.sigma.hetero_energy_flux
-%                     coef_diff_aa = ...
-%                         model.sigma.a0(id_part)/2  ;
+                    %                     coef_diff_aa = ...
+                    %                         model.sigma.a0(id_part)/2  ;
                     coef_diff_aa = ...
                         fct_epsilon_k_onLine(model,fft_b,fft_w);
                     coef_diff_aa = ...
@@ -1271,3 +1495,4 @@ while time < model.advection.advection_duration
     %     end
     
 end
+toc

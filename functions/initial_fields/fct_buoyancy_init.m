@@ -32,6 +32,8 @@ switch model.type_data
         b_S = zeros(MX);
     case 'Vortices'
         b_S = init_Vortices(model,x,y);
+    case 'disym_Vortices'
+        b_S = init_disym_Vortices(model,x,y);
     case 'Vortices2' %well-periodized vortices
         b_S = init_Vortices2(model,x,y);
     case 'Perturbed_vortices'

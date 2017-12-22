@@ -450,8 +450,8 @@ trace_a = 1/prod(model.grid.MX) * sum(ft_sigma(:));
 
 if bool_plot
     
-    figure(38);imagesc(ft_sigma');
-    warning('DEBUG')
+%     figure(38);imagesc(ft_sigma');
+%     warning('DEBUG')
     
     % alpha = ( 3 - model.sigma.slope_absDif_sigma )/2;
     % eval(['norm_tr_a_theo = fct_norm_tr_a_theo_' ...

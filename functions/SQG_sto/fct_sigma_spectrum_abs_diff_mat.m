@@ -40,9 +40,11 @@ slope_ref_a = (slope_ref-3)/2;
 % Get parameters
 MX=model.grid.MX;
 dX=model.grid.dX;
-if any(size(ft_w2)~=[ MX 1 model.advection.N_ech] )
+[s1 s2 s3 s4] = size(ft_w2);
+if any([s1 s2 s3 s4]~=[ MX 1 model.advection.N_ech] )
     error('wrong size');
 end
+clear s1 s2 s3 s4
 if any( mod(MX,2)~=0)
     error('the number of grid points by axis need to be even');
 end
@@ -331,7 +333,7 @@ end
 
 % Apply offset
 mult_offset_spectrum_a_estim = spectrum_w_a_km_LS ...
-    / reference_spectrum_a_estim_km_LS;
+    ./ reference_spectrum_a_estim_km_LS;
 % mult_offset_spectrum_a_estim = spectrum_w_a(iii_k_LS(1)) ...
 %     / reference_spectrum_a_estim(iii_k_LS(1)-1);
 % %10^offset
@@ -342,7 +344,7 @@ reference_spectrum_a_estim = bsxfun(@times, ...
 
 if bool_plot
     mult_offset_spectrum_a = spectrum_w_a_km_LS ...
-        / reference_spectrum_a_km_LS ;
+        ./ reference_spectrum_a_km_LS ;
     % mult_offset_spectrum_a = spectrum_w_a_km_LS ...
     %     / reference_spectrum_a(iii_k_LS(1)-1) ;
     reference_spectrum_a = bsxfun(@times, ...
@@ -469,8 +471,8 @@ trace_a = permute( trace_a, [ 1 4 3 2]);
 
 if bool_plot
     
-    figure(38);imagesc(ft_sigma(:,:,:,id_part)');
-    warning('DEBUG')
+%     figure(38);imagesc(ft_sigma(:,:,:,id_part)');
+%     warning('DEBUG')
 
     % Choose one realization
     ft_sigma = ft_sigma(:,:,:,id_part);

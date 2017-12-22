@@ -1,6 +1,6 @@
 function post_process_error_grid_ref(stochastic_simulation,...
     type_data,resolution,forcing,Lap_visco,HV,Smag)
-    %Lap_visco,HV,Smag,day_choose)
+%Lap_visco,HV,Smag,day_choose)
 % plot the same thing that fct_fft_advection_sto
 %
 
@@ -23,7 +23,7 @@ if nargin == 0
 end
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
+advection_duration = 3600*24*100;
 % advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
@@ -35,7 +35,7 @@ N_ech=1;
 
 if nargin == 0
     % Type of initial condtions
-    type_data ='Vortices' ;
+    type_data ='disym_Vortices' ;
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -48,13 +48,14 @@ if nargin == 0
     % 'Zero' : Field equal to zero everywhere
     
     % Resolution
-    %resolution = 128;
-    % resolution = 512;
-    %resolution = 128;
-    resolution = 1024;
-    %resolution = 2048;
+    %resolution = 128
+    resolution = 512
+    %resolution = 128
+    % resolution = 1024
+    %resolution = 2048
     
-    resolution_LR = 128;
+    % resolution_LR = 128
+    resolution_LR = 64
     
     % The number of grid point is resolution^2
     % It has to be an even integer
@@ -62,7 +63,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -438,6 +439,9 @@ t_ini=1;
 
 % model_ref = model;
 % name_file = [model.folder.folder_simu_ref '/files/' num2str(0) '.mat'];
+
+% warning('GROSSE BIDOUILLE');
+% name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(100) '.mat'];
 name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(0) '.mat'];
 load(name_file_HR)
 model_HR_ref = model_HR;
@@ -458,49 +462,54 @@ N_t = ceil(model_HR.advection.advection_duration/dt);
 % % if model.mirror
 % %     My=My/2;
 % % end
-% 
+%
 % F_save = [];
 % F_save2 = [];
 % bt1_HR_vect = [];
 % bt1_LR_vect = [];
-% 
+%
 day_last_plot = - inf;
 dt_loop = dt;
-% 
+%
 % trigger = false;
 % %t_ini=1700000
 for t_loop=t_ini:N_t
-%     %     %% Plot
-%     % t_loop=1;
-%     if (t_loop - t_last_plot)*dt >= 3600*24*1
-%         day = num2str(floor(t_loop*dt/24/3600));
+    %     %     %% Plot
+    %     % t_loop=1;
+    %     if (t_loop - t_last_plot)*dt >= 3600*24*1
+    %         day = num2str(floor(t_loop*dt/24/3600));
     % t_loop=1;
     day_num = (floor(t_loop*dt_loop/24/3600));
     
     if day_num > day_last_plot
-    % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        % if (t_loop - t_last_plot)*dt >= 3600*24*1
         day_num = (floor(t_loop*dt/24/3600));
+        
+        
+%         warning('GROSSE BIDOUILLE')
+%         day_num = 100;
+        
         day = num2str(day_num);
         day
         day_last_plot = day_num;
         fprintf([ num2str(t_loop*dt/(24*3600)) ' days of advection \n'])
         
-%       model_LR.advection.plot_modes = plot_modes;
-%        model_LR.advection.nb_modes = nb_modes;
+        %       model_LR.advection.plot_modes = plot_modes;
+        %        model_LR.advection.nb_modes = nb_modes;
         t_last_plot=t_loop;
-%         id_part=1;
-%         
-%         width=1.2e3;
-%         height=0.5e3;
-%         if strcmp(model.type_data,'klein')
-%             width=width/2;
-%             r_c_ax = 0.5;
-%         else
-%             r_c_ax =1/1.5;
-%             %             r_c_ax =1;
-%         end
-%         %         X0=0.5e3*[1 1];
-%         X0=[0 1];
+        %         id_part=1;
+        %
+        %         width=1.2e3;
+        %         height=0.5e3;
+        %         if strcmp(model.type_data,'klein')
+        %             width=width/2;
+        %             r_c_ax = 0.5;
+        %         else
+        %             r_c_ax =1/1.5;
+        %             %             r_c_ax =1;
+        %         end
+        %         %         X0=0.5e3*[1 1];
+        %         X0=[0 1];
         
         %% Specific day
         %         warning('the day is specified manually');
@@ -508,15 +517,15 @@ for t_loop=t_ini:N_t
         %         day = num2str(day);
         
         %% Load
-%         model_ref = model;
-%         name_file = [model.folder.folder_simu_ref '/files/' num2str(day) '.mat'];
+        %         model_ref = model;
+        %         name_file = [model.folder.folder_simu_ref '/files/' num2str(day) '.mat'];
         name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(day) '.mat'];
         load(name_file_HR)
         model_HR = model; clear model;
         model_HR.folder = model_HR_ref.folder;
-%         model = model_ref;
-
-
+        %         model = model_ref;
+        
+        
         if ~(exist('time','var')==1)
             time =t*dt;
         end
@@ -525,9 +534,15 @@ for t_loop=t_ini:N_t
             fft_b = fft_buoy_part;
         elseif (exist('fft_T_adv_part','var')==1)
             fft_b = fft_T_adv_part;
+        elseif (exist('fft_T_adv_part','var')==1)
+            fft_b = fft_T_adv_part;
+        elseif (exist('fft_tracer_part','var')==1)
+            fft_b = fft_tracer_part;
         else
             error('Cannot find buoyancy field')
         end
+        save(name_file_HR,'fft_b','-append');
+        
         if ~isfield(model_HR, 'sigma')
             model_HR.sigma.sto = false;
         elseif ~isfield(model_HR.sigma,'sto')
@@ -550,9 +565,9 @@ for t_loop=t_ini:N_t
         buoy_part = buoy_part( ...
             1:model_HR.grid.MX(1)/model_LR.grid.MX(1):end, ...
             1:model_HR.grid.MX(2)/model_LR.grid.MX(2):end,:,:);
-        fft_buoy_part_ref = fft2(buoy_part);    
+        fft_buoy_part_ref = fft2(buoy_part);
         clear buoy_part;
-              
+        
         %%
         if model_LR.advection.Smag.bool
             [coef_diff_aa,coef_diff] = fct_coef_diff(model_LR,fft_buoy_part_ref);
@@ -571,22 +586,22 @@ for t_loop=t_ini:N_t
         % Plots
         spectrum_ref = fct_plot(model_LR,fft_buoy_part_ref,day);
         
-%         if model_LR.advection.plot_dissip
-%             fct_plot_dissipation(model_LR,fft_buoy_part_ref,sigma_on_sq_dt,day);
-%         end
-%         
-% %         %% Distance to reference
-% %         % Spectrum discrepancy
-% %         spectrum_ref = ref{1};
-% %         error_vs_t(1,1) = dkappa * ...
-% %             sum(abs(spectrum(:) - spectrum_ref(:)));
-% %         % RMSE
-% %         fft_buoy_ref = ref{2};
-% %         error_vs_t(1,2) = 1/prod(model.grid.MX)^2 * ...
-% %             sum(abs(fft_buoy_part_ref(:) - fft_buoy_ref(:)).^2);
-% %         % Square root
-% %          error_vs_t = sqrt( error_vs_t);
-         
+        %         if model_LR.advection.plot_dissip
+        %             fct_plot_dissipation(model_LR,fft_buoy_part_ref,sigma_on_sq_dt,day);
+        %         end
+        %
+        % %         %% Distance to reference
+        % %         % Spectrum discrepancy
+        % %         spectrum_ref = ref{1};
+        % %         error_vs_t(1,1) = dkappa * ...
+        % %             sum(abs(spectrum(:) - spectrum_ref(:)));
+        % %         % RMSE
+        % %         fft_buoy_ref = ref{2};
+        % %         error_vs_t(1,2) = 1/prod(model.grid.MX)^2 * ...
+        % %             sum(abs(fft_buoy_part_ref(:) - fft_buoy_ref(:)).^2);
+        % %         % Square root
+        % %          error_vs_t = sqrt( error_vs_t);
+        
         %% Save files
         save( [model_LR.folder.folder_simu '/files/' day '.mat'], ...
             'model_LR','time','fft_buoy_part_ref','spectrum_ref');
