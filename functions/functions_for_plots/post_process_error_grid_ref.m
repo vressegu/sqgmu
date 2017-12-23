@@ -23,9 +23,11 @@ if nargin == 0
 end
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*100;
+advection_duration = 3600*24*200;
 % advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
+
+first_day = 100;
 
 % Number of realizations in the ensemble
 N_ech=1;
@@ -435,14 +437,14 @@ N_ech=model_LR.advection.N_ech;
 t_last_plot = -inf;
 %model.advection.step='finite_variation';
 
-t_ini=1;
+%t_ini=1;
 
 % model_ref = model;
 % name_file = [model.folder.folder_simu_ref '/files/' num2str(0) '.mat'];
 
 % warning('GROSSE BIDOUILLE');
 % name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(100) '.mat'];
-name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(0) '.mat'];
+name_file_HR = [model_HR.folder.folder_simu '/files/' num2str(first_day) '.mat'];
 load(name_file_HR)
 model_HR_ref = model_HR;
 model_HR = model; clear model;
@@ -470,6 +472,9 @@ N_t = ceil(model_HR.advection.advection_duration/dt);
 %
 day_last_plot = - inf;
 dt_loop = dt;
+
+t_ini = first_day*24*3600/dt;
+
 %
 % trigger = false;
 % %t_ini=1700000

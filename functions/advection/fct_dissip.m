@@ -50,14 +50,14 @@ else % Stochastic case
     if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
         dt = model.advection.dt_adv;
         % Time-correlated velocity
-        fft_w = SQG_large_UQ(model, fft_b);            
+        fft_w = SQG_large_UQ(model, fft_b);
         [sigma, ~, tr_a ,....
-                model.sigma.slope_sigma,...
-                model.sigma.offset_spectrum_a_sigma, ...
-                model.sigma.km_LS ]...
+            model.sigma.slope_sigma,...
+            model.sigma.offset_spectrum_a_sigma, ...
+            model.sigma.km_LS ]...
             = fct_sigma_spectrum_abs_diff( model,fft_w,false);
-%         [sigma, ~, tr_a ] ...
-%             = fct_sigma_spectrum_abs_diff( model,fft_w,false);
+        %         [sigma, ~, tr_a ] ...
+        %             = fct_sigma_spectrum_abs_diff( model,fft_w,false);
         a0 = tr_a/2;
         % sigma_on_sq_dt = (1/sqrt(dt)) * sigma; clear sigma
         model.sigma.a0 = a0;
@@ -88,17 +88,17 @@ else % Stochastic case
                         sigma = ...
                             sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
                             * sigma;
-%                         sigma_on_sq_dt = ...
-%                             sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
-%                             * sigma_on_sq_dt;
-%                         %                             model.advection.coef_diff = 1;
+                        %                         sigma_on_sq_dt = ...
+                        %                             sqrt(2/(model.sigma.a0_LS+model.sigma.a0_SS)) ...
+                        %                             * sigma_on_sq_dt;
+                        %                         %                             model.advection.coef_diff = 1;
                     else
                         sigma = sqrt(2/model.sigma.a0_SS) ...
                             * sigma;
-%                         sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
-%                             * sigma_on_sq_dt;
-%                         %                             model.advection.coef_diff = 1 + ...
-%                         %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
+                        %                         sigma_on_sq_dt = sqrt(2/model.sigma.a0_SS) ...
+                        %                             * sigma_on_sq_dt;
+                        %                         %                             model.advection.coef_diff = 1 + ...
+                        %                         %                                 model.sigma.a0_LS / model.sigma.a0_SS ;
                     end
                 elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
                     % The absolute diffusivity diagnosed from the large-scale
@@ -140,9 +140,9 @@ else % Stochastic case
         sigma_dBt_on_sq_dt = sum( sigma .* ...
             randn( [ 1 1 1 N_ech_local model.sigma.nb_EOF ]) , 5);
     end
-        
-%     fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
-%     clear dBt_C_on_sq_dt
+    
+    %     fft_sigma_dBt_dt = bsxfun(@times,sigma_on_sq_dt,dBt_C_on_sq_dt);
+    %     clear dBt_C_on_sq_dt
     
     % warning('need case self similar');
     
@@ -214,16 +214,16 @@ else % Stochastic case
         sigma_dBt_on_sq_dt = fct_proj_free_div(model,sigma_dBt_on_sq_dt);
         % nrj_after_proj_div = mean(sigma_dBt_on_sq_dt(:).^2)
     end
-%     % Heterogeneous small-scale velocity
-%     sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
-%         sigma_dBt_dt);
-%     if model.sigma.proj_free_div
-%         sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
-%         %             for sampl=1:N_ech_local
-%         %                 sigma_dBt_dt(:,:,:,sampl) = fct_proj_free_div(...
-%         %                     model,sigma_dBt_dt(:,:,:,sampl));
-%         %             end
-%     end
+    %     % Heterogeneous small-scale velocity
+    %     sigma_dBt_dt = bsxfun(@times, sqrt(coef_modulation) , ...
+    %         sigma_dBt_dt);
+    %     if model.sigma.proj_free_div
+    %         sigma_dBt_dt = fct_proj_free_div(model,sigma_dBt_dt);
+    %         %             for sampl=1:N_ech_local
+    %         %                 sigma_dBt_dt(:,:,:,sampl) = fct_proj_free_div(...
+    %         %                     model,sigma_dBt_dt(:,:,:,sampl));
+    %         %             end
+    %     end
     sigma_dBt_dt = sigma_dBt_on_sq_dt/sqrt(model.advection.dt_adv);
     fft_sigma_dBt_dt = fft2(sigma_dBt_dt); clear sigma_dBt_dt
     
@@ -328,8 +328,27 @@ else % Stochastic case
         estim_aa_noise_intake = turb_dissip_estim_aa;
         
     else
+        %             % Visco/diff coef * gradient of buoyancy
+        %             adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
+        %             if strcmp(model.sigma.type_spectrum,'EOF') % Anisotropic diffusion
+        %                 adv_hetero_diff = sum( adv_hetero_diff , 3);
+        %                 adv_hetero_diff = permute(adv_hetero_diff,[1 2 5 4 3]);
+        %             end
+        %             adv_hetero_diff = fft2(adv_hetero_diff);
+        %
+        %             % Divergence of ( Visco/diff coef * gradient of buoyancy )
+        %             adv_hetero_diff = ikx .* adv_hetero_diff(:,:,1,:) ...
+        %                 + iky .* adv_hetero_diff(:,:,2,:);
+        
+        
         % Possibly aliased term !!!
-        turb_dissip = model.advection.coef_diff * sum(gradb.^2,3);
+        if strcmp(model.sigma.type_spectrum,'EOF') % Anisotropic diffusion
+            turb_dissip = bsxfun(@times,gradb,permute(gradb,[1 2 5 4 3]));
+            turb_dissip = bsxfun(@times,model.advection.coef_diff,turb_dissip);
+            turb_dissip = sum(sum(turb_dissip,5),3);
+        else
+            turb_dissip = model.advection.coef_diff * sum(gradb.^2,3);
+        end
         % turb_dissip = model.advection.coef_diff * sum(gradb_aa.^2,3);
         
         % % adv2 = - model.advection.coef_diff * k2 .* fft_b ;
@@ -338,8 +357,14 @@ else % Stochastic case
         estim_noise_intake = turb_dissip;
         
         % Possibly aliased term !!!
-        estim_aa_noise_intake = model.advection.coef_diff * ...
-            sum(gradb_aa.^2,3);
+        if strcmp(model.sigma.type_spectrum,'EOF') % Anisotropic diffusion
+            estim_aa_noise_intake = bsxfun(@times,gradb_aa,permute(gradb_aa,[1 2 5 4 3]));
+            estim_aa_noise_intake = bsxfun(@times,model.advection.coef_diff,estim_aa_noise_intake);
+            estim_aa_noise_intake = sum(sum(estim_aa_noise_intake,5),3);
+        else
+            estim_aa_noise_intake = model.advection.coef_diff * ...
+                sum(gradb_aa.^2,3);
+        end
     end
 end
 

@@ -13,7 +13,7 @@ end
 dynamics = 'SQG';
 %dynamics = '2D';
 
-plot_random_IC = true;
+plot_random_IC = false;
 random_IC_large = true
 
 
@@ -153,13 +153,15 @@ end
 
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
+advection_duration = 3600*24*200;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
+first_day = 101;
+
 if nargin == 0
     % Type of initial condtions
-    type_data = 'Vortices';
+    type_data = 'disym_Vortices';
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -174,15 +176,16 @@ if nargin == 0
     % 'Constantin_case2'
     
     % Resolution
-    %resolution = 64;
-    resolution = 128;
+    resolution = 64;
+    % resolution = 128;
     %resolution = 256;
     % resolution = 512;
     %resolution = 1024;
     % resolution = 2048;
     
     % Resolution of the reference
-    resolution_HR = 1024;
+    resolution_HR = 512;
+    %resolution_HR = 1024;
     
     % The number of grid point is resolution^2
     % It has to be an even integer
@@ -190,7 +193,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -612,8 +615,13 @@ add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
 % end
 %
 % if isinf(model.sigma.k_c) % Deterministic case
-model_randomIC.folder.folder_simu = [ 'images/usual_' model.dynamics ...
-    '_randomIC' add_subgrid_deter '/' model.type_data ];
+if plot_random_IC
+    model_randomIC.folder.folder_simu = [ 'images/usual_' model.dynamics ...
+        '_randomIC' add_subgrid_deter '/' model.type_data ];
+else
+    model_randomIC.folder.folder_simu = [ 'images/usual_' model.dynamics ...
+        add_subgrid_deter '/' model.type_data ];
+end
 % else % Stochastic case
 %     model.folder.folder_simu = [ 'images/' model.dynamics ...
 %         '_MU' add_subgrid_deter '/' model.type_data ];
@@ -639,12 +647,17 @@ model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
 % model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
 %     '/Low_Pass_fitlered_version_' ...
 %     num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
-if random_IC_large
-    model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
-        '/large_IC_perturb' ];
-else
-    model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
-        '/small_IC_perturb' ];
+if plot_random_IC
+    if random_IC_large
+        model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
+            '/large_IC_perturb' ];
+    else
+        model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
+            '/small_IC_perturb' ];
+    end
+% else
+%     model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
+%         '/no_IC_perturb' ];
 end
 
 
@@ -879,7 +892,7 @@ if model.sigma.sto
 end
 
 % Create the folders
-fct_create_folder_plots(model,random_IC_large)
+fct_create_folder_plots(model,random_IC_large,plot_random_IC)
 
 % Colormap
 load('BuYlRd.mat');
@@ -916,7 +929,7 @@ model.advection.step='finite_variation';
 t_ini=1;
 
 folder_ref = model.folder.folder_simu;
-name_file = [model.folder.folder_simu '/files/' num2str(0) '.mat'];
+name_file = [model.folder.folder_simu '/files/' num2str(first_day) '.mat'];
 load(name_file)
 model.folder.folder_simu = folder_ref;
 
@@ -942,6 +955,7 @@ bt1_LR_vect = [];
 error_vs_t = [];
 
 
+t_ini = first_day*24*3600/dt;
 trigger = false;
 dt_loop = dt;
 %t_ini=1700000
@@ -985,7 +999,7 @@ for t_loop=t_ini:N_t
         
         %% Load meth with random IC
         clear fft_b;
-        if plot_random_IC & (model.advection.N_ech>1)
+%         if plot_random_IC & (model.advection.N_ech>1)
             name_file_randomIC = [model_randomIC.folder.folder_simu ...
                 '/files/' num2str(day) '.mat'];
             load(name_file_randomIC,'fft_T_adv_part','fft_buoy_part','fft_b');
@@ -998,7 +1012,7 @@ for t_loop=t_ini:N_t
                 error('Cannot find buoyancy field')
             end
             fft_b_classic = fft_b;clear fft_b;
-        end
+%         end
         
         %% Load determinsitic meth without random IC
         clear fft_b;
@@ -1023,8 +1037,9 @@ for t_loop=t_ini:N_t
         %% Load
         model_ref = model;
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
+        clear fft_b fft_buoy_part;
         if exist( name_file,'file')==2
-            clear fft_b fft_buoy_part;
+            % clear fft_b fft_buoy_part;
             load(name_file);
             model.folder.folder_simu = folder_ref;
             if ~(exist('fft_b','var')==1)

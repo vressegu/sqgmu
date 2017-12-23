@@ -3,20 +3,30 @@
 taille_police = 12;
 id_part=1;
 type_data = model.type_data;
-if  random_IC_large
-    folder_simu = [ model.folder.folder_simu ...
-        '/large_IC_perturb' ];
+if plot_random_IC
+    if  random_IC_large
+        folder_simu = [ model.folder.folder_simu ...
+            '/large_IC_perturb' ];
+    else
+        folder_simu = [ model.folder.folder_simu ...
+            '/small_IC_perturb' ];
+    end
 else
     folder_simu = [ model.folder.folder_simu ...
-        '/small_IC_perturb' ];
+        '/no_IC_perturb' ];
 end
+
 % folder_simu = model.folder.folder_simu;
 plot_moments = model.advection.plot_moments;
 %plot_epsilon_k = model.advection.plot_epsilon_k;
 map = model.folder.colormap;
 
 T_adv_part_HR = real(ifft2(fft_buoy_part_ref));
-T_adv_part_classic = real(ifft2(fft_b_classic));
+% if  plot_random_IC
+    T_adv_part_classic = real(ifft2(fft_b_classic));
+% else
+%     T_adv_part_classic = nan(size(fft_b));
+% end
 T_adv_part = real(ifft2(fft_b));
 mean_T = mean(T_adv_part,4);
 mean_T_classic = mean(T_adv_part_classic,4);
@@ -201,7 +211,7 @@ eval( ['print -depsc ' folder_simu '/spatial_bias/' day '.eps']);
 
 
 
-%% Estimation of the bias 
+%% Estimation of the bias
 close(figure(19))
 figure19=figure(19);
 %             colormap hot

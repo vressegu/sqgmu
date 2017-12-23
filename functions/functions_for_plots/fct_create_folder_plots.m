@@ -1,6 +1,12 @@
-function fct_create_folder_plots(model,random_IC_large)
+function fct_create_folder_plots(model,random_IC_large,plot_random_IC)
 % Create folders to save plots and files
 %
+if nargin < 3
+    plot_random_IC = false;
+end
+if nargin < 2
+    random_IC_large = false;
+end
 
 folder_simu = model.folder.folder_simu;
 
@@ -44,16 +50,21 @@ if model.sigma.sto ... % Stochastic case
     end
 end
 if nargin > 1
-    comp_large_IC_perturb(folder_simu,random_IC_large);
+    comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC);
 end
 
-    function comp_large_IC_perturb(folder_simu,random_IC_large)
-        if  random_IC_large
-            folder_simu = [ folder_simu ...
-                '/large_IC_perturb' ];
+    function comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC)
+        if plot_random_IC
+            if  random_IC_large
+                folder_simu = [ folder_simu ...
+                    '/large_IC_perturb' ];
+            else
+                folder_simu = [ folder_simu ...
+                    '/small_IC_perturb' ];
+            end
         else
             folder_simu = [ folder_simu ...
-                '/small_IC_perturb' ];
+                '/no_IC_perturb' ];
         end
         if ~ (exist([folder_simu '/spatial_error'],'dir')==7)
             mkdir([folder_simu '/spatial_error']);
