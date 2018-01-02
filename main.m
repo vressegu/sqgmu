@@ -19,7 +19,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*200;
+advection_duration = 3600*24*30;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
@@ -31,7 +31,7 @@ if nargin == 0
     end
 
     % Type of initial condtions
-    type_data ='disym_Vortices';
+    type_data ='Vortices';
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
@@ -49,7 +49,7 @@ if nargin == 0
     % Resolution
     resolution = 64;
     % resolution = 128;
-    %resolution = 256;
+    % resolution = 256;
     % resolution = 512;
     % resolution = 1024;
     % resolution = 2048;
@@ -60,7 +60,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = true;
+    forcing = false;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -92,7 +92,7 @@ if nargin == 0
     
     if sigma.sto
         % Type of spectrum for sigma dBt
-        sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+        % sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
         % sigma.type_spectrum = 'Low_Pass_w_Slope';
         % Spectrum cst for k<km ans slope for k>km
         % sigma.type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -102,7 +102,7 @@ if nargin == 0
         % sigma.type_spectrum = 'BB';
         % sigma.type_spectrum = 'Bidouille';
         % sigma.type_spectrum = 'EOF';
-        % sigma.type_spectrum = 'SelfSim_from_LS';
+        sigma.type_spectrum = 'SelfSim_from_LS'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -212,13 +212,14 @@ if nargin == 0
         % Desactivate the noise
         sigma.no_noise = false;
         if sigma.no_noise
-            warning('There isno noise here');
+            warning('There is no noise here');
         end
     end
 end
 
 % Number of realizations in the ensemble
 N_ech = 200;
+% N_ech = 600;
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
 % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -339,9 +340,12 @@ end
 plot_dissip = true;
 
 % Begin simulation from a precomputed field?
-use_save = true;
+use_save = false;
 % In this case, which day should be used as initialisation
-day_save = 100
+day_save = 100;
+if use_save
+    day_save
+end
 %day_save = 150
 
 dealias_method = 'exp';
@@ -362,7 +366,11 @@ if stochastic_simulation
     else
         switch dynamics
             case 'SQG'
-                sigma.k_c = 1/(3e2); % 1/(300 meters)
+               % sigma.k_c = 1/(3e2) /6 % 1/(1800 meters)
+               %  sigma.k_c = 1/(3e2) /10 % 1/(3000 meters)
+                sigma.k_c = 1/(3e2) /4 % 1/(1200 meters)
+%                 % sigma.k_c = 1/(3e2) /3 % 1/(900 meters)
+%                 % sigma.k_c = 1/(3e2) % 1/(300 meters)
             case '2D'
                 error(...
                     'The turbulence 2D is not stable under the action of noise');
@@ -416,7 +424,22 @@ if nargin == 0
                 % sigma.kappamin_on_kappamax = 1/4;
                 % sigma.kappamin_on_kappamax = 1/8;
             elseif ( HV.bool & (HV.order==8) )
+                switch resolution 
+                    case  128
                 sigma.kappamin_on_kappamax = 1/2;
+                    case 64
+                pre=1e-2;
+                sigma.kappamin_on_kappamax = ...
+                    (log(1-pre)/log(pre))^(2/HV.order)
+                pre_estim_slope=1e-1;
+                sigma.kappamin_on_kappamax_estim_slope = ...
+                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                    ^(2/HV.order)
+%                 sigma.kappamin_on_kappamax = 0.45;
+%                 % sigma.kappamin_on_kappamax = 1/3;
+                    otherwise
+                        error('unknown');
+                end
             else
                 warning('kappamin_on_kappamax may be inapropriate');
                 sigma.kappamin_on_kappamax = 1/2;
@@ -426,11 +449,20 @@ if nargin == 0
             
             sigma.kappaLS_on_kappamax = 1/8;
         else
-            %kappamin_on_kappamax = 1/32;
-            sigma.kappamin_on_kappamax = 1/2;
-            % sigma.kappamin_on_kappamax = 1/128;
-            %         sigma.slope_sigma = - 5;
-            % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+            switch resolution
+                case  128
+                    sigma.kappamin_on_kappamax = 1/2;
+                case 64
+                    sigma.kappamin_on_kappamax = 1/3;
+                otherwise
+                    error('unknown');
+            end
+                
+%             %kappamin_on_kappamax = 1/32;
+%             sigma.kappamin_on_kappamax = 1/2;
+%             % sigma.kappamin_on_kappamax = 1/128;
+%             %         sigma.slope_sigma = - 5;
+%             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
             
             sigma.kappaLS_on_kappamax = 1/8;
         end
@@ -503,5 +535,15 @@ else
 %     [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
 end
 
+resolution_HR = 512
+% resolution_HR = 1024
 
+if nargin == 0
+    post_process_error_grid(model.sigma.sto,...
+        model.type_data,resolution,resolution_HR,...
+        model.advection.forcing.bool,model.sigma,...
+        model.advection.Lap_visco,model.advection.HV,...
+        model.advection.Smag,model.advection.N_ech);
+end
 
+resolution_HR

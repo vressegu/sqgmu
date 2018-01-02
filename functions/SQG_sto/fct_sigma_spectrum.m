@@ -346,9 +346,29 @@ function t = fct_unity_approx_(N_t)
 % Approximation of unity
 %
 
-sslop=8;
-t=ones(1,N_t);
-t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
-t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
+nx = 1:N_t;
+nx=nx-mean(nx);
+% see "New Numerical Results for the Surface Quasi-Geostrophic
+% Equation", Constantin et al., J. Sci. Comput. (2012).
+alpha = 36.;
+%order = 30.;
+order = 19.;
+t = exp(-alpha*( (2./N_t).*abs(nx) ).^order);
+
+
+% sslop=8;
+% t=ones(1,N_t);
+% t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
+% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
 
 end
+% function t = fct_unity_approx_old(N_t)
+% % Approximation of unity
+% %
+% 
+% sslop=8;
+% t=ones(1,N_t);
+% t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
+% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
+% 
+% end

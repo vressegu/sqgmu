@@ -92,13 +92,13 @@ kappa = kappa';
 %% Spectrum
 % Integration over the rings of iso wave number
 ft_w2 = reshape(ft_w2 , [prod(model.grid.MX) model.advection.N_ech ]);
-spectrum_w = idx' * ft_w2; %  [ P_kappa model.advection.N_ech ] 
+spectrum_w = idx' * ft_w2; %  [ P_kappa model.advection.N_ech ]
 
 % ft_w2 = reshape(ft_w2 , [prod(model.grid.MX) 1 1 model.advection.N_ech ]);
 % % idx = repmat (idx , [1 1 1 model.advection.N_ech ]);
 % spectrum_w = sum( idx .* ft_w2 , 1);
 % % spectrum_w = sum( bsxfun( @times, idx, ft_w2 ) , 1);
-% spectrum_w = multitrans(spectrum_w); %  [ P_kappa 1 1 model.advection.N_ech ] 
+% spectrum_w = multitrans(spectrum_w); %  [ P_kappa 1 1 model.advection.N_ech ]
 % % spectrum_w = idx' * ft_w2(:);
 % % % if nargin>2
 % % %     spectrum_w2 = idx' * ft2(:);
@@ -127,8 +127,8 @@ spectrum_w = spectrum_w / d_kappa;
 % From velocity spectrum to absolute diffusity by scale
 spectrum_w_a = zeros(size(spectrum_w));
 spectrum_w_a(2:end,:) = bsxfun( @times, kappa(2:end).^(-3/2) , ...
-                                     spectrum_w(2:end,:).^(1/2) );
-                                 %  [ P_kappa model.advection.N_ech ] 
+    spectrum_w(2:end,:).^(1/2) );
+%  [ P_kappa model.advection.N_ech ]
 % spectrum_w_a = zeros(size(kappa));
 % spectrum_w_a(2:end) = kappa(2:end).^(-3/2) .* spectrum_w(2:end).^(1/2);
 
@@ -141,13 +141,13 @@ spectrum_w_a(2:end,:) = bsxfun( @times, kappa(2:end).^(-3/2) , ...
 
 % Compensated absolute diffusity by scale
 spectrum_w_a_comp = bsxfun( @times, kappa.^(-slope_ref_a) , ...
-                                     spectrum_w_a );
-                                 %  [ P_kappa 1 1 model.advection.N_ech ] 
+    spectrum_w_a );
+%  [ P_kappa 1 1 model.advection.N_ech ]
 % spectrum_w_a_comp = kappa.^(-slope_ref_a) .* spectrum_w_a;
 
 %% Absosute diffusivity
 abs_diff_w = sum(spectrum_w_a,1) * d_kappa;
-                                 %  [ 1 model.advection.N_ech ] 
+%  [ 1 model.advection.N_ech ]
 
 % %% Time integral of the dissipation per scale epsilon(k)
 % int_epsilon = - cumsum(spectrum) * d_kappa;
@@ -196,11 +196,14 @@ if ~ model.sigma.sto
     model.sigma.kappamin_on_kappamax = 1/2;
     model.sigma.kappaLS_on_kappamax = 1/8;
 end
-threshold_k = model.sigma.kappamin_on_kappamax;
-threshold_k_LS = model.sigma.kappaLS_on_kappamax;
+threshold_k = model.sigma.kappamin_on_kappamax_estim_slope;
+% threshold_k = model.sigma.kappamin_on_kappamax;
 spectrum_w_a_comp_cut = spectrum_w_a_comp( kappa < kappa(end)*threshold_k , :);
-[~,i_first] = max(spectrum_w_a_comp_cut( [ false; ...
-    ( kappa(2:end) < kappa(end)*threshold_k_LS )] , :) ,[], 1 );
+%%
+% [~,i_first] = max(spectrum_w_a_comp_cut( [ false; ...
+%     ( kappa(2:end) < kappa(end)*threshold_k_LS )] , :) ,[], 1 );
+i_first = 2;
+%%
 i_first = i_first +1;
 mask_iii_k_LS = (1:size(spectrum_w_a_comp_cut,1))' ...
     * ones(1,model.advection.N_ech);
@@ -253,7 +256,7 @@ logspectrum_w_a_comp_for_estim_centered = bsxfun( @plus, ...
     log10(spectrum_w_a_comp_for_estim) , - log10( offset_w_a_comp) );
 logkkk_centered = bsxfun( @plus, log10(kkk)  , - log10( km_LS ) );
 
-% Set to zero the unwanted points 
+% Set to zero the unwanted points
 siz = size(iii_reliable);
 iii_reliable = iii_reliable(:);
 logspectrum_w_a_comp_for_estim_centered( ~ iii_reliable ) = 0; % P_kappa_cut*N_ech
@@ -269,7 +272,7 @@ beta_num = sum( ...
 beta_den = sum( ...
     logkkk_centered .* logkkk_centered , 1);
 beta = beta_num ./ beta_den; % 1 x N_ech
-% beta =min([zeros([1 model.advection.N_ech]) ; beta]); 
+% beta =min([zeros([1 model.advection.N_ech]) ; beta]);
 
 % beta = logkkk_centered \ logspectrum_w_a_comp_for_estim_centered;
 % beta =min([0 beta]); % Prevent unstable behavior of this parametrisation.
@@ -278,7 +281,7 @@ slope_w_a_estim = beta + slope_ref_a;
 % Prevent some possible unstable behaviors of this parametrisation:
 % The maximum allowed slope corresponds to a velocity white in space
 slope_w_a_estim = min( [zeros([1 model.advection.N_ech]) ; ...
-    slope_w_a_estim]); 
+    slope_w_a_estim]);
 
 slope_w_estim = 2 * slope_w_a_estim + 3;
 %offset = beta(2);
@@ -298,7 +301,7 @@ k0 = model.sigma.kappamin_on_kappamax * k_inf;
 
 % Absolute diffusivity by scale with estimated slope
 reference_spectrum_a_estim = bsxfun(@power, kappa(2:end), ...
-                                          slope_w_a_estim ) ;
+    slope_w_a_estim ) ;
 %reference_spectrum_a_estim = kappa(2:end) .^ slope_w_a_estim ;
 
 % Absolute diffusivity by scale with theoretical slope
@@ -365,8 +368,12 @@ end
 % %reference_spectrum = reference_spectrum * mult_offset;
 
 % Residual absolute diffusivity by scale
+%%
 residual_spectrum_a = ...
-    reference_spectrum_a_estim - spectrum_w_a(2:end,:);
+   reference_spectrum_a_estim - spectrum_w_a(2:end,:);
+% residual_spectrum_a = ...
+%     reference_spectrum_a_estim;
+%%
 
 % Clean it
 siz = size(residual_spectrum_a);
@@ -379,7 +386,7 @@ mask_iii_k_LS_long_m1 = (1:size(reference_spectrum_a_estim,1))' ...
 mask_iii_k_LS_long_m1 = bsxfun( @gt,  ...
     mask_iii_k_LS_long_m1 , i_first - 1 );
 residual_spectrum_a = bsxfun( @times,mask_iii_k_LS_long_m1 , ...
-                                                residual_spectrum_a);
+    residual_spectrum_a);
 
 % residual_spectrum_a(1:(iii_k_LS(1)-1))=0;
 residual_spectrum_a(1:2,:)=0;
@@ -393,6 +400,12 @@ idx3 = (kappa(2:end) > k_inf);
 idx2 = ~ (idx1 | idx3);
 
 unit_approx = fct_unity_approx_(sum(idx2));
+%%
+% unit_approx_old = fct_unity_approx_old(sum(idx2));
+% figure(77);plot(unit_approx_old);ax=axis;ax(1:2)=[1 sum(idx2)];axis(ax);
+% figure(78);plot(unit_approx);axis(ax);
+% keyboard;
+%%
 % unit_approx = ones([1,sum(idx2)]);
 % warning('Above line modified for debug !!!!!')
 
@@ -422,7 +435,7 @@ f_sigma = bsxfun(@times, 1 ./ ( kappa(2:end).^3) , f_sigma );
 
 % % Division by k^2 to get the spectrum of the streamfunction
 % f_sigma = bsxfun(@times, 1 ./ ( kappa(2:end) .^2) , f_sigma );
-% 
+%
 % % From omnidirectional spectrum to Fourier tranform square modulus
 % % Division by k in dimension 2
 % f_sigma = f_sigma ./ ( kappa(2:end) );
@@ -471,9 +484,9 @@ trace_a = permute( trace_a, [ 1 4 3 2]);
 
 if bool_plot
     
-%     figure(38);imagesc(ft_sigma(:,:,:,id_part)');
-%     warning('DEBUG')
-
+    %     figure(38);imagesc(ft_sigma(:,:,:,id_part)');
+    %     warning('DEBUG')
+    
     % Choose one realization
     ft_sigma = ft_sigma(:,:,:,id_part);
     reference_spectrum_a=reference_spectrum_a(:,id_part);
@@ -574,6 +587,9 @@ if bool_plot
     ax = axis;
     loglog(km_LS_plot*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k--')
+    loglog(...
+        model.sigma.kappamin_on_kappamax_estim_slope * kappa(end)*[1 1],...
+        [min(reference_spectrum_a_estim) ax(4)],'k--')
     loglog(model.sigma.kappamin_on_kappamax * kappa(end)*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k-.')
     hold off
@@ -626,9 +642,29 @@ function t = fct_unity_approx_(N_t)
 % Approximation of unity
 %
 
-sslop=8;
-t=ones(1,N_t);
-t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
-t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
+nx = 1:N_t;
+nx=nx-mean(nx);
+% see "New Numerical Results for the Surface Quasi-Geostrophic
+% Equation", Constantin et al., J. Sci. Comput. (2012).
+alpha = 36.;
+%order = 30.;
+order = 19.;
+t = exp(-alpha*( (2./N_t).*abs(nx) ).^order);
+
+
+% sslop=8;
+% t=ones(1,N_t);
+% t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
+% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
 
 end
+% function t = fct_unity_approx_old(N_t)
+% % Approximation of unity
+% %
+% 
+% sslop=8;
+% t=ones(1,N_t);
+% t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
+% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
+% 
+% end
