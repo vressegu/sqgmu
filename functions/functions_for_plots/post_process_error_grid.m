@@ -1,5 +1,5 @@
 function error_vs_t = post_process_error_grid(stochastic_simulation,...
-    type_data,resolution,resolution_HR,forcing,sigma,Lap_visco,HV,Smag)
+    type_data,resolution,resolution_HR,forcing,sigma,Lap_visco,HV,Smag,N_ech)
 %Lap_visco,HV,Smag,day_choose)
 % plot the same thing that fct_fft_advection_sto
 %
@@ -14,7 +14,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 plot_random_IC = false;
-random_IC_large = true
+random_IC_large = false
 
 
 if nargin == 0
@@ -27,16 +27,16 @@ if nargin == 0
     
     if sigma.sto
         % Type of spectrum for sigma dBt
-        % type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
-        %type_spectrum = 'Low_Pass_w_Slope';
+        % sigma.type_spectrum = 'Band_Pass_w_Slope' % as in GAFD part II
+        % sigma.type_spectrum = 'Low_Pass_w_Slope';
         % Spectrum cst for k<km ans slope for k>km
-        % type_spectrum = 'Low_Pass_streamFct_w_Slope';
+        % sigma.type_spectrum = 'Low_Pass_streamFct_w_Slope';
         % Matern covariance for the streamfunction
         % spectrum = cst. * k2 .* ( 1 + (k/km)^2 )^slope )
         % ~ k2 for k<km ans slope for k>km
         % type_spectrum = 'BB';
         % type_spectrum = 'Bidouille';
-        sigma.type_spectrum = 'SelfSim_from_LS';
+        sigma.type_spectrum = 'SelfSim_from_LS'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -135,7 +135,7 @@ if nargin == 0
         % Desactivate the noise
         sigma.no_noise = false;
         if sigma.no_noise
-            warning('There isno noise here');
+            warning('There is no noise here');
         end
     end
 end
@@ -144,8 +144,8 @@ end
 if nargin == 0
     % N_ech=1;
     N_ech=200;
-else
-    N_ech=1;
+    % else
+    %     N_ech=1;
 end
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
@@ -153,15 +153,16 @@ end
 
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*200;
+advection_duration = 3600*24*30;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
-first_day = 101;
+first_day = 0;
+% first_day = 101;
 
 if nargin == 0
     % Type of initial condtions
-    type_data = 'disym_Vortices';
+    type_data = 'Vortices'
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -176,8 +177,8 @@ if nargin == 0
     % 'Constantin_case2'
     
     % Resolution
-    resolution = 64;
-    % resolution = 128;
+    resolution = 64
+    % resolution = 128
     %resolution = 256;
     % resolution = 512;
     %resolution = 1024;
@@ -185,7 +186,7 @@ if nargin == 0
     
     % Resolution of the reference
     resolution_HR = 512;
-    %resolution_HR = 1024;
+    % resolution_HR = 1024;
     
     % The number of grid point is resolution^2
     % It has to be an even integer
@@ -193,7 +194,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = true;
+    forcing = false;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -202,14 +203,14 @@ end
 
 % Type de forcing
 % forcing_type = 'Kolmogorov';
-forcing_type = 'Spring';
+forcing_type = 'Spring'
 
 % Amplitude of the forcing
 ampli_forcing = 10;
 % ampli_forcing = 1;
 
 % Frequency of the forcing
-freq_f = [3 2];
+freq_f = [3 2]
 % freq_f = [0 1];
 
 
@@ -334,71 +335,123 @@ dealias_method = 'exp';
 % Boundaries conditions
 dirichlet = false;
 
-% Variance tensor a_H
-if stochastic_simulation
-    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-        sigma.k_c = 0;
+if nargin == 0
+    % Variance tensor a_H
+    if stochastic_simulation
+%         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+%             sigma.k_c = 0;
+%         else
+%             switch dynamics
+%                 case 'SQG'
+%                     sigma.k_c = 0; % 1/(300 meters)
+%                     % sigma.k_c = 1/(3e2); % 1/(300 meters)
+%                 case '2D'
+%                     error(...
+%                         'The turbulence 2D is not stable under the action of noise');
+%                     %             k_c = 1/(eps); % 1/(100 meters)
+%                 otherwise
+%                     error('Unknown type of dynamics');
+%             end
+%             % a_H is calculated latter in the code using
+%             % a_H = 2 * f_0 / k_c^2
+%             % where f_0 is the Corilis frequency
+%         end
+if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+            if sigma.Smag.bool | ...
+                    Lap_visco.bool | ( HV.bool & (HV.order<=4) )
+                sigma.kappamin_on_kappamax = 1/2;
+                % sigma.kappamin_on_kappamax = 1/4;
+                % sigma.kappamin_on_kappamax = 1/8;
+            elseif ( HV.bool & (HV.order==8) )
+                switch resolution 
+                    case  128
+                sigma.kappamin_on_kappamax = 1/2;
+                    case 64
+                pre=1e-2;
+                sigma.kappamin_on_kappamax = ...
+                    (log(1-pre)/log(pre))^(2/HV.order)
+                pre_estim_slope=1e-1;
+                sigma.kappamin_on_kappamax_estim_slope = ...
+                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                    ^(2/HV.order)
+%                 sigma.kappamin_on_kappamax = 0.45;
+%                 % sigma.kappamin_on_kappamax = 1/3;
+                    otherwise
+                        error('unknown');
+                end
+            else
+                warning('kappamin_on_kappamax may be inapropriate');
+                sigma.kappamin_on_kappamax = 1/2;
+                % sigma.kappamin_on_kappamax = 1/4;
+                % sigma.kappamin_on_kappamax = 1/8;
+            end
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+        else
+            switch resolution
+                case  128
+                    sigma.kappamin_on_kappamax = 1/2;
+                case 64
+                    sigma.kappamin_on_kappamax = 1/3;
+                otherwise
+                    error('unknown');
+            end
+                
+%             %kappamin_on_kappamax = 1/32;
+%             sigma.kappamin_on_kappamax = 1/2;
+%             % sigma.kappamin_on_kappamax = 1/128;
+%             %         sigma.slope_sigma = - 5;
+%             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+        end
     else
+        % If the simulation is deterministic, a_H = 0 and only one simulation
+        % is performed
+        sigma.k_c = inf; % And then a_H = 0
+        N_ech=1;
+        plot_moments = false;
+    end
+    
+    % Spectrum slope of sigma dBt
+    if sigma.sto
         switch dynamics
             case 'SQG'
-                sigma.k_c = 1/(3e2); % 1/(300 meters)
+                sigma.slope_sigma = - 5/3;
             case '2D'
-                error(...
-                    'The turbulence 2D is not stable under the action of noise');
-                %             k_c = 1/(eps); % 1/(100 meters)
+                sigma.slope_sigma = - 3;
             otherwise
                 error('Unknown type of dynamics');
         end
-        % a_H is calculated latter in the code using
-        % a_H = 2 * f_0 / k_c^2
-        % where f_0 is the Corilis frequency
     end
-else
-    % If the simulation is deterministic, a_H = 0 and only one simulation
-    % is performed
-    sigma.k_c = inf; % And then a_H = 0
-    N_ech=1;
-    plot_moments = false;
-end
-
-% Spectrum slope of sigma dBt
-if sigma.sto
-    switch dynamics
-        case 'SQG'
-            sigma.slope_sigma = - 5/3;
-        case '2D'
-            sigma.slope_sigma = - 3;
-        otherwise
-            error('Unknown type of dynamics');
-    end
-end
-if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
-    sigma.slope_sigma = 0;
-    % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
-    %     sigma.slope_sigma = nan;
-end
-
-% Rate between the smallest and the largest wave number of sigma dBt
-if sigma.sto
-    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/4;
-        % sigma.kappamin_on_kappamax = 1/8;
-        
-        sigma.kappaLS_on_kappamax = 1/8;
-    else
-        %kappamin_on_kappamax = 1/32;
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/128;
-        %         sigma.slope_sigma = - 5;
-        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-        
-        sigma.kappaLS_on_kappamax = 1/8;
+    if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
+        sigma.slope_sigma = 0;
+        % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
+        %     sigma.slope_sigma = nan;
     end
     
-    % Rate between the largest wave number of sigma dBt and the largest wave
-    % number of the simulation
-    sigma.kappamax_on_kappaShanon = 1;
+    % Rate between the smallest and the largest wave number of sigma dBt
+    if sigma.sto
+        if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+            sigma.kappamin_on_kappamax = 1/2;
+            % sigma.kappamin_on_kappamax = 1/4;
+            % sigma.kappamin_on_kappamax = 1/8;
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+        else
+            %kappamin_on_kappamax = 1/32;
+            sigma.kappamin_on_kappamax = 1/2;
+            % sigma.kappamin_on_kappamax = 1/128;
+            %         sigma.slope_sigma = - 5;
+            % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+        end
+        
+        % Rate between the largest wave number of sigma dBt and the largest wave
+        % number of the simulation
+        sigma.kappamax_on_kappaShanon = 1;
+    end
 end
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
@@ -655,9 +708,9 @@ if plot_random_IC
         model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
             '/small_IC_perturb' ];
     end
-% else
-%     model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
-%         '/no_IC_perturb' ];
+    % else
+    %     model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
+    %         '/no_IC_perturb' ];
 end
 
 
@@ -879,9 +932,19 @@ if model.sigma.sto
     if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
-    subgrid_details = [ subgrid_details ...
-        '_kappamin_on_kappamax_' ....
-        fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    if ~ strcmp(model.sigma.type_spectrum,'EOF')
+        subgrid_details = [ subgrid_details ...
+            '_kappamin_on_kappamax_' ....
+            fct_num2str(model.sigma.kappamin_on_kappamax) ];
+        if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
+            subgrid_details = [ subgrid_details ...
+                '_on_kc_' ....
+                fct_num2str(1/model.sigma.k_c) ];
+        end
+    end
+    %     subgrid_details = [ subgrid_details ...
+    %         '_kappamin_on_kappamax_' ....
+    %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
     if model.advection.N_ech>1
         subgrid_details = [ subgrid_details ...
             '_N_ech_' ....
@@ -926,7 +989,7 @@ t_last_plot = -inf;
 day_last_plot = - inf;
 model.advection.step='finite_variation';
 
-t_ini=1;
+% t_ini=1;
 
 folder_ref = model.folder.folder_simu;
 name_file = [model.folder.folder_simu '/files/' num2str(first_day) '.mat'];
@@ -965,7 +1028,7 @@ for t_loop=t_ini:N_t
     day_num = (floor(t_loop*dt_loop/24/3600));
     
     if day_num > day_last_plot
-    % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        % if (t_loop - t_last_plot)*dt >= 3600*24*1
         day_num = (floor(t_loop*dt_loop/24/3600));
         day = num2str(day_num);
         day
@@ -999,20 +1062,20 @@ for t_loop=t_ini:N_t
         
         %% Load meth with random IC
         clear fft_b;
-%         if plot_random_IC & (model.advection.N_ech>1)
-            name_file_randomIC = [model_randomIC.folder.folder_simu ...
-                '/files/' num2str(day) '.mat'];
-            load(name_file_randomIC,'fft_T_adv_part','fft_buoy_part','fft_b');
-            if (exist('fft_b','var')==1)
-            elseif (exist('fft_buoy_part','var')==1)
-                fft_b = fft_buoy_part;
-            elseif (exist('fft_T_adv_part','var')==1)
-                fft_b = fft_T_adv_part;
-            else
-                error('Cannot find buoyancy field')
-            end
-            fft_b_classic = fft_b;clear fft_b;
-%         end
+        %         if plot_random_IC & (model.advection.N_ech>1)
+        name_file_randomIC = [model_randomIC.folder.folder_simu ...
+            '/files/' num2str(day) '.mat'];
+        load(name_file_randomIC,'fft_T_adv_part','fft_buoy_part','fft_b');
+        if (exist('fft_b','var')==1)
+        elseif (exist('fft_buoy_part','var')==1)
+            fft_b = fft_buoy_part;
+        elseif (exist('fft_T_adv_part','var')==1)
+            fft_b = fft_T_adv_part;
+        else
+            error('Cannot find buoyancy field')
+        end
+        fft_b_classic = fft_b;clear fft_b;
+        %         end
         
         %% Load determinsitic meth without random IC
         clear fft_b;
@@ -1102,7 +1165,7 @@ for t_loop=t_ini:N_t
         end
         
         fct_plot_post_process(model_deter,fft_b_deter,day);
-%         fct_plot_post_process(model_HR,fft_buoy_part_ref,day);
+        %         fct_plot_post_process(model_HR,fft_buoy_part_ref,day);
         
         model.advection.plot_moments = false;
         [spectrum,name_plot] = fct_plot_post_process(model,fft_b,day);

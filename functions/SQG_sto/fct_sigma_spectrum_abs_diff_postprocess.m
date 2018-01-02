@@ -154,14 +154,19 @@ if ~ model.sigma.sto
     model.sigma.kappamin_on_kappamax = 1/2;
     model.sigma.kappaLS_on_kappamax = 1/8;
 end
-threshold_k = model.sigma.kappamin_on_kappamax;
+threshold_k = model.sigma.kappamin_on_kappamax_estim_slope;
+% threshold_k = model.sigma.kappamin_on_kappamax;
 threshold_k_LS = model.sigma.kappaLS_on_kappamax;
 %threshold_k_LS = 1/8;
 spectrum_w_a_comp_cut = spectrum_w_a_comp(kappa < kappa(end)*threshold_k);
 % %spectrum_w_a_comp_cut = spectrum_w_a_comp;
 % [~,i_first]=max(spectrum_w_a_comp_cut(2:end));
-[~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
-    ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
+%%
+% [~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
+%     ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
+i_first = 2;
+warning('Spectrum slope estimated from the largest scales')
+%%
 %[~,i_first]=max(spectrum_w_a_comp(2:end));
 i_first = i_first +1;
 iii_k_LS = i_first:length(spectrum_w_a_comp_cut);
@@ -241,8 +246,13 @@ reference_spectrum_a = mult_offset_spectrum_a * reference_spectrum_a;
 % %reference_spectrum = reference_spectrum * mult_offset;
 
 % Residual absolute diffusivity by scale
+%%
 residual_spectrum_a = ...
     reference_spectrum_a_estim - spectrum_w_a(2:end);
+% residual_spectrum_a = ...
+%     reference_spectrum_a_estim;
+% warning('No residual spectrum')
+%%
 residual_spectrum_a(residual_spectrum_a<0)=0;
 % residual_spectrum_a = ...
 %     reference_spectrum_a_estim ./ spectrum_w_a(2:end);
@@ -534,6 +544,9 @@ if bool_plot
     ax = axis;
     loglog(km_LS*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k--')
+    loglog(...
+        model.sigma.kappamin_on_kappamax_estim_slope * kappa(end)*[1 1],...
+        [min(reference_spectrum_a_estim) ax(4)],'k--')
     loglog(model.sigma.kappamin_on_kappamax * kappa(end)*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k-.')
     hold off
@@ -731,14 +744,33 @@ if bool_plot
     % trace_a_on_2 = trace_a/2
 end
 end
-
 function t = fct_unity_approx_(N_t)
 % Approximation of unity
 %
 
-sslop=8;
-t=ones(1,N_t);
-t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
-t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
+nx = 1:N_t;
+nx=nx-mean(nx);
+% see "New Numerical Results for the Surface Quasi-Geostrophic
+% Equation", Constantin et al., J. Sci. Comput. (2012).
+alpha = 36.;
+%order = 30.;
+order = 19.;
+t = exp(-alpha*( (2./N_t).*abs(nx) ).^order);
+
+
+% sslop=8;
+% t=ones(1,N_t);
+% t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
+% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
 
 end
+% function t = fct_unity_approx_old(N_t)
+% % Approximation of unity
+% %
+% 
+% sslop=8;
+% t=ones(1,N_t);
+% t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
+% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
+% 
+% end
