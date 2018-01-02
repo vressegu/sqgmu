@@ -36,7 +36,8 @@ if nargin == 0
         % ~ k2 for k<km ans slope for k>km
         % type_spectrum = 'BB';
         % type_spectrum = 'Bidouille';
-        sigma.type_spectrum = 'SelfSim_from_LS';
+        % sigma.type_spectrum = 'SelfSim_from_LS'
+        sigma.type_spectrum = 'EOF'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -69,7 +70,7 @@ if nargin == 0
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         %     if sigma.hetero_modulation & strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         if sigma.hetero_modulation | sigma.hetero_energy_flux ...
-                | sigma.hetero_modulation_V2
+                | sigma.hetero_modulation_V2 || strcmp(sigma.type_spectrum,'EOF')
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
@@ -87,7 +88,7 @@ if nargin == 0
             error('These parametrizations cannot be combined');
         end
         
-        if sigma.Smag.bool || sigma.assoc_diff
+        if sigma.Smag.bool || sigma.assoc_diff 
             % Rate between the smallest wave number of the spatially-unresolved
             % (not simulated) component of sigma dBt and the largest wave
             % number of the simulation
@@ -879,9 +880,11 @@ if model.sigma.sto
     if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
-    subgrid_details = [ subgrid_details ...
-        '_kappamin_on_kappamax_' ....
-        fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    if ~ strcmp(model.sigma.type_spectrum,'EOF')
+        subgrid_details = [ subgrid_details ...
+            '_kappamin_on_kappamax_' ....
+            fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    end
     if model.advection.N_ech>1
         subgrid_details = [ subgrid_details ...
             '_N_ech_' ....

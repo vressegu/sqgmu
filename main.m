@@ -92,7 +92,7 @@ if nargin == 0
     
     if sigma.sto
         % Type of spectrum for sigma dBt
-        % sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+        sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
         % sigma.type_spectrum = 'Low_Pass_w_Slope';
         % Spectrum cst for k<km ans slope for k>km
         % sigma.type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -101,7 +101,7 @@ if nargin == 0
         % ~ k2 for k<km ans slope for k>km
         % sigma.type_spectrum = 'BB';
         % sigma.type_spectrum = 'Bidouille';
-        sigma.type_spectrum = 'EOF';
+        % sigma.type_spectrum = 'EOF';
         % sigma.type_spectrum = 'SelfSim_from_LS';
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
