@@ -88,7 +88,7 @@ if nargin == 0
             error('These parametrizations cannot be combined');
         end
         
-        if sigma.Smag.bool || sigma.assoc_diff 
+        if sigma.Smag.bool || sigma.assoc_diff
             % Rate between the smallest wave number of the spatially-unresolved
             % (not simulated) component of sigma dBt and the largest wave
             % number of the simulation
@@ -158,8 +158,8 @@ advection_duration = 3600*24*30;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
-first_day = 0;
-% first_day = 101;
+%first_day = 0
+first_day = 101
 
 if nargin == 0
     % Type of initial condtions
@@ -339,44 +339,44 @@ dirichlet = false;
 if nargin == 0
     % Variance tensor a_H
     if stochastic_simulation
-%         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-%             sigma.k_c = 0;
-%         else
-%             switch dynamics
-%                 case 'SQG'
-%                     sigma.k_c = 0; % 1/(300 meters)
-%                     % sigma.k_c = 1/(3e2); % 1/(300 meters)
-%                 case '2D'
-%                     error(...
-%                         'The turbulence 2D is not stable under the action of noise');
-%                     %             k_c = 1/(eps); % 1/(100 meters)
-%                 otherwise
-%                     error('Unknown type of dynamics');
-%             end
-%             % a_H is calculated latter in the code using
-%             % a_H = 2 * f_0 / k_c^2
-%             % where f_0 is the Corilis frequency
-%         end
-if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        %         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        %             sigma.k_c = 0;
+        %         else
+        %             switch dynamics
+        %                 case 'SQG'
+        %                     sigma.k_c = 0; % 1/(300 meters)
+        %                     % sigma.k_c = 1/(3e2); % 1/(300 meters)
+        %                 case '2D'
+        %                     error(...
+        %                         'The turbulence 2D is not stable under the action of noise');
+        %                     %             k_c = 1/(eps); % 1/(100 meters)
+        %                 otherwise
+        %                     error('Unknown type of dynamics');
+        %             end
+        %             % a_H is calculated latter in the code using
+        %             % a_H = 2 * f_0 / k_c^2
+        %             % where f_0 is the Corilis frequency
+        %         end
+        if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
             if sigma.Smag.bool | ...
                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
                 sigma.kappamin_on_kappamax = 1/2;
                 % sigma.kappamin_on_kappamax = 1/4;
                 % sigma.kappamin_on_kappamax = 1/8;
             elseif ( HV.bool & (HV.order==8) )
-                switch resolution 
+                switch resolution
                     case  128
-                sigma.kappamin_on_kappamax = 1/2;
+                        sigma.kappamin_on_kappamax = 1/2;
                     case 64
-                pre=1e-2;
-                sigma.kappamin_on_kappamax = ...
-                    (log(1-pre)/log(pre))^(2/HV.order)
-                pre_estim_slope=1e-1;
-                sigma.kappamin_on_kappamax_estim_slope = ...
-                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
-                    ^(2/HV.order)
-%                 sigma.kappamin_on_kappamax = 0.45;
-%                 % sigma.kappamin_on_kappamax = 1/3;
+                        pre=1e-2;
+                        sigma.kappamin_on_kappamax = ...
+                            (log(1-pre)/log(pre))^(2/HV.order)
+                        pre_estim_slope=1e-1;
+                        sigma.kappamin_on_kappamax_estim_slope = ...
+                            (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                            ^(2/HV.order)
+                        %                 sigma.kappamin_on_kappamax = 0.45;
+                        %                 % sigma.kappamin_on_kappamax = 1/3;
                     otherwise
                         error('unknown');
                 end
@@ -397,12 +397,12 @@ if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
                 otherwise
                     error('unknown');
             end
-                
-%             %kappamin_on_kappamax = 1/32;
-%             sigma.kappamin_on_kappamax = 1/2;
-%             % sigma.kappamin_on_kappamax = 1/128;
-%             %         sigma.slope_sigma = - 5;
-%             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+            
+            %             %kappamin_on_kappamax = 1/32;
+            %             sigma.kappamin_on_kappamax = 1/2;
+            %             % sigma.kappamin_on_kappamax = 1/128;
+            %             %         sigma.slope_sigma = - 5;
+            %             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
             
             sigma.kappaLS_on_kappamax = 1/8;
         end

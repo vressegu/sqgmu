@@ -19,7 +19,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
+advection_duration = 3600*24*200;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
@@ -31,7 +31,7 @@ if nargin == 0
     end
 
     % Type of initial condtions
-    type_data ='Vortices';
+    type_data ='disym_Vortices';
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
@@ -60,7 +60,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -137,6 +137,11 @@ if nargin == 0
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
             
+            % Nb day used to learn to EOFs
+            sigma.nbDayLearn= 500;
+            
+            % Time period sampling for the learning data set
+            sigma.Delta_T_on_Delta_t = 4500;  
         end
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         %     if sigma.hetero_modulation & strcmp(sigma.type_spectrum,'SelfSim_from_LS')
@@ -340,7 +345,7 @@ end
 plot_dissip = true;
 
 % Begin simulation from a precomputed field?
-use_save = false;
+use_save = true;
 % In this case, which day should be used as initialisation
 day_save = 100;
 if use_save

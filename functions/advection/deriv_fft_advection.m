@@ -214,26 +214,57 @@ else
     adv4 = 0;
 end
 
-%% Summing terms
-d_fft_b_adv=adv1+adv2+adv4; clear adv1 adv2 adv4
-
-% Remove aliasing
-d_fft_b_adv(ZM(1),:,:,:)=0;
-d_fft_b_adv(:,ZM(2),:,:)=0;
 
 %% Forcing
 if isfield(model.advection, 'forcing') && model.advection.forcing.bool
     switch model.advection.forcing.forcing_type
         case 'Kolmogorov'
-            d_fft_b_adv = bsxfun(@plus, d_fft_b_adv, ...
-                +  model.advection.forcing.F );
+            adv5 = +  model.advection.forcing.F;
         case 'Spring'
-            d_fft_b_adv = d_fft_b_adv ...
-                - model.advection.forcing.on_T * ...
-                bsxfun(@plus, fft_b, - model.advection.forcing.F);
+            adv5 = - model.advection.forcing.on_T * ...
+                bsxfun(@plus,  fft_b, - model.advection.forcing.F);
             %     d_fft_b_adv = d_fft_b_adv + model.advection.forcing.F;
+        case 'Hetero_Spring'
+            b_space = real(ifft2(fft_b));
+            adv5 = - bsxfun( @times, ...
+    1/2 * (1 + sin(2*pi/model.advection.forcing.Lx * model.grid.x')) , ...
+                model.advection.forcing.on_T * ...
+                bsxfun(@plus,  b_space, - model.advection.forcing.F) ) ;
+            adv5 = fft2(adv5);
+        otherwise
+            error('Unknown forcing');
     end
+else
+    adv5 = 0;
 end
+
+%% Summing terms
+d_fft_b_adv=adv1+adv2+adv4+adv5; clear adv1 adv2 adv4 adv5
+
+% Remove aliasing
+d_fft_b_adv(ZM(1),:,:,:)=0;
+d_fft_b_adv(:,ZM(2),:,:)=0;
+
+% %% Summing terms
+% d_fft_b_adv=adv1+adv2+adv4; clear adv1 adv2 adv4
+% 
+% % Remove aliasing
+% d_fft_b_adv(ZM(1),:,:,:)=0;
+% d_fft_b_adv(:,ZM(2),:,:)=0;
+% 
+% %% Forcing
+% if isfield(model.advection, 'forcing') && model.advection.forcing.bool
+%     switch model.advection.forcing.forcing_type
+%         case 'Kolmogorov'
+%             d_fft_b_adv = bsxfun(@plus, d_fft_b_adv, ...
+%                 +  model.advection.forcing.F );
+%         case 'Spring'
+%             d_fft_b_adv = d_fft_b_adv ...
+%                 - model.advection.forcing.on_T * ...
+%                 bsxfun(@plus, fft_b, - model.advection.forcing.F);
+%             %     d_fft_b_adv = d_fft_b_adv + model.advection.forcing.F;
+%     end
+% end
 
     function adv_hetero_diff = ...
             fct_heterogeneous_diff(model,ikx,iky,gradb,fft_b)
