@@ -47,8 +47,8 @@ if nargin == 0
     % 'Constantin_case2'
     
     % Resolution
-    resolution = 64;
-    % resolution = 128;
+    % resolution = 64;
+    resolution = 128;
     % resolution = 256;
     % resolution = 512;
     % resolution = 1024;
@@ -431,12 +431,19 @@ if nargin == 0
             elseif ( HV.bool & (HV.order==8) )
                 switch resolution 
                     case  128
-                sigma.kappamin_on_kappamax = 1/2;
+                % sigma.kappamin_on_kappamax = 1/2;
+                pre=1e-2;
+                pre_estim_slope=1e-1;
+                sigma.kappamin_on_kappamax = ...
+                    (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
+                sigma.kappamin_on_kappamax_estim_slope = ...
+                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                    ^(2/HV.order)
                     case 64
                 pre=1e-2;
-                sigma.kappamin_on_kappamax = ...
-                    (log(1-pre)/log(pre))^(2/HV.order)
                 pre_estim_slope=1e-1;
+                sigma.kappamin_on_kappamax = ...
+                    (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
                 sigma.kappamin_on_kappamax_estim_slope = ...
                     (log(1-pre_estim_slope)/log(pre_estim_slope))...
                     ^(2/HV.order)

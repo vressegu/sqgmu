@@ -56,8 +56,8 @@ if nargin == 0
     % resolution = 1024
     %resolution = 2048
     
-    % resolution_LR = 128
-    resolution_LR = 64
+    resolution_LR = 128
+    % resolution_LR = 64
     
     % The number of grid point is resolution^2
     % It has to be an even integer
