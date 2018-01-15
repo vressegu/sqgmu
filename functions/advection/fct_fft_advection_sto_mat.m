@@ -119,11 +119,15 @@ if model.sigma.sto
             '_nbDayLearn_' ...
             fct_num2str(model.sigma.nbDayLearn) ...
             '_Delta_T_on_Delta_t_' ...
-            fct_num2str(model.sigma.Delta_T_on_Delta_t)];
+            fct_num2str(model.sigma.Delta_T_on_Delta_t) ...;
+            '_nb_EOF_' ...
+            fct_num2str(model.sigma.nb_EOF)];
     end
-    subgrid_details = [ subgrid_details ...
-        '_N_ech_' ....
-        fct_num2str(model.advection.N_ech) ];
+    if model.advection.N_ech > 1
+        subgrid_details = [ subgrid_details ...
+            '_N_ech_' ....
+            fct_num2str(model.advection.N_ech) ];
+    end
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '/' subgrid_details ];
 end
@@ -263,13 +267,24 @@ elseif model.sigma.sto & ...
         strcmp(model.sigma.type_spectrum,'EOF')
     % sigma = nan;
     
+    current_folder = pwd;
+    cd(model.folder.folder_simu);
+    cd ..
+    model.folder.folder_EOF = [ pwd '/folder_EOF'];
+    cd(current_folder);
+    
     % Load precomputed EOFs and correspond variance tensor
-    load([ model.folder.folder_simu '/EOF.mat'],'EOF');
-    load([ model.folder.folder_simu '/var_tensor_from_EOF.mat'],...
+    load([ model.folder.folder_EOF '/EOF.mat'],'EOF');
+    load([ model.folder.folder_EOF '/var_tensor_from_EOF.mat'],...
         'a_xx','a0');
     
     EOF = permute(EOF,[1 2 3 5 4]);
-    model.sigma.nb_EOF = size(EOF,5);
+    if isinf(model.sigma.nb_EOF)
+        model.sigma.nb_EOF = size(EOF,5);
+    else
+        EOF = EOF(:,:,:,:,1:model.sigma.nb_EOF);
+    end
+    %model.sigma.nb_EOF = size(EOF,5);
     sigma = EOF; clear EOF;
     
     % Filtering the variance tensor at large scales

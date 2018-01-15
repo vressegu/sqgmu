@@ -1,5 +1,6 @@
 function error_vs_t = post_process_error_grid(stochastic_simulation,...
-    type_data,resolution,resolution_HR,forcing,sigma,Lap_visco,HV,Smag,N_ech)
+    type_data,resolution,resolution_HR,forcing,sigma,Lap_visco,HV,Smag,...
+    N_ech,first_day)
 %Lap_visco,HV,Smag,day_choose)
 % plot the same thing that fct_fft_advection_sto
 %
@@ -158,10 +159,11 @@ advection_duration = 3600*24*30;
 %advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
-%first_day = 0
-first_day = 101
-
 if nargin == 0
+    
+    first_day = 0
+    % first_day = 101
+    
     % Type of initial condtions
     type_data = 'Vortices'
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
@@ -596,26 +598,10 @@ nb_modes = 200;
 
 
 %% Folder with reference
+clear subgrid_details
 % if model.advection.HV.bool
 % add_subgrid_deter = '_HV';
 add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
-% elseif model.advection.Lap_visco.bool
-%     add_subgrid_deter = '_Lap_visco';
-% else
-%     add_subgrid_deter = '_no_deter_subgrid';
-%     %add_subgrid_deter = [];
-% end
-% % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
-% %         model.advection.Smag.bool
-% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-%         model.advection.Smag.bool
-%     add_subgrid_deter = [add_subgrid_deter '_Smag'];
-%     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
-%     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-%     %         '_dealias_ratio_mask_LS_' ...
-%     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
-% end
-%
 % if isinf(model.sigma.k_c) % Deterministic case
 model_HR.folder.folder_simu = [ 'images/usual_' model.dynamics ...
     add_subgrid_deter '/' model.type_data ];
@@ -623,51 +609,27 @@ model_HR.folder.folder_simu = [ 'images/usual_' model.dynamics ...
 %     model.folder.folder_simu = [ 'images/' model.dynamics ...
 %         '_MU' add_subgrid_deter '/' model.type_data ];
 % end
+
 if model.advection.forcing.bool
     model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
-        '_forced_turb' ];
+        '_forced_turb_' model_HR.advection.forcing.forcing_type];
 else
     model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
         '_free_turb' ];
 end
 model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
     '/' num2str(model_HR.grid.MX(1)) 'x' num2str(model_HR.grid.MX(2)) ];
-% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-%         model.advection.Smag.bool
-%     subgrid_details = ['kappamax_on_kappad_' ...
-%         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-%         '_dealias_ratio_mask_LS_' ...
-%         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-%     model.folder.folder_simu = [ model.folder.folder_simu ...
-%         '/' subgrid_details ];
-% end
 model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
     '/Low_Pass_fitlered_version_' ...
     num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
 
 %% Folder with deterministic model with random initial condition
+clear subgrid_details
 model_randomIC = model;
 model_randomIC.sigma.sto = false;
 % if model.advection.HV.bool
 % add_subgrid_deter = '_HV';
 add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
-% elseif model.advection.Lap_visco.bool
-%     add_subgrid_deter = '_Lap_visco';
-% else
-%     add_subgrid_deter = '_no_deter_subgrid';
-%     %add_subgrid_deter = [];
-% end
-% % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
-% %         model.advection.Smag.bool
-% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-%         model.advection.Smag.bool
-%     add_subgrid_deter = [add_subgrid_deter '_Smag'];
-%     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
-%     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-%     %         '_dealias_ratio_mask_LS_' ...
-%     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
-% end
-%
 % if isinf(model.sigma.k_c) % Deterministic case
 if plot_random_IC
     model_randomIC.folder.folder_simu = [ 'images/usual_' model.dynamics ...
@@ -682,25 +644,13 @@ end
 % end
 if model.advection.forcing.bool
     model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
-        '_forced_turb' ];
+        '_forced_turb_' model_randomIC.advection.forcing.forcing_type];
 else
     model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
         '_free_turb' ];
 end
 model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
     '/' num2str(model_randomIC.grid.MX(1)) 'x' num2str(model_randomIC.grid.MX(2)) ];
-% % if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-% %         model.advection.Smag.bool
-% %     subgrid_details = ['kappamax_on_kappad_' ...
-% %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-% %         '_dealias_ratio_mask_LS_' ...
-% %         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-% %     model.folder.folder_simu = [ model.folder.folder_simu ...
-% %         '/' subgrid_details ];
-% % end
-% model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
-%     '/Low_Pass_fitlered_version_' ...
-%     num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
 if plot_random_IC
     if random_IC_large
         model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
@@ -717,29 +667,12 @@ end
 
 
 %% Folder with deterministic model with random initial condition
+clear subgrid_details
 model_deter = model;
 model_deter.sigma.sto = false;
 % if model.advection.HV.bool
 % add_subgrid_deter = '_HV';
 add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
-% elseif model.advection.Lap_visco.bool
-%     add_subgrid_deter = '_Lap_visco';
-% else
-%     add_subgrid_deter = '_no_deter_subgrid';
-%     %add_subgrid_deter = [];
-% end
-% % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
-% %         model.advection.Smag.bool
-% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-%         model.advection.Smag.bool
-%     add_subgrid_deter = [add_subgrid_deter '_Smag'];
-%     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
-%     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-%     %         '_dealias_ratio_mask_LS_' ...
-%     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
-% end
-%
-% if isinf(model.sigma.k_c) % Deterministic case
 model_deter.folder.folder_simu = [ 'images/usual_' model.dynamics ...
     add_subgrid_deter '/' model.type_data ];
 % else % Stochastic case
@@ -748,90 +681,17 @@ model_deter.folder.folder_simu = [ 'images/usual_' model.dynamics ...
 % end
 if model.advection.forcing.bool
     model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
-        '_forced_turb' ];
+        '_forced_turb_' model_deter.advection.forcing.forcing_type];
 else
     model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
         '_free_turb' ];
 end
 model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
     '/' num2str(model_deter.grid.MX(1)) 'x' num2str(model_deter.grid.MX(2)) ];
-% % % if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-% % %         model.advection.Smag.bool
-% % %     subgrid_details = ['kappamax_on_kappad_' ...
-% % %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-% % %         '_dealias_ratio_mask_LS_' ...
-% % %         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-% % %     model.folder.folder_simu = [ model.folder.folder_simu ...
-% % %         '/' subgrid_details ];
-% % % end
-% % model_randomIC.folder.folder_simu = [ model_randomIC.folder.folder_simu ...
-% %     '/Low_Pass_fitlered_version_' ...
-% %     num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
-% model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
-%         '/deter' ];
 
 
 %% Folder to save plots and files
-% if model.advection.HV.bool
-%     add_subgrid_deter = '_HV';
-% elseif model.advection.Lap_visco.bool
-%     add_subgrid_deter = '_Lap_visco';
-% else
-%     add_subgrid_deter = '_no_deter_subgrid';
-%     %add_subgrid_deter = [];
-% end
-% % if ( model.advection.HV.bool || model.advection.Lap_visco.bool) && ...
-% %         model.advection.Smag.bool
-% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-%         model.advection.Smag.bool
-%     add_subgrid_deter = [add_subgrid_deter '_Smag'];
-%     %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
-%     %         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-%     %         '_dealias_ratio_mask_LS_' ...
-%     %         fct_num2str(model.grid.dealias_ratio_mask_LS)];
-% end
-%
-% if isinf(model.sigma.k_c) % Deterministic case
-%     model.folder.folder_simu = [ 'images/usual_' model.dynamics ...
-%         add_subgrid_deter '/' model.type_data ];
-% else % Stochastic case
-%     model.folder.folder_simu = [ 'images/' model.dynamics ...
-%         '_MU' add_subgrid_deter '/' model.type_data ];
-% end
-% if model.advection.forcing.bool
-%     model.folder.folder_simu = [ model.folder.folder_simu ...
-%         '_forced_turb' ];
-% else
-%     model.folder.folder_simu = [ model.folder.folder_simu ...
-%         '_free_turb' ];
-% end
-% model.folder.folder_simu = [ model.folder.folder_simu ...
-%     '/' num2str(model.grid.MX(1)) 'x' num2str(model.grid.MX(2)) ];
-% if ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
-%         model.advection.Smag.bool
-%     subgrid_details = ['kappamax_on_kappad_' ...
-%         fct_num2str(model.advection.Smag.kappamax_on_kappad) ...
-%         '_dealias_ratio_mask_LS_' ...
-%         fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
-%     model.folder.folder_simu = [ model.folder.folder_simu ...
-%         '/' subgrid_details ];
-% end
-% % Create the folders
-% fct_create_folder_plots(model)
-%
-% % Colormap
-% load('BuYlRd.mat');
-% model.folder.colormap = BuYlRd; clear BuYlRd
-%
-% % Version of matlab
-% vers = version;
-% year = str2double(vers(end-5:end-2));
-% subvers = vers(end-1);
-% model.folder.colormap_freeze = ...
-%     (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
-
-
-%% Folder to save plots and files
+clear subgrid_details
 if model.advection.HV.bool
     add_subgrid_deter = ['_HV' '_' fct_num2str(model.advection.HV.order/2)];
 elseif model.advection.Lap_visco.bool
@@ -887,7 +747,7 @@ else % Stochastic case
 end
 if model.advection.forcing.bool
     model.folder.folder_simu = [ model.folder.folder_simu ...
-        '_forced_turb' ];
+        '_forced_turb_' model.advection.forcing.forcing_type];
 else
     model.folder.folder_simu = [ model.folder.folder_simu ...
         '_free_turb' ];
@@ -942,10 +802,28 @@ if model.sigma.sto
                 '_on_kc_' ....
                 fct_num2str(1/model.sigma.k_c) ];
         end
+    else
+        subgrid_details = [ subgrid_details ...
+            '_nbDayLearn_' ...
+            fct_num2str(model.sigma.nbDayLearn) ...
+            '_Delta_T_on_Delta_t_' ...
+            fct_num2str(model.sigma.Delta_T_on_Delta_t) ...;
+            '_nb_EOF_' ...
+            fct_num2str(model.sigma.nb_EOF)];
     end
-    %     subgrid_details = [ subgrid_details ...
-    %         '_kappamin_on_kappamax_' ....
-    %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    %     if ~ strcmp(model.sigma.type_spectrum,'EOF')
+    %         subgrid_details = [ subgrid_details ...
+    %             '_kappamin_on_kappamax_' ....
+    %             fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    %         if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
+    %             subgrid_details = [ subgrid_details ...
+    %                 '_on_kc_' ....
+    %                 fct_num2str(1/model.sigma.k_c) ];
+    %         end
+    %     end
+    %     %     subgrid_details = [ subgrid_details ...
+    %     %         '_kappamin_on_kappamax_' ....
+    %     %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
     if model.advection.N_ech>1
         subgrid_details = [ subgrid_details ...
             '_N_ech_' ....
@@ -968,6 +846,133 @@ year = str2double(vers(end-5:end-2));
 subvers = vers(end-1);
 model.folder.colormap_freeze = ...
     (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
+
+%% Comparaison of LU parametrisation
+clear subgrid_details
+if strcmp(model.sigma.type_spectrum , 'EOF')
+    model_SelfSim = model;
+    model_SelfSim.sigma.type_spectrum = 'SelfSim_from_LS';
+    
+    if model_SelfSim.advection.HV.bool
+        add_subgrid_deter = ['_HV' '_' fct_num2str(model_SelfSim.advection.HV.order/2)];
+    elseif model_SelfSim.advection.Lap_visco.bool
+        add_subgrid_deter = '_Lap_visco';
+    else
+        add_subgrid_deter = '_no_deter_subgrid';
+        %add_subgrid_deter = [];
+    end
+    if model_SelfSim.sigma.sto & model_SelfSim.sigma.assoc_diff
+        add_subgrid_deter = [add_subgrid_deter '_assoc_diff'];
+    end
+    % if ( model_SelfSim.advection.HV.bool || model_SelfSim.advection.Lap_visco.bool) && ...
+    %         model_SelfSim.advection.Smag.bool
+    if ( ( model_SelfSim.advection.HV.bool | model_SelfSim.advection.Lap_visco.bool) & ...
+            model_SelfSim.advection.Smag.bool ) | ...
+            (model_SelfSim.sigma.sto & model_SelfSim.sigma.Smag.bool )
+        % if ( model_SelfSim.advection.HV.bool | model_SelfSim.advection.Lap_visco.bool) & ...
+        %  model_SelfSim.advection.Smag.bool
+        add_subgrid_deter = [add_subgrid_deter '_Smag'];
+        %     add_subgrid_deter = [add_subgrid_deter '_kappamax_on_kappad_' ...
+        %         fct_num2str(model_SelfSim.advection.Smag.kappamax_on_kappad) ...
+        %         '_dealias_ratio_mask_LS_' ...
+        %         fct_num2str(model_SelfSim.grid.dealias_ratio_mask_LS)];
+        if model_SelfSim.sigma.sto & model_SelfSim.sigma.Smag.bool & ...
+                model_SelfSim.sigma.Smag.epsi_without_noise
+            add_subgrid_deter = [add_subgrid_deter '_epsi_without_noise'];
+        end
+    elseif model_SelfSim.sigma.sto & model_SelfSim.sigma.hetero_modulation
+        add_subgrid_deter = [add_subgrid_deter '_hetero_modulation'];
+    elseif model_SelfSim.sigma.sto & model_SelfSim.sigma.hetero_modulation_V2
+        add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
+    elseif model_SelfSim.sigma.sto & model_SelfSim.sigma.hetero_energy_flux
+        add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
+    end
+    if model_SelfSim.sigma.sto & model_SelfSim.sigma.no_noise
+        add_subgrid_deter = [add_subgrid_deter '_no_noise'];
+    end
+    if ~ model_SelfSim.sigma.sto % Deterministic case
+        model_SelfSim.folder.folder_simu = [ 'images/usual_' model_SelfSim.dynamics ...
+            add_subgrid_deter '/' model_SelfSim.type_data ];
+    else % Stochastic case
+        %     model_SelfSim.folder.folder_simu = [ 'images/' model_SelfSim.dynamics ...
+        %         '_MU' add_subgrid_deter '/' model_SelfSim.type_data ];
+        model_SelfSim.folder.folder_simu = [ 'images/' model_SelfSim.dynamics ...
+            '_MU' add_subgrid_deter '/' ...
+            'type_spectrum_sigma_' model_SelfSim.sigma.type_spectrum '/' ...
+            model_SelfSim.type_data ];
+    end
+    if model_SelfSim.advection.forcing.bool
+        model_SelfSim.folder.folder_simu = [ model_SelfSim.folder.folder_simu ...
+            '_forced_turb_' model_SelfSim.advection.forcing.forcing_type];
+    else
+        model_SelfSim.folder.folder_simu = [ model_SelfSim.folder.folder_simu ...
+            '_free_turb' ];
+    end
+    model_SelfSim.folder.folder_simu = [ model_SelfSim.folder.folder_simu ...
+        '/' num2str(model_SelfSim.grid.MX(1)) 'x' num2str(model_SelfSim.grid.MX(2)) ];
+    if ( ( model_SelfSim.advection.HV.bool | model_SelfSim.advection.Lap_visco.bool) & ...
+            model_SelfSim.advection.Smag.bool)
+        subgrid_details = ['kappamax_on_kappad_' ...
+            fct_num2str(model_SelfSim.advection.Smag.kappamax_on_kappad) ...
+            '_dealias_ratio_mask_LS_' ...
+            fct_num2str(model_SelfSim.advection.Smag.dealias_ratio_mask_LS)];
+        if model_SelfSim.advection.Smag.spatial_scheme
+            subgrid_details = [ subgrid_details '_spatial_scheme'];
+        end
+        model_SelfSim.folder.folder_simu = [ model_SelfSim.folder.folder_simu ...
+            '/' subgrid_details ];
+    end
+    if model_SelfSim.sigma.sto
+        if model_SelfSim.sigma.Smag.bool
+            subgrid_details = ['kappamax_on_kappad_' ...
+                fct_num2str(model_SelfSim.sigma.Smag.kappamax_on_kappad) ...
+                '_dealias_ratio_mask_LS_' ...
+                fct_num2str(model_SelfSim.advection.Smag.dealias_ratio_mask_LS)];
+            if model_SelfSim.sigma.Smag.SS_vel_homo
+                subgrid_details = [ subgrid_details '_SS_vel_homo'];
+            elseif  model_SelfSim.sigma.proj_free_div
+                subgrid_details = [ subgrid_details '_proj_free_div'];
+            end
+            if model_SelfSim.advection.Smag.spatial_scheme
+                subgrid_details = [ subgrid_details '_spatial_scheme'];
+            end
+        elseif ( model_SelfSim.sigma.hetero_modulation |  model_SelfSim.sigma.hetero_modulation_V2)
+            subgrid_details = ['dealias_ratio_mask_LS_' ...
+                fct_num2str(model_SelfSim.advection.Smag.dealias_ratio_mask_LS)];
+            if  model_SelfSim.sigma.proj_free_div
+                subgrid_details = [ subgrid_details '_proj_free_div'];
+            end
+        end
+        if ~ ( exist('subgrid_details','var')==1)
+            subgrid_details = [];
+        end
+        if ~ strcmp(model_SelfSim.sigma.type_spectrum,'EOF')
+            subgrid_details = [ subgrid_details ...
+                '_kappamin_on_kappamax_' ....
+                fct_num2str(model_SelfSim.sigma.kappamin_on_kappamax) ];
+            if strcmp(model_SelfSim.sigma.type_spectrum,'Band_Pass_w_Slope')
+                subgrid_details = [ subgrid_details ...
+                    '_on_kc_' ....
+                    fct_num2str(1/model_SelfSim.sigma.k_c) ];
+            end
+        else
+            subgrid_details = [ subgrid_details ...
+                '_nbDayLearn_' ...
+                fct_num2str(model_SelfSim.sigma.nbDayLearn) ...
+                '_Delta_T_on_Delta_t_' ...
+                fct_num2str(model_SelfSim.sigma.Delta_T_on_Delta_t) ...;
+                '_nb_EOF_' ...
+                fct_num2str(model_SelfSim.sigma.nb_EOF)];
+        end
+        if model_SelfSim.advection.N_ech>1
+            subgrid_details = [ subgrid_details ...
+                '_N_ech_' ....
+                fct_num2str(model_SelfSim.advection.N_ech) ];
+        end
+        model_SelfSim.folder.folder_simu = [ model_SelfSim.folder.folder_simu ...
+            '/' subgrid_details ];
+    end
+end
 
 %% Grid
 
@@ -1017,7 +1022,7 @@ bt1_HR_vect = [];
 bt1_LR_vect = [];
 
 error_vs_t = [];
-
+error_vs_t_SelfSim = [];
 
 t_ini = first_day*24*3600/dt;
 trigger = false;
@@ -1063,27 +1068,11 @@ for t_loop=t_ini:N_t
         
         %% Load meth with random IC
         clear fft_b;
-        %         if plot_random_IC & (model.advection.N_ech>1)
-        name_file_randomIC = [model_randomIC.folder.folder_simu ...
-            '/files/' num2str(day) '.mat'];
-        load(name_file_randomIC,'fft_T_adv_part','fft_buoy_part','fft_b');
-        if (exist('fft_b','var')==1)
-        elseif (exist('fft_buoy_part','var')==1)
-            fft_b = fft_buoy_part;
-        elseif (exist('fft_T_adv_part','var')==1)
-            fft_b = fft_T_adv_part;
-        else
-            error('Cannot find buoyancy field')
-        end
-        fft_b_classic = fft_b;clear fft_b;
-        %         end
-        
-        %% Load determinsitic meth without random IC
-        clear fft_b;
         if (model.advection.N_ech>1)
-            name_file_deter = [model_deter.folder.folder_simu ...
+            %         if plot_random_IC & (model.advection.N_ech>1)
+            name_file_randomIC = [model_randomIC.folder.folder_simu ...
                 '/files/' num2str(day) '.mat'];
-            load(name_file_deter,'fft_T_adv_part','fft_buoy_part','fft_b');
+            load(name_file_randomIC,'fft_T_adv_part','fft_buoy_part','fft_b');
             if (exist('fft_b','var')==1)
             elseif (exist('fft_buoy_part','var')==1)
                 fft_b = fft_buoy_part;
@@ -1092,10 +1081,50 @@ for t_loop=t_ini:N_t
             else
                 error('Cannot find buoyancy field')
             end
-            fft_b_deter = fft_b;clear fft_b;
-            model_deter.grid.x=model_deter.grid.x_ref;
-            model_deter.grid.y=model_deter.grid.y_ref;
-            model_deter.folder.colormap=model.folder.colormap;
+            fft_b_classic = fft_b;clear fft_b;
+        end
+        
+        %% Load determinsitic meth without random IC
+        clear fft_b;
+        %         if (model.advection.N_ech>1)
+        name_file_deter = [model_deter.folder.folder_simu ...
+            '/files/' num2str(day) '.mat'];
+        load(name_file_deter,'fft_T_adv_part','fft_buoy_part','fft_b');
+        if (exist('fft_b','var')==1)
+        elseif (exist('fft_buoy_part','var')==1)
+            fft_b = fft_buoy_part;
+        elseif (exist('fft_T_adv_part','var')==1)
+            fft_b = fft_T_adv_part;
+        else
+            error('Cannot find buoyancy field')
+        end
+        fft_b_deter = fft_b;clear fft_b;
+        model_deter.grid.x=model_deter.grid.x_ref;
+        model_deter.grid.y=model_deter.grid.y_ref;
+        model_deter.folder.colormap=model.folder.colormap;
+        %         end
+        
+        %% Load selfSim
+        if strcmp(model.sigma.type_spectrum , 'EOF')
+            model_SelfSim_ref = model_SelfSim;
+            name_file_SelfSim = ...
+                [model_SelfSim.folder.folder_simu '/files/' num2str(day) '.mat'];
+            clear fft_b_SelfSim fft_b fft_buoy_part;
+            if exist( name_file_SelfSim,'file')==2
+                % clear fft_b fft_buoy_part;
+                load(name_file_SelfSim);
+                % model_SelfSim.folder.folder_simu = folder_SelfSim_ref;
+                if ~(exist('fft_b','var')==1)
+                    fft_b_SelfSim = fft_buoy_part; clear fft_buoy_part
+                else
+                    fft_b_SelfSim = fft_b; clear fft_b
+                end
+            else
+                warning('Cannot find the following file');
+                fprintf([ name_file ' \n']);
+            end
+            
+            
         end
         
         %% Load
@@ -1170,9 +1199,24 @@ for t_loop=t_ini:N_t
         
         model.advection.plot_moments = false;
         [spectrum,name_plot] = fct_plot_post_process(model,fft_b,day);
-        fct_spectrum_multi(model,fft_b_deter,'m');
-        fct_spectrum_multi(model,fft_buoy_part_ref,'r');
-        legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+        if strcmp(model.sigma.type_spectrum , 'EOF')
+            color_SelfSim = [1 0 1];
+            fct_spectrum_multi(model,fft_SelfSim,color_SelfSim);
+            fct_spectrum_multi(model,fft_b_deter,'m');
+            fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+            legend('-5/3',...
+                ['LU EOF' num2str(resolution)],...
+                ['LU Self.Sim.' num2str(resolution)],...
+                ['Deter. ' num2str(resolution)],...
+                ['Deter. ' num2str(resolution_HR')]);
+        else
+            fct_spectrum_multi(model,fft_b_deter,'m');
+            fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+            legend('-5/3',['LU ' num2str(resolution)],...
+                ['Deter. ' num2str(resolution)],...
+                ['Deter. ' num2str(resolution_HR')]);
+            %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+        end
         eval( ['print -depsc ' model.folder.folder_simu '/Spectrum/' day '.eps']);
         %         if model.advection.plot_dissip
         %             fct_plot_dissipation(model,fft_buoy_part,sigma_on_sq_dt,day);
@@ -1182,17 +1226,63 @@ for t_loop=t_ini:N_t
         % Spectrum discrepancy
         temp(1,1) = ...
             dkappa * sum(abs(spectrum(:) - spectrum_ref(:))) ;
+        % Error
+        error2 = 1/prod(model.grid.MX)^2 * ...
+            sum(sum(abs(bsxfun(@plus,fft_b, ...
+            - fft_buoy_part_ref)).^2 , 1) ,2);
+        % Bias
+        bias2 = 1/prod(model.grid.MX)^2 * ...
+            sum(sum(abs(bsxfun(@plus,mean(fft_b ,4),...
+            - fft_buoy_part_ref)).^2 , 1) ,2);
+        temp(1,2) = sqrt(bias2);
         % RMSE
-        temp(1,2) = ...
-            1/prod(model.grid.MX)^2 * ...
-            mean(...
-            sum(sum(abs(bsxfun(@plus,fft_b, - fft_buoy_part_ref)).^2 , 1) ,2) ...
-            ,4);
+        temp(1,3) = sqrt(mean(error2 ,4));
+        % min distance
+        temp(1,4) = min(sqrt(error2),[],4);
         % Concatenation
         error_vs_t = [ error_vs_t ; temp ];
+        v_day = [ v_day eval(day)];
+        
+        
+        if strcmp(model.sigma.type_spectrum , 'EOF')
+            % Spectrum discrepancy
+            temp(1,1) = nan ;
+            % Error
+            error2 = 1/prod(model.grid.MX)^2 * ...
+                sum(sum(abs(bsxfun(@plus,fft_b_SelfSim, ...
+                - fft_buoy_part_ref)).^2 , 1) ,2);
+            % Bias
+            bias2 = 1/prod(model.grid.MX)^2 * ...
+                sum(sum(abs(bsxfun(@plus,mean(fft_b_SelfSim ,4),...
+                - fft_buoy_part_ref)).^2 , 1) ,2);
+            temp(1,2) = sqrt(bias2);
+            % RMSE
+            temp(1,3) = sqrt(mean(error2 ,4));
+            % min distance
+            temp(1,4) = min(sqrt(error2),[],4);
+            % Concatenation
+            error_vs_t_SelfSim = [ error_vs_t_SelfSim ; temp ];
+            hold on;
+            %figure;
+            plot(v_day ,[error_vs_t(2:4,:) error_vs_t_SelfSim(2:4,:)]');
+            %hold off;
+            
+            legend('Bias EOF','RMSE EOF','Min. dist. EOF',...
+                'Bias SelfSim','RMSE SelfSim','Min. dist. SelfSim');
+        else
+            figure;plot(v_day ,error_vs_t(2:4,:)');
+            legend('Bias','RMSE','Min. dist.');
+        end
+        drawnow;
+        eval( ['print -depsc ' model.folder.folder_simu ...
+            '/error_along_time.eps']);
         
         if model.advection.N_ech > 1
-            plot_error_ensemble
+            if strcmp(model.sigma.type_spectrum , 'EOF')
+                plot_error_ensemble_comp_EOF_SelfSim
+            else
+                plot_error_ensemble
+            end
         end
         
         %%
@@ -1206,6 +1296,6 @@ for t_loop=t_ini:N_t
 end
 
 % Square root
-error_vs_t = sqrt( error_vs_t);
+% error_vs_t = sqrt( error_vs_t);
 
 end

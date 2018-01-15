@@ -50,11 +50,16 @@ if model.sigma.sto ... % Stochastic case
     end
 end
 if nargin > 1
-    comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC);
+    comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC,...
+        model.sigma.type_spectrum);
 end
 
-    function comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC)
-        if plot_random_IC
+    function comp_large_IC_perturb(folder_simu,random_IC_large,...
+            plot_random_IC,type_spectrum)
+        if strcmp(type_spectrum,'EOF')            
+            folder_simu = [ folder_simu ...
+                '/comp_EOF_SelfSim' ];
+        elseif plot_random_IC
             if  random_IC_large
                 folder_simu = [ folder_simu ...
                     '/large_IC_perturb' ];

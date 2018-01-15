@@ -7,6 +7,14 @@ function [sigma_on_sq_dt,f_sigma,trace_a_on_dt,spectrum_sigma] = fct_sigma_spect
 % - spectrum_sigma is the spectrum
 %
 
+LineWidth = 1.3;
+MarkerSize = 8;
+Color1=[0.8 0.1 0.1];
+%             Color1=[0.8 0.0 0.1];
+Color2=[0.1 0.0 0.8];
+Color3=[0.0 0.5 0.0];
+%         Color3=[0.0 0.8 0.2];
+
 % Average over realizations
 ft_w=mean(abs(ft_w).^2,4);
 
@@ -287,11 +295,17 @@ set(figure10,'Units','inches', ...
     'PaperPositionMode','auto');
 loglog(kappa(2:end),reference_spectrum,'k')
 hold on;
-loglog(kappa(2:end),spectrum_w(2:end))
+name_plot=loglog(kappa(2:end),spectrum_w(2:end))
+    set(name_plot,'LineWidth',LineWidth,...
+        'MarkerSize',MarkerSize,...
+        'Color',Color2);
 if nargin>2
     loglog(kappa(2:end),spectrum_w2(2:end),'c')
 end
-loglog(kappa(2:end),spectrum_sigma_plot(2:end),'r')
+name_plot=loglog(kappa(2:end),spectrum_sigma_plot(2:end));
+    set(name_plot,'LineWidth',LineWidth,...
+        'MarkerSize',MarkerSize,...
+        'Color',Color3);
 hold off
 ax=axis;
 ax(4)=max([spectrum_w; reference_spectrum' ; spectrum_sigma_plot]);
