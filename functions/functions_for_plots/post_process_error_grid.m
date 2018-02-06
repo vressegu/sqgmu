@@ -1023,6 +1023,7 @@ bt1_LR_vect = [];
 
 error_vs_t = [];
 error_vs_t_SelfSim = [];
+ v_day = [];
 
 t_ini = first_day*24*3600/dt;
 trigger = false;
@@ -1112,7 +1113,7 @@ for t_loop=t_ini:N_t
             clear fft_b_SelfSim fft_b fft_buoy_part;
             if exist( name_file_SelfSim,'file')==2
                 % clear fft_b fft_buoy_part;
-                load(name_file_SelfSim);
+                load(name_file_SelfSim,'fft_T_adv_part','fft_buoy_part','fft_b');
                 % model_SelfSim.folder.folder_simu = folder_SelfSim_ref;
                 if ~(exist('fft_b','var')==1)
                     fft_b_SelfSim = fft_buoy_part; clear fft_buoy_part
@@ -1201,7 +1202,7 @@ for t_loop=t_ini:N_t
         [spectrum,name_plot] = fct_plot_post_process(model,fft_b,day);
         if strcmp(model.sigma.type_spectrum , 'EOF')
             color_SelfSim = [1 0 1];
-            fct_spectrum_multi(model,fft_SelfSim,color_SelfSim);
+            fct_spectrum_multi(model,fft_b_SelfSim,color_SelfSim);
             fct_spectrum_multi(model,fft_b_deter,'m');
             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
             legend('-5/3',...
@@ -1243,7 +1244,9 @@ for t_loop=t_ini:N_t
         error_vs_t = [ error_vs_t ; temp ];
         v_day = [ v_day eval(day)];
         
-        
+        figure1111=figure(1111);
+        close(figure1111)
+        figure1111=figure(1111);
         if strcmp(model.sigma.type_spectrum , 'EOF')
             % Spectrum discrepancy
             temp(1,1) = nan ;
@@ -1264,13 +1267,13 @@ for t_loop=t_ini:N_t
             error_vs_t_SelfSim = [ error_vs_t_SelfSim ; temp ];
             hold on;
             %figure;
-            plot(v_day ,[error_vs_t(2:4,:) error_vs_t_SelfSim(2:4,:)]');
+            plot(v_day ,[error_vs_t(:,2:4) error_vs_t_SelfSim(:,2:4)]');
             %hold off;
             
             legend('Bias EOF','RMSE EOF','Min. dist. EOF',...
                 'Bias SelfSim','RMSE SelfSim','Min. dist. SelfSim');
         else
-            figure;plot(v_day ,error_vs_t(2:4,:)');
+            figure;plot(v_day ,error_vs_t(:,2:4)');
             legend('Bias','RMSE','Min. dist.');
         end
         drawnow;

@@ -31,7 +31,7 @@ if nargin == 0
     end
 
     % Type of initial condtions
-    type_data ='disym_Vortices';
+    type_data ='Constantin_case2';
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
@@ -60,7 +60,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = true;
+    forcing = false;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -132,21 +132,35 @@ if nargin == 0
         % Modulation by local V^2
         sigma.hetero_modulation_V2 = false;
         
+        % Modulation Smag
+        sigma.hetero_modulation_Smag = false;
+        
+        if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
+            sigma.estim_k_LS = true;            
+        end
+        
         if strcmp(sigma.type_spectrum,'EOF')
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
             
             % Nb day used to learn to EOFs
-            sigma.nbDayLearn= 500;
+            sigma.nbDayLearn= 50;
+            % sigma.nbDayLearn= 500;
             
             % Time period sampling for the learning data set
-            sigma.Delta_T_on_Delta_t = 4500;  
+            sigma.Delta_T_on_Delta_t = 8;  
+            % sigma.Delta_T_on_Delta_t = 4500;  
+            
+            % Number of EOF (use all EOFs if set to inf)
+            sigma.nb_EOF = 200;
+            sigma.nb_EOF = 8000;
+            % sigma.nb_EOF = inf;
         end
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         %     if sigma.hetero_modulation & strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         if sigma.hetero_modulation | sigma.hetero_energy_flux ...
-                | sigma.hetero_modulation_V2
+                | sigma.hetero_modulation_V2 | sigma.hetero_modulation_Smag
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             % Smag.dealias_ratio_mask_LS = 1/8;
@@ -165,7 +179,8 @@ if nargin == 0
         sigma.proj_free_div = true;
         
         if ( (sigma.Smag.bool + sigma.hetero_modulation + ...
-                sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1 ) ...
+                sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ...
+                + sigma.hetero_modulation_Smag) > 1 ) ...
                 || ( (sigma.Smag.bool + sigma.assoc_diff ) > 1 )
             error('These parametrizations cannot be combined');
         end
@@ -223,7 +238,8 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-N_ech = 200;
+N_ech = 1;
+% N_ech = 200;
 % N_ech = 600;
 % ( N_ech=200 enables moments to converge when the parameter resolution is
 %   set to 128 )
@@ -345,7 +361,7 @@ end
 plot_dissip = true;
 
 % Begin simulation from a precomputed field?
-use_save = true;
+use_save = false
 % In this case, which day should be used as initialisation
 day_save = 100;
 if use_save
@@ -422,62 +438,78 @@ end
 if nargin == 0
     % Rate between the smallest and the largest wave number of sigma dBt
     if sigma.sto
-        if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-            if sigma.Smag.bool | ...
-                    Lap_visco.bool | ( HV.bool & (HV.order<=4) )
-                sigma.kappamin_on_kappamax = 1/2;
-                % sigma.kappamin_on_kappamax = 1/4;
-                % sigma.kappamin_on_kappamax = 1/8;
-            elseif ( HV.bool & (HV.order==8) )
-                switch resolution 
-                    case  128
-                % sigma.kappamin_on_kappamax = 1/2;
-                pre=1e-2;
-                pre_estim_slope=1e-1;
-                sigma.kappamin_on_kappamax = ...
-                    (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
-                sigma.kappamin_on_kappamax_estim_slope = ...
-                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
-                    ^(2/HV.order)
-                    case 64
-                pre=1e-2;
-                pre_estim_slope=1e-1;
-                sigma.kappamin_on_kappamax = ...
-                    (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
-                sigma.kappamin_on_kappamax_estim_slope = ...
-                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
-                    ^(2/HV.order)
-%                 sigma.kappamin_on_kappamax = 0.45;
-%                 % sigma.kappamin_on_kappamax = 1/3;
-                    otherwise
-                        error('unknown');
-                end
-            else
-                warning('kappamin_on_kappamax may be inapropriate');
-                sigma.kappamin_on_kappamax = 1/2;
-                % sigma.kappamin_on_kappamax = 1/4;
-                % sigma.kappamin_on_kappamax = 1/8;
-            end
+        
+        % pre=1e-2;
+        pre_estim_slope=1e-1;
+        pre_5 = 5e-2;
+        sigma.kappamin_on_kappamax = ...
+            (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
+%         sigma.kappamin_on_kappamax = ...
+%             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
+% %         sigma.kappamin_on_kappamax = ...
+% %             (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
+        sigma.kappamin_on_kappamax_estim_slope = ...
+            (log(1-pre_estim_slope)/log(pre_estim_slope))...
+            ^(2/HV.order);
+        
+        sigma.kappaLS_on_kappamax = 1/8;
             
-            sigma.kappaLS_on_kappamax = 1/8;
-        else
-            switch resolution
-                case  128
-                    sigma.kappamin_on_kappamax = 1/2;
-                case 64
-                    sigma.kappamin_on_kappamax = 1/3;
-                otherwise
-                    error('unknown');
-            end
-                
-%             %kappamin_on_kappamax = 1/32;
-%             sigma.kappamin_on_kappamax = 1/2;
-%             % sigma.kappamin_on_kappamax = 1/128;
-%             %         sigma.slope_sigma = - 5;
-%             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-            
-            sigma.kappaLS_on_kappamax = 1/8;
-        end
+%         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+%             if sigma.Smag.bool | ...
+%                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
+%                 sigma.kappamin_on_kappamax = 1/2;
+%                 % sigma.kappamin_on_kappamax = 1/4;
+%                 % sigma.kappamin_on_kappamax = 1/8;
+%             elseif ( HV.bool & (HV.order==8) )
+%                 switch resolution 
+%                     case  128
+%                 % sigma.kappamin_on_kappamax = 1/2;
+%                 pre=1e-2;
+%                 pre_estim_slope=1e-1;
+%                 sigma.kappamin_on_kappamax = ...
+%                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
+%                 sigma.kappamin_on_kappamax_estim_slope = ...
+%                     (log(1-pre_estim_slope)/log(pre_estim_slope))...
+%                     ^(2/HV.order)
+%                     case 64
+%                 pre=1e-2;
+%                 pre_estim_slope=1e-1;
+%                 sigma.kappamin_on_kappamax = ...
+%                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
+%                 sigma.kappamin_on_kappamax_estim_slope = ...
+%                     (log(1-pre_estim_slope)/log(pre_estim_slope))...
+%                     ^(2/HV.order)
+% %                 sigma.kappamin_on_kappamax = 0.45;
+% %                 % sigma.kappamin_on_kappamax = 1/3;
+%                     otherwise
+%                         error('unknown');
+%                 end
+%             else
+%                 warning('kappamin_on_kappamax may be inapropriate');
+%                 sigma.kappamin_on_kappamax = 1/2;
+%                 % sigma.kappamin_on_kappamax = 1/4;
+%                 % sigma.kappamin_on_kappamax = 1/8;
+%             end
+%             
+%             sigma.kappaLS_on_kappamax = 1/8;
+%         else
+%             switch resolution
+%                 case  128
+%                     sigma.kappamin_on_kappamax = 1/2;
+%                 case 64
+%                     sigma.kappamin_on_kappamax = 1/3;
+%                 otherwise
+%                     error('unknown');
+%             end
+%                 
+% %             %kappamin_on_kappamax = 1/32;
+% %             sigma.kappamin_on_kappamax = 1/2;
+% %             % sigma.kappamin_on_kappamax = 1/128;
+% %             %         sigma.slope_sigma = - 5;
+% %             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+%             
+%             sigma.kappaLS_on_kappamax = 1/8;
+%         end
         
         % Rate between the largest wave number of sigma dBt and the largest wave
         % number of the simulation
@@ -547,15 +579,25 @@ else
 %     [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
 end
 
+
+%% Post-process plots
+
 resolution_HR = 512
 % resolution_HR = 1024
+if ~ use_save
+    first_day = 0;
+else
+    first_day = 101;
+    % first_day = day_save;
+end
 
 if nargin == 0
     post_process_error_grid(model.sigma.sto,...
         model.type_data,resolution,resolution_HR,...
         model.advection.forcing.bool,model.sigma,...
         model.advection.Lap_visco,model.advection.HV,...
-        model.advection.Smag,model.advection.N_ech);
+        model.advection.Smag,model.advection.N_ech,...
+        first_day);
 end
 
 resolution_HR

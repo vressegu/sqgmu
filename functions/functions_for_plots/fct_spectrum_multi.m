@@ -40,8 +40,10 @@ if ~exist('MXref','var') ||  isempty (MXref) || any(MXref ~= MX) ...
     dXref=dX;
     
     % Remove aliasing
-    ft(PX(1),:)=0;
-    ft(:,PX(2))=0;
+    ft(PX(1)+1,:)=0;
+    ft(:,PX(2)+1)=0;
+%     ft(PX(1),:)=0;
+%     ft(:,PX(2))=0;
     
     %% Wave vector
     kx=1/(model.grid.MX(1))*[ 0:(PX(1)-1) 0 (1-PX(1)):-1] ;
@@ -98,7 +100,7 @@ if nargin < 3
     loglog(kidx(2:end),ref,'--k');
 end
 hold on;
-name_plot = loglog(kidx(2:end) , spectrum(2:end) ,color);
+name_plot = loglog(kidx(2:end) , spectrum(2:end)' ,'Color',color);
 ax=axis;
 ax(4)=max([spectrum(2:end); ref']);
 min_ax= 10 ^(slope_ref * log10(kidx(2)*512/2) + offset) ;

@@ -64,8 +64,10 @@ if any( mod(MX,2)~=0)
     error('the number of grid points by axis need to be even');
 end
 PX=MX/2;
-ft_w2(PX(1),:)=0;
-ft_w2(:,PX(2))=0;
+% ft_w2(PX(1),:)=0;
+% ft_w2(:,PX(2))=0;
+ft_w2(PX(1)+1,:,:,:)=0;
+ft_w2(:,PX(2)+1,:,:)=0;
 
 %% Wave vector
 kx=1/(model.grid.MX(1))*[ 0:(PX(1)-1) 0 (1-PX(1)):-1] ;
@@ -162,10 +164,13 @@ spectrum_w_a_comp_cut = spectrum_w_a_comp(kappa < kappa(end)*threshold_k);
 % %spectrum_w_a_comp_cut = spectrum_w_a_comp;
 % [~,i_first]=max(spectrum_w_a_comp_cut(2:end));
 %%
-% [~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
-%     ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
-i_first = 2;
-warning('Spectrum slope estimated from the largest scales')
+if model.sigma.estim_k_LS
+    [~,i_first]=max(spectrum_w_a_comp_cut( [ false; ...
+        ( kappa(2:end) < kappa(end)*threshold_k_LS )] ) );
+else
+    i_first = 2;
+    warning('Spectrum slope estimated from the largest scales')
+end
 %%
 %[~,i_first]=max(spectrum_w_a_comp(2:end));
 i_first = i_first +1;
@@ -576,7 +581,7 @@ if bool_plot
         'FontSize',taille_police,...
         'interpreter','latex',...
         'FontName','Times')
-    title('Absolute diffusivity by scale',...
+    title('ADSD',...
         'FontUnits','points',...
         'FontWeight','normal',...
         'interpreter','latex',...

@@ -31,8 +31,10 @@ if ~exist('MXref','var') ||  isempty (MXref) || any(MXref ~= MX) ...
         error('the number of grid points by axis need to be even');
     end
     PX=MX/2;
-    ft(PX(1),:)=0;
-    ft(:,PX(2))=0;
+    ft(PX(1)+1,:)=0;
+    ft(:,PX(2)+1)=0;
+%     ft(PX(1),:)=0;
+%     ft(:,PX(2))=0;
     
     
     kx=1/(model.grid.MX(1))*[ 0:(PX(1)-1) 0 (1-PX(1)):-1] ;

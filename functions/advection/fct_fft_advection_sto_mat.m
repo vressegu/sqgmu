@@ -37,6 +37,8 @@ elseif model.sigma.sto & model.sigma.hetero_modulation_V2
     add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
 elseif model.sigma.sto & model.sigma.hetero_energy_flux
     add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
+elseif model.sigma.sto & model.sigma.hetero_modulation_Smag
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_Smag'];
 end
 if model.sigma.sto & model.sigma.no_noise
     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
@@ -92,16 +94,18 @@ if model.sigma.sto
         if model.advection.Smag.spatial_scheme
             subgrid_details = [ subgrid_details '_spatial_scheme'];
         end
-    elseif ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
+    elseif ( model.sigma.hetero_modulation ...
+            |  model.sigma.hetero_modulation_V2 ...
+            |  model.sigma.hetero_modulation_Smag )
         subgrid_details = ['dealias_ratio_mask_LS_' ...
             fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
         if  model.sigma.proj_free_div
             subgrid_details = [ subgrid_details '_proj_free_div'];
         end
     end
-%     model.folder.folder_simu = [ model.folder.folder_simu ...
-%         '_kappamin_on_kappamax_' ....
-%         fct_num2str(model.sigma.kappamin_on_kappamax) ];
+    %     model.folder.folder_simu = [ model.folder.folder_simu ...
+    %         '_kappamin_on_kappamax_' ....
+    %         fct_num2str(model.sigma.kappamin_on_kappamax) ];
     if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
@@ -110,9 +114,13 @@ if model.sigma.sto
             '_kappamin_on_kappamax_' ....
             fct_num2str(model.sigma.kappamin_on_kappamax) ];
         if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
-        subgrid_details = [ subgrid_details ...
-            '_on_kc_' ....
-            fct_num2str(1/model.sigma.k_c) ];
+            subgrid_details = [ subgrid_details ...
+                '_on_kc_' ....
+                fct_num2str(1/model.sigma.k_c) ];
+        elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS') ...
+                && model.sigma.estim_k_LS
+            subgrid_details = [ subgrid_details ...
+                '_estim_k_LS'];
         end
     else
         subgrid_details = [ subgrid_details ...
@@ -275,17 +283,28 @@ elseif model.sigma.sto & ...
     
     % Load precomputed EOFs and correspond variance tensor
     load([ model.folder.folder_EOF '/EOF.mat'],'EOF');
-    load([ model.folder.folder_EOF '/var_tensor_from_EOF.mat'],...
-        'a_xx','a0');
+    
+    %%
+    
+%     load([ model.folder.folder_EOF '/var_tensor_from_EOF.mat'],...
+%         'a_xx','a0');
+%     
+% %     a_xx = sum( permute(EOF,[1 2 3 5 4]) .* permute(EOF,[1 2 5 3 4]) ,5);
+% %     a02 =  1/2 * ( a_xx(:,:,1,1) + a_xx(:,:,2,2) );
+% %     a02 =  mean(a02(:));
     
     EOF = permute(EOF,[1 2 3 5 4]);
     if isinf(model.sigma.nb_EOF)
         model.sigma.nb_EOF = size(EOF,5);
     else
         EOF = EOF(:,:,:,:,1:model.sigma.nb_EOF);
-    end
+    end    
     %model.sigma.nb_EOF = size(EOF,5);
     sigma = EOF; clear EOF;
+    
+    a_xx = sum( sigma .* permute(sigma,[1 2 4 3 5]) ,5);
+    a0 =  1/2 * ( a_xx(:,:,1,1) + a_xx(:,:,2,2) );
+    a0 =  mean(a0(:));
     
     % Filtering the variance tensor at large scales
     sigma_loc = permute(a_xx,[3 4 1 2]);
@@ -298,9 +317,9 @@ elseif model.sigma.sto & ...
     a_xx_aa = multiprod(sigma_loc_aa,multitrans(sigma_loc_aa));
     a_xx_aa = permute(a_xx_aa,[3 4 1 2]);
     
-%     % Set negative values to zero
-%     a_xx = fct_smooth_pos_part(a_xx);
-%     a_xx_aa = fct_smooth_pos_part(a_xx_aa);
+    %     % Set negative values to zero
+    %     a_xx = fct_smooth_pos_part(a_xx);
+    %     a_xx_aa = fct_smooth_pos_part(a_xx_aa);
     
     % Plots
     figure(12);
@@ -355,6 +374,14 @@ end
 
 if model.sigma.sto & model.sigma.hetero_energy_flux
     coef_modulation = fct_epsilon_k_onLine(model,fft_b);
+elseif model.sigma.sto & model.sigma.hetero_modulation_Smag
+    % Heterogeneous dissipation coefficient
+    coef_modulation = fct_coef_diff(model,fft_b);
+    m_coef_modulation = mean(mean(coef_modulation,1),2);
+    coef_modulation = bsxfun( @times, ...
+        1./m_coef_modulation, coef_modulation);
+    clear m_coef_modulation
+    % coef_modulation = fct_coef_diff(model,fft_b);
 elseif model.sigma.sto & ...
         (model.sigma.hetero_modulation | model.sigma.hetero_modulation_V2)
     coef_modulation = fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
@@ -906,8 +933,51 @@ end
 while time < model.advection.advection_duration
     %% Time-correlated velocity
     fft_w = SQG_large_UQ(model, fft_b);
-    w=real(ifft2(fft_w));
+    w = real(ifft2(fft_w));
     % clear fft_w
+    
+    %%
+    
+%     
+%     % plot_abs_diff_from_sigma_postprocess(model,fft2(sigma_dBt_on_sq_dt))
+%     fct_sigma_spectrum_abs_diff_postprocess(model,fft2(w),true,'0');
+%     nb_EOF_v = [8000 2000 200 20 2];
+%     for k=1:length(nb_EOF_v)
+%         nb_EOF = nb_EOF_v(k);
+%         sigma = sigma(:,:,:,:,1:nb_EOF);
+%         %         if model.sigma.nb_EOF > 400
+%         %             sigma_dBt_on_sq_dt = 0;
+%         %             for j=1: nb_EOF
+%         %                 sigma_dBt_on_sq_dt = sigma_dBt_on_sq_dt + ...
+%         %                     sigma(:,:,:,:,j) .* ...
+%         %                     randn( [ 1 1 1 N_ech ]);
+%         %             end
+%         %         else
+%         %             sigma_dBt_on_sq_dt = sum( sigma .* ...
+%         %                 randn( [ 1 1 1 N_ech nb_EOF ]) , 5);
+%         %         end
+%         sigma_dBt_on_sq_dt = sum( sigma .* ...
+%             randn( [ 1 1 1 10 nb_EOF ]) , 5);
+%         plot_abs_diff_from_sigma_postprocess_add(model,...
+%             fft2(sigma_dBt_on_sq_dt), [0.8 0.1 (k-1)/5]);
+%         %             fft2(sigma_dBt_on_sq_dt), [0.8 0.1 0.1 + (k-1)/5]);
+%     end
+%     v=sigma_dBt_on_sq_dt;
+%     2*mean(v(:).^2)
+%     %     v=sigma_dBt_on_sq_dt/sqrt(model.advection.dt_adv);
+%     %     2*mean(v(:).^2)*model.advection.dt_adv
+%     
+% %    taille_police = 8;
+% % %     legend('-7/3','fit','w','\sigma \dot{B}',[],[],[],...
+% %     legend({'-7/3','fit','w','$\sigma \dot{B}$','','','',...
+% %         '8000 EOF','2000 EOF','200 EOF','20 EOF','2 EOF'},...
+% %         'FontUnits','points',...
+% %         'FontWeight','normal',...
+% %         'FontSize',taille_police,...
+% %         'interpreter','latex',...
+% %         'FontName','Times');
+    %%
+    
     
     %% Time-uncorrelated velocity (isotropic and homogeneous in space)
     if ~ model.sigma.sto % Deterministic case
@@ -968,23 +1038,27 @@ while time < model.advection.advection_duration
                 if model.sigma.Smag.bool
                     iii_non_degenerate_a0_SS = (model.sigma.a0_SS > eps);
                     %if model.sigma.a0_SS > eps
-                    if model.sigma.Smag.epsi_without_noise
-                        sigma(:,:,:,iii_non_degenerate_a0_SS) = ...
-                            bsxfun(@times,...
-                            permute( ...
-                            sqrt(2./(...
-                            model.sigma.a0_LS(iii_non_degenerate_a0_SS) ...
-                            + model.sigma.a0_SS(iii_non_degenerate_a0_SS))) ...
-                            , [ 1 3 4 2]) , ...
-                            sigma(:,:,:,(iii_non_degenerate_a0_SS)) );
-                    else
-                        sigma(:,:,:,iii_non_degenerate_a0_SS) = ...
-                            bsxfun( @times, ...
-                            permute( ...
-                            sqrt(2./...
-                            model.sigma.a0_SS(iii_non_degenerate_a0_SS)) ...
-                            , [ 1 3 4 2]) , ...
-                            sigma(:,:,:,iii_non_degenerate_a0_SS) );
+                    if any(iii_non_degenerate_a0_SS)
+                        if model.sigma.Smag.epsi_without_noise
+                            sigma(:,:,:,iii_non_degenerate_a0_SS) = ...
+                                bsxfun(@times,...
+                                permute( ...
+                                sqrt(2./(...
+                                model.sigma.a0_LS(iii_non_degenerate_a0_SS) ...
+                                + model.sigma.a0_SS(iii_non_degenerate_a0_SS))) ...
+                                , [ 1 3 4 2]) , ...
+                                sigma(:,:,:,(iii_non_degenerate_a0_SS)) );
+                        else
+                            sigma(:,:,:,iii_non_degenerate_a0_SS) = ...
+                                bsxfun( @times, ...
+                                permute( ...
+                                sqrt(2./...
+                                model.sigma.a0_SS(iii_non_degenerate_a0_SS)) ...
+                                , [ 1 3 4 2]) , ...
+                                sigma(:,:,:,iii_non_degenerate_a0_SS) );
+                        end
+                        %                     else
+                        %                         sigma = [];
                     end
                     if any(~iii_non_degenerate_a0_SS)
                         if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
@@ -1049,6 +1123,13 @@ while time < model.advection.advection_duration
                 model.sigma.hetero_modulation_V2
             coef_modulation = ...
                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
+        elseif model.sigma.hetero_modulation_Smag
+            % Heterogeneous dissipation coefficient
+            coef_modulation = fct_coef_diff(model,fft_b);
+            m_coef_modulation = mean(mean(coef_modulation,1),2);
+            coef_modulation = bsxfun( @times, ...
+                1./m_coef_modulation, coef_modulation);
+            clear m_coef_modulation
         elseif model.sigma.Smag.bool
             % Heterogeneous dissipation coefficient
             coef_modulation = fct_coef_diff(model,fft_b);
@@ -1268,6 +1349,8 @@ while time < model.advection.advection_duration
     
     %% Adding time-correlated and time decorrelated velocity
     % w_fv = w;
+    
+    
     if  model.sigma.sto & ~model.sigma.no_noise
         w = w + sigma_dBt_on_sq_dt/sqrt(model.advection.dt_adv);
     end
@@ -1337,20 +1420,20 @@ while time < model.advection.advection_duration
     day_num = (floor(time/24/3600));
     
     %%
-%     warning('DEBUG')
-%     % if (t_loop - t_last_plot)*dt >= 3600*24*1
-%     day_num = (floor(time/24/3600));
-%     day = num2str(day_num);
-%     day
-%     day_last_plot = day_num;
-%     
-%     nb=2;
-%     fft_w=fft_w(:,:,:,1:nb);
-%     model.advection.N_ech =nb;
-%     fct_sigma_spectrum_abs_diff_mat(model,fft_w,true,day);
+    %     warning('DEBUG')
+    %     % if (t_loop - t_last_plot)*dt >= 3600*24*1
+    %     day_num = (floor(time/24/3600));
+    %     day = num2str(day_num);
+    %     day
+    %     day_last_plot = day_num;
+    %
+    %     nb=2;
+    %     fft_w=fft_w(:,:,:,1:nb);
+    %     model.advection.N_ech =nb;
+    %     fct_sigma_spectrum_abs_diff_mat(model,fft_w,true,day);
     %%
-
-
+    
+    
     if day_num > day_last_plot
         % if (t_loop - t_last_plot)*dt >= 3600*24*1
         day_num = (floor(time/24/3600));
@@ -1376,7 +1459,9 @@ while time < model.advection.advection_duration
             if model.advection.Smag.bool || ...
                     (model.sigma.sto && ( model.sigma.Smag.bool ...
                     || model.sigma.hetero_modulation ...
-                    || model.sigma.hetero_modulation_V2 ) )
+                    || model.sigma.hetero_modulation_V2 ...
+                    || model.sigma.hetero_energy_flux ...
+                    || model.sigma.hetero_modulation_Smag ) )
                 % Coefficient coef_Smag to target a specific diffusive scale
                 if model.advection.Smag.bool
                     [coef_diff_aa,coef_diff] = fct_coef_diff(model,...
@@ -1385,6 +1470,11 @@ while time < model.advection.advection_duration
                         model.advection.Smag.coef_Smag * coef_diff_aa ;
                     coef_diff = ...
                         model.advection.Smag.coef_Smag * coef_diff ;
+                elseif model.sigma.hetero_modulation_Smag
+                    [coef_diff_aa,coef_diff] = fct_coef_diff(model,...
+                        fft_b(:,:,:,id_part));
+                    coef_diff_aa = coef_diff_aa / mean(coef_diff_aa(:));
+                    coef_diff = coef_diff / mean(coef_diff(:));
                 elseif model.sigma.Smag.bool
                     [coef_diff_aa,coef_diff] = fct_coef_diff(model,...
                         fft_b(:,:,:,id_part));
@@ -1416,6 +1506,7 @@ while time < model.advection.advection_duration
                     [coef_diff_aa,coef_diff] = ...
                         fct_coef_estim_AbsDiff_heterogeneous(...
                         model,fft_w(:,:,:,id_part));
+            
                     coef_diff_aa = ...
                         model.sigma.a0(id_part)/2 * coef_diff_aa ;
                     coef_diff = ...
@@ -1508,6 +1599,7 @@ while time < model.advection.advection_duration
             dt = model.advection.dt_adv
             
         end
+        
         
         % Save files
         save( [model.folder.folder_simu '/files/' day '.mat'], ...
