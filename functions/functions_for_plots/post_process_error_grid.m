@@ -360,34 +360,46 @@ if nargin == 0
         %             % where f_0 is the Corilis frequency
         %         end
         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-            if sigma.Smag.bool | ...
-                    Lap_visco.bool | ( HV.bool & (HV.order<=4) )
-                sigma.kappamin_on_kappamax = 1/2;
-                % sigma.kappamin_on_kappamax = 1/4;
-                % sigma.kappamin_on_kappamax = 1/8;
-            elseif ( HV.bool & (HV.order==8) )
-                switch resolution
-                    case  128
-                        sigma.kappamin_on_kappamax = 1/2;
-                    case 64
-                        pre=1e-2;
-                        sigma.kappamin_on_kappamax = ...
-                            (log(1-pre)/log(pre))^(2/HV.order)
-                        pre_estim_slope=1e-1;
-                        sigma.kappamin_on_kappamax_estim_slope = ...
-                            (log(1-pre_estim_slope)/log(pre_estim_slope))...
-                            ^(2/HV.order)
-                        %                 sigma.kappamin_on_kappamax = 0.45;
-                        %                 % sigma.kappamin_on_kappamax = 1/3;
-                    otherwise
-                        error('unknown');
-                end
-            else
-                warning('kappamin_on_kappamax may be inapropriate');
-                sigma.kappamin_on_kappamax = 1/2;
-                % sigma.kappamin_on_kappamax = 1/4;
-                % sigma.kappamin_on_kappamax = 1/8;
-            end
+%             if sigma.Smag.bool | ...
+%                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
+%                 sigma.kappamin_on_kappamax = 1/2;
+%                 % sigma.kappamin_on_kappamax = 1/4;
+%                 % sigma.kappamin_on_kappamax = 1/8;
+%             elseif ( HV.bool & (HV.order==8) )
+%                 switch resolution
+%                     case  128
+%                         sigma.kappamin_on_kappamax = 1/2;
+%                     case 64
+%                         pre=1e-2;
+%                         sigma.kappamin_on_kappamax = ...
+%                             (log(1-pre)/log(pre))^(2/HV.order)
+%                         pre_estim_slope=1e-1;
+%                         sigma.kappamin_on_kappamax_estim_slope = ...
+%                             (log(1-pre_estim_slope)/log(pre_estim_slope))...
+%                             ^(2/HV.order)
+%                         %                 sigma.kappamin_on_kappamax = 0.45;
+%                         %                 % sigma.kappamin_on_kappamax = 1/3;
+%                     otherwise
+%                         error('unknown');
+%                 end
+%             else
+%                 warning('kappamin_on_kappamax may be inapropriate');
+%                 sigma.kappamin_on_kappamax = 1/2;
+%                 % sigma.kappamin_on_kappamax = 1/4;
+%                 % sigma.kappamin_on_kappamax = 1/8;
+%             end
+        % pre=1e-2;
+        pre_estim_slope=1e-1;
+        pre_5 = 5e-2;
+        sigma.kappamin_on_kappamax = ...
+            (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
+%         sigma.kappamin_on_kappamax = ...
+%             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
+% %         sigma.kappamin_on_kappamax = ...
+% %             (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
+        sigma.kappamin_on_kappamax_estim_slope = ...
+            (log(1-pre_estim_slope)/log(pre_estim_slope))...
+            ^(2/HV.order);
             
             sigma.kappaLS_on_kappamax = 1/8;
         else
@@ -725,6 +737,8 @@ elseif model.sigma.sto & model.sigma.hetero_modulation_V2
     add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
 elseif model.sigma.sto & model.sigma.hetero_energy_flux
     add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
+elseif model.sigma.sto & model.sigma.hetero_modulation_Smag
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_Smag'];
 end
 if model.sigma.sto & model.sigma.no_noise
     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
@@ -780,7 +794,9 @@ if model.sigma.sto
         if model.advection.Smag.spatial_scheme
             subgrid_details = [ subgrid_details '_spatial_scheme'];
         end
-    elseif ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
+    elseif ( model.sigma.hetero_modulation ...
+            |  model.sigma.hetero_modulation_V2 ... 
+            |  model.sigma.hetero_modulation_Smag )
         subgrid_details = ['dealias_ratio_mask_LS_' ...
             fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
         if  model.sigma.proj_free_div
@@ -801,6 +817,10 @@ if model.sigma.sto
             subgrid_details = [ subgrid_details ...
                 '_on_kc_' ....
                 fct_num2str(1/model.sigma.k_c) ];
+        elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS') ...
+                && model.sigma.estim_k_LS
+            subgrid_details = [ subgrid_details ...
+                '_estim_k_LS'];
         end
     else
         subgrid_details = [ subgrid_details ...
