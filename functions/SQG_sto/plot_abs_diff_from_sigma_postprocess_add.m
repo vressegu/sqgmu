@@ -215,7 +215,8 @@ spectrum_a_sigma_plot = spectrum_a_sigma;
 % reference_spectrum = reference_spectrum * mult_offset;
 
 taille_police = 12;
-X0 = [10 20];
+% X0 = [10 20];
+X0 = [0 0];
 
 %     figure10=figure(10);
 %     widthtemp = 12 ;

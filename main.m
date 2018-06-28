@@ -101,8 +101,9 @@ if nargin == 0
         % ~ k2 for k<km ans slope for k>km
         % sigma.type_spectrum = 'BB';
         % sigma.type_spectrum = 'Bidouille';
-        % sigma.type_spectrum = 'EOF';
-        sigma.type_spectrum = 'SelfSim_from_LS'
+%         sigma.type_spectrum = 'EOF';
+        sigma.type_spectrum = 'Euler_EOF';
+%         sigma.type_spectrum = 'SelfSim_from_LS'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -135,9 +136,11 @@ if nargin == 0
         % Modulation Smag
         sigma.hetero_modulation_Smag = false;
         
+        sigma.estim_k_LS = false;
+        
         if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
-            % sigma.estim_k_LS = true;     
-            sigma.estim_k_LS = false;
+%             % sigma.estim_k_LS = true;     
+%             sigma.estim_k_LS = false;
             
             % sigma.time_smooth.bool = false; 
             sigma.time_smooth.bool = true;                
@@ -145,7 +148,8 @@ if nargin == 0
             sigma.time_smooth.tau = 24*3600 / 2;            
         end
         
-        if strcmp(sigma.type_spectrum,'EOF')
+        if strcmp(sigma.type_spectrum,'EOF') ...
+                || strcmp(sigma.type_spectrum,'Euler_EOF')
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             Smag.dealias_ratio_mask_LS = 1/8;
@@ -159,9 +163,9 @@ if nargin == 0
             % sigma.Delta_T_on_Delta_t = 4500;  
             
             % Number of EOF (use all EOFs if set to inf)
-            sigma.nb_EOF = 200; % ref 
+%             sigma.nb_EOF = 200; % ref 
             % sigma.nb_EOF = 2;
-            % sigma.nb_EOF = 8000;
+            sigma.nb_EOF = 8000;
             % sigma.nb_EOF = inf;
         end
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
@@ -452,7 +456,7 @@ if nargin == 0
     % Rate between the smallest and the largest wave number of sigma dBt
     if sigma.sto
         switch sigma.type_spectrum
-            case {'SelfSim_from_LS','EOF'}
+            case {'SelfSim_from_LS','EOF','Euler_EOF'}
                 
                 pre_estim_slope=1e-1;
                 %%
