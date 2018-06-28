@@ -40,23 +40,27 @@ if ~ (exist([folder_simu '/Epsilon_k_meth'],'dir')==7)
     mkdir([folder_simu '/Epsilon_k_meth']);
 end
 if model.sigma.sto ... % Stochastic case
-        & strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
-    if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)
-        mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t']);
-    end
-    if ~ (exist([folder_simu ...
-            '/AbsDiffByScale_sigma_dB_t_PostProcess'],'dir')==7)
-        mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t_PostProcess']);
-    end
+        
+        switch model.sigma.type_spectrum
+            case {'SelfSim_from_LS','EOF'}
+                if ~ (exist([folder_simu '/AbsDiffByScale_sigma_dB_t'],'dir')==7)
+                    mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t']);
+                end
+                if ~ (exist([folder_simu ...
+                        '/AbsDiffByScale_sigma_dB_t_PostProcess'],'dir')==7)
+                    mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t_PostProcess']);
+                end
+                
+                if nargin > 1
+                    comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC,...
+                        model.sigma.type_spectrum);
+                end
+                % elseif strcmp(model.sigma.type_spectrum,'EOF')
+        end
 end
-if nargin > 1
-    comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC,...
-        model.sigma.type_spectrum);
-end
-
     function comp_large_IC_perturb(folder_simu,random_IC_large,...
             plot_random_IC,type_spectrum)
-        if strcmp(type_spectrum,'EOF')            
+        if strcmp(type_spectrum,'EOF')
             folder_simu = [ folder_simu ...
                 '/comp_EOF_SelfSim' ];
         elseif plot_random_IC

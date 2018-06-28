@@ -20,6 +20,7 @@ map = model.folder.colormap;
 %% Dissipation terms
 % Compute the different terms
 fft_b = fft_b(:,:,:,id_part);
+model.advection.N_ech = 1;
 if model.sigma.sto & ...
         strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     model.sigma.a0 = model.sigma.a0(id_part);

@@ -105,7 +105,7 @@ title(['\hspace{0.5cm} $t=' num2str(day) '$ day '],...
     'FontName','Times')
 axis xy; axis equal
 colormap(map)
-% colorbar
+colorbar
 drawnow
 eval( ['print -depsc ' folder_simu '/one_realization/'...
     num2str(day) '.eps']);

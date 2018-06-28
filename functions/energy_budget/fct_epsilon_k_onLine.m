@@ -8,7 +8,7 @@ function [coef_AbsDiff, PI_loc_smoothKX_pos] ...
 %
 
 if model.advection.N_ech > 1
-   warning('This function is not optimized for ensemble forecasts'); 
+%    warning('This function is not optimized for ensemble forecasts'); 
 end
 
 %% Grid of wave vectors
@@ -40,7 +40,7 @@ end
 w_aa = real(ifft2( bsxfun(@times, mask_aa, fft_w) ));
 
 %%
-PI_loc_smoothK = zeros([model.grid.MX]);
+PI_loc_smoothK = zeros([model.grid.MX 1 model.advection.N_ech]);
 for sampl=1:model.advection.N_ech
     kappa_trunc = ( model.sigma.km_LS(sampl) + d_kappa) : d_kappa : ...
         (model.sigma.kappamin_on_kappamax * kappa(end) - d_kappa);
@@ -72,7 +72,8 @@ for sampl=1:model.advection.N_ech
         wgradT = real(ifft2( steep_filter .* fft2(wgradT) ));
         
         % Spatially local flux at scale kappa
-        PI_loc_smoothK(:,:,:,sampl) = PI_loc_smoothK + bsxfun( @times, b_LS , wgradT);
+        PI_loc_smoothK(:,:,:,sampl) = PI_loc_smoothK(:,:,:,sampl) ...
+            + bsxfun( @times, b_LS , wgradT);
         
     end
     % Averaging over spatial frequencies

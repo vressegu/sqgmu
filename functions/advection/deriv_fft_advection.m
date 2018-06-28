@@ -224,6 +224,11 @@ if isfield(model.advection, 'forcing') && model.advection.forcing.bool
             adv5 = - model.advection.forcing.on_T * ...
                 bsxfun(@plus,  fft_b, - model.advection.forcing.F);
             %     d_fft_b_adv = d_fft_b_adv + model.advection.forcing.F;
+%             %%
+%             gg=real(ifft2(model.advection.forcing.F));
+%             sqrt(mean(gg(:).^2)) /  model.physical_constant.buoyancy_freq_N
+%             keyboard;
+%             %%
         case 'Hetero_Spring'
             b_space = real(ifft2(fft_b));
             adv5 = - bsxfun( @times, ...

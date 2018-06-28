@@ -733,7 +733,6 @@ if bool_plot
         'FontWeight','normal',...
         'FontSize',taille_police,...
         'FontName','Times')
-    drawnow
     
     %% Save plot
     drawnow

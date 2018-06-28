@@ -37,7 +37,7 @@ N_ech=200;
 
 if nargin == 0
     % Type of initial condtions
-    type_data ='Vortices' ;
+    type_data ='disym_Vortices' ;
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -56,8 +56,8 @@ if nargin == 0
     % resolution = 1024
     %resolution = 2048
     
-    resolution_LR = 128
-    % resolution_LR = 64
+    % resolution_LR = 128
+     resolution_LR = 64
     
     % The number of grid point is resolution^2
     % It has to be an even integer
@@ -65,7 +65,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -169,7 +169,7 @@ plot_moments = false;
 plot_dissip = false;
 
 % Begin simulation from a precomputed field?
-use_save = true;
+use_save = false;
 % In this case, which day should be used as initialisation
 day_save = 7;
 
@@ -384,7 +384,7 @@ else % Stochastic case
 end
 if model_HR.advection.forcing.bool
     model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
-        '_forced_turb' ];
+        '_forced_turb_' model_HR.advection.forcing.forcing_type];
 else
     model_HR.folder.folder_simu = [ model_HR.folder.folder_simu ...
         '_free_turb' ];

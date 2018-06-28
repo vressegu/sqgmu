@@ -818,9 +818,15 @@ if model.sigma.sto
                 '_on_kc_' ....
                 fct_num2str(1/model.sigma.k_c) ];
         elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS') ...
-                && model.sigma.estim_k_LS
-            subgrid_details = [ subgrid_details ...
-                '_estim_k_LS'];
+                if model.sigma.estim_k_LS
+                    subgrid_details = [ subgrid_details ...
+                     '_estim_k_LS'];
+                end
+                if model.sigma.time_smooth.bool
+                    subgrid_details = [ subgrid_details ...
+                        '_time_smooth_'... 
+                        num2str(24*3600/model.sigma.time_smooth.tau)];
+                end
         end
     else
         subgrid_details = [ subgrid_details ...
@@ -1264,9 +1270,9 @@ for t_loop=t_ini:N_t
         error_vs_t = [ error_vs_t ; temp ];
         v_day = [ v_day eval(day)];
         
-        figure1111=figure(1111);
-        close(figure1111)
-        figure1111=figure(1111);
+        figure111=figure(111);
+        close(figure111)
+        figure111=figure(111);
         if strcmp(model.sigma.type_spectrum , 'EOF')
             % Spectrum discrepancy
             temp(1,1) = nan ;
@@ -1293,7 +1299,7 @@ for t_loop=t_ini:N_t
             legend('Bias EOF','RMSE EOF','Min. dist. EOF',...
                 'Bias SelfSim','RMSE SelfSim','Min. dist. SelfSim');
         else
-            figure;plot(v_day ,error_vs_t(:,2:4)');
+            plot(v_day ,error_vs_t(:,2:4)');
             legend('Bias','RMSE','Min. dist.');
         end
         drawnow;
@@ -1313,6 +1319,16 @@ for t_loop=t_ini:N_t
             fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
             fct_sigma_spectrum_abs_diff_postprocess(...
                 model,fft_w,true,day);
+            subplot(1,2,2);ax = axis;
+            plot_abs_diff_from_sigma_postprocess_add(model,...
+                fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
+               %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+            subplot(1,2,2);axis(ax);
+            
+            drawnow
+            eval( ['print -depsc ' model.folder.folder_simu ...
+                '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+                day '.eps']);
         end
         
     end

@@ -118,9 +118,15 @@ if model.sigma.sto
                 '_on_kc_' ....
                 fct_num2str(1/model.sigma.k_c) ];
         elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS') ...
-                && model.sigma.estim_k_LS
-            subgrid_details = [ subgrid_details ...
-                '_estim_k_LS'];
+                if model.sigma.estim_k_LS
+                    subgrid_details = [ subgrid_details ...
+                     '_estim_k_LS'];
+                end
+                if model.sigma.time_smooth.bool
+                    subgrid_details = [ subgrid_details ...
+                        '_time_smooth_'... 
+                        num2str(24*3600/model.sigma.time_smooth.tau)];
+                end
         end
     else
         subgrid_details = [ subgrid_details ...
@@ -373,6 +379,9 @@ end
 
 
 if model.sigma.sto & model.sigma.hetero_energy_flux
+    if strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
+        model.sigma.km_LS = repmat(model.sigma.km_LS,[1 1 1 N_ech]);
+    end
     coef_modulation = fct_epsilon_k_onLine(model,fft_b);
 elseif model.sigma.sto & model.sigma.hetero_modulation_Smag
     % Heterogeneous dissipation coefficient
@@ -603,6 +612,11 @@ if model.advection.Lap_visco.bool | model.advection.HV.bool
         40 * model.advection.lambda_RMS * ...
         (mean(model.grid.dX)/pi)^model.advection.HV.order;
     
+    model.advection.HV.val
+    % model.advection.HV.val*(model.grid.MX(1)^model.advection.HV.order)
+    model.advection.HV.val/(mean(model.grid.dX)^model.advection.HV.order)
+    model.advection.lambda_RMS
+    
     % if ~model.advection.HV.bool % DNS
     if model.advection.Lap_visco.bool &&  strcmp(model.dynamics,'2D')
         if isfield(model.advection, 'forcing') && model.advection.forcing.bool
@@ -674,6 +688,7 @@ if model.sigma.sto
             = fct_sigma_spectrum_abs_diff(model,fft_w,true,num2str(0));
         % sigma_on_sq_dt = (1/sqrt(model.advection.dt_adv)) * sigma; clear sigma
         sigma = repmat(sigma,[1 1 1 N_ech]);
+        model.sigma.km_LS = repmat(model.sigma.km_LS,[1 N_ech]);
         a0 = tr_a/2;
         model.sigma.a0 = a0;
         model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
@@ -854,6 +869,13 @@ if model.plots
     end
 end
 
+if model.sigma.sto & ...
+        strcmp(model.sigma.type_spectrum,'SelfSim_from_LS') & ...
+        model.sigma.time_smooth.bool
+    sigma_s = 0;
+    % sigma_s = sigma;
+end
+
 %% Use a saved files of a former simulation ?
 if model.advection.use_save
     warning(['The run begin from an older file instead of from the' ...
@@ -930,6 +952,7 @@ end
 %     end
 % end
 
+
 while time < model.advection.advection_duration
     %% Time-correlated velocity
     fft_w = SQG_large_UQ(model, fft_b);
@@ -994,6 +1017,11 @@ while time < model.advection.advection_duration
             % for sampl=1:N_ech
             % parfor sampl=1:N_ech
             %%
+            
+%             if model.sigma.time_smooth.bool
+%                 sigma_s = sigma;
+%             end
+            
             % [sigma(:,:,:,sampl), ~, tr_a(sampl) ] ...
             [ sigma, ~, model.sigma.tr_a ,....
                 model.sigma.slope_sigma,...
@@ -1001,6 +1029,15 @@ while time < model.advection.advection_duration
                 model.sigma.km_LS ]...
                 = fct_sigma_spectrum_abs_diff_mat(...
                 model,fft_w,false);
+            
+            if model.sigma.time_smooth.bool
+                sigma_n_s = sigma;
+                d_sigma_s = 1/model.sigma.time_smooth.tau * ...
+                                 ( - sigma_s + sigma_n_s ) ;
+                sigma_s = sigma_s + d_sigma_s * model.advection.dt_adv;
+                sigma = sigma_s;
+            end
+            
             %             %                 % [sigma(:,:,:,sampl), ~, tr_a(sampl) ] ...
             %             %                 [ sigma(:,:,:,sampl), ~, tr_a(sampl) ,....
             %             %                     slope_sigma(sampl),...
@@ -1516,6 +1553,7 @@ while time < model.advection.advection_duration
                     %                         model.sigma.a0(id_part)/2  ;
                     coef_diff_aa = ...
                         fct_epsilon_k_onLine(model,fft_b,fft_w);
+                    coef_diff_aa = coef_diff_aa(:,:,:,id_part);
                     coef_diff_aa = ...
                         model.sigma.a0(id_part)/2 * coef_diff_aa ;
                     coef_diff=nan(size(coef_diff_aa));
@@ -1525,6 +1563,13 @@ while time < model.advection.advection_duration
                 imagesc(model.grid.x_ref,model.grid.y_ref,...
                     real(ifft2( coef_diff))');axis xy;axis equal;colorbar;
                 subplot(1,2,2);
+                imagesc(model.grid.x_ref,model.grid.y_ref,...
+                    coef_diff_aa');axis xy;axis equal;colorbar;
+                drawnow
+                eval( ['print -depsc ' model.folder.folder_simu ...
+                    '/dissip_coef/' day '.eps']);
+                %%
+                figure(9);
                 imagesc(model.grid.x_ref,model.grid.y_ref,...
                     coef_diff_aa');axis xy;axis equal;colorbar;
                 drawnow
