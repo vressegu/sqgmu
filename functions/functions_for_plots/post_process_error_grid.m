@@ -878,6 +878,9 @@ clear subgrid_details
 if strcmp(model.sigma.type_spectrum , 'EOF')
     model_SelfSim = model;
     model_SelfSim.sigma.type_spectrum = 'SelfSim_from_LS';
+    model_SelfSim.sigma.estim_k_LS = false;
+    model_SelfSim.sigma.time_smooth.bool=true;
+    model_SelfSim.sigma.time_smooth.tau = 24*3600 / 10;
     
     if model_SelfSim.advection.HV.bool
         add_subgrid_deter = ['_HV' '_' fct_num2str(model_SelfSim.advection.HV.order/2)];
@@ -980,6 +983,16 @@ if strcmp(model.sigma.type_spectrum , 'EOF')
                 subgrid_details = [ subgrid_details ...
                     '_on_kc_' ....
                     fct_num2str(1/model_SelfSim.sigma.k_c) ];
+            elseif strcmp(model_SelfSim.sigma.type_spectrum,'SelfSim_from_LS')
+                if model_SelfSim.sigma.estim_k_LS
+                    subgrid_details = [ subgrid_details ...
+                     '_estim_k_LS'];
+                end
+                if model_SelfSim.sigma.time_smooth.bool
+                    subgrid_details = [ subgrid_details ...
+                        '_time_smooth_'... 
+                        num2str(24*3600/model_SelfSim.sigma.time_smooth.tau)];
+                end
             end
         else
             subgrid_details = [ subgrid_details ...
