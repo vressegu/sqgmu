@@ -476,7 +476,9 @@ if bool_plot
     % reference_spectrum = reference_spectrum * mult_offset;
     
     taille_police = 12;
-    X0 = [10 20];
+    
+    X0 = [0 0];
+%     X0 = [10 20];
     
     %     figure10=figure(10);
     %     widthtemp = 12 ;

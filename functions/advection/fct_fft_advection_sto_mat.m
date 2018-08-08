@@ -109,7 +109,8 @@ if model.sigma.sto
     if ~ ( exist('subgrid_details','var')==1)
         subgrid_details = [];
     end
-    if ~ strcmp(model.sigma.type_spectrum,'EOF')
+    if ~ ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+            strcmp(model.sigma.type_spectrum,'Euler_EOF'))
         subgrid_details = [ subgrid_details ...
             '_kappamin_on_kappamax_' ....
             fct_num2str(model.sigma.kappamin_on_kappamax) ];
@@ -278,7 +279,8 @@ elseif model.sigma.sto & ...
     %     % Diffusion coefficient
     %     model.advection.coef_diff = 1/2 * model.sigma.a0;
 elseif model.sigma.sto & ...
-        strcmp(model.sigma.type_spectrum,'EOF')
+        ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+            strcmp(model.sigma.type_spectrum,'Euler_EOF'))
     % sigma = nan;
     
     current_folder = pwd;
@@ -695,7 +697,8 @@ if model.sigma.sto
         missed_var_small_scale_spectrum = 2*a0;
         % Diffusion coefficient
         model.advection.coef_diff = 1/2 * model.sigma.a0;
-    elseif ~ strcmp(model.sigma.type_spectrum,'EOF')
+    elseif ~ ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+            strcmp(model.sigma.type_spectrum,'Euler_EOF') )
         % Fourier transform of the kernel \tilde sigma up to a multiplicative
         % constant
         %     [sigma_on_sq_dt, ~, missed_var_small_scale_spectrum ] ...
@@ -801,7 +804,8 @@ if model.sigma.sto
         %
         %         % Diffusion coefficient
         %         model.advection.coef_diff = 1/2 * model.sigma.a0;
-    elseif ~ strcmp(model.sigma.type_spectrum,'EOF')
+    elseif ~ ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+            strcmp(model.sigma.type_spectrum,'Euler_EOF') )
         % Muliplicative constant of the kernel \tilde sigma
         model.sigma.a0_on_dt = model.sigma.a0 / model.advection.dt_adv;
         sigma = ...
@@ -961,7 +965,7 @@ while time < model.advection.advection_duration
     
     %%
     
-%     
+    
 %     % plot_abs_diff_from_sigma_postprocess(model,fft2(sigma_dBt_on_sq_dt))
 %     fct_sigma_spectrum_abs_diff_postprocess(model,fft2(w),true,'0');
 %     nb_EOF_v = [8000 2000 200 20 2];
@@ -1314,7 +1318,8 @@ while time < model.advection.advection_duration
         
         %% Simulation of sigma dBt
         
-        if ~ strcmp(model.sigma.type_spectrum,'EOF')
+        if ~ ( strcmp(model.sigma.type_spectrum,'EOF') || ...             
+                strcmp(model.sigma.type_spectrum,'Euler_EOF'))
             % Fourier transform of white noise
             dBt_C_on_sq_dt = fft2( randn( [ model.grid.MX 1 N_ech]));
             % Multiplication by the Fourier transform of the kernel \tilde \sigma
