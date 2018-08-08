@@ -906,6 +906,29 @@ if model.advection.use_save
     else
         error('Cannot find buoyancy field')
     end
+    if model.sigma.sto
+        if size(fft_b,4) < model.advection.N_ech
+            if size(fft_b,4) == 1
+                fft_b = repmat ( fft_b, [ 1 1 1 model.advection.N_ech ]);
+                clear w fft_w
+            else
+                error('The number of realisation of the saved file is too low');
+            end
+        end
+        if size(fft_b,4) > model.advection.N_ech
+            warning(['The number of realisation of the saved file is too high.' ...
+                ' Some realisations are hence removed.']);
+            fft_b(:,:,:,(model.advection.N_ech+1):end) = [];
+        end
+        if ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+                strcmp(model.sigma.type_spectrum,'Euler_EOF') ) ...
+                && ( model.sigma.nb_EOF > model.advection.N_ech )
+            warning(['The number of EOF is larger than the ensemble size.' ...
+                ' Some EOFs are hence removed.']);
+            model.sigma.nb_EOF = model.advection.N_ech;
+            sigma(:,:,:,:,(model.advection.N_ech+1):end) = [];
+        end
+    end
     
     % Version of matlab
     vers = version;

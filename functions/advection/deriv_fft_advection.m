@@ -304,7 +304,8 @@ d_fft_b_adv(:,ZM(2),:,:)=0;
         else
             % Visco/diff coef * gradient of buoyancy
             adv_hetero_diff = bsxfun(@times, coef_diff_aa, gradb);
-            if strcmp(model.sigma.type_spectrum,'EOF') % Anisotropic diffusion
+            if strcmp(model.sigma.type_spectrum,'EOF') || ...
+                strcmp(model.sigma.type_spectrum,'Euler_EOF')% Anisotropic diffusion
                 adv_hetero_diff = sum( adv_hetero_diff , 3);
                 adv_hetero_diff = permute(adv_hetero_diff,[1 2 5 4 3]);
             end
