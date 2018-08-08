@@ -394,3 +394,17 @@ legend('Bias RanIC','Bias LU','Estim. error RanIC','Estim. error LU',...
 
 drawnow;
 eval( ['print -depsc ' folder_simu '/Estim_spectral_error/' day '.eps']);
+
+
+%% pointwise qq plot
+
+qq(:,:,:,1) = quantile(T_adv_part,0.025,4);
+qq(:,:,:,2) = quantile(T_adv_part,0.25,4);
+qq(:,:,:,3) = quantile(T_adv_part,0.75,4);
+qq(:,:,:,4) = quantile(T_adv_part,0.975,4);
+
+subsampl = floor(mean(model.grid.MX)/4);
+subsampl_qq = qq(subsampl*[1 2],subsampl*[1 2],1,:);
+subsampl_qq = reshape(subsampl_qq,[4 4]);
+subsampl_T_adv_part_HR = T_adv_part_HR(subsampl*[1 2],subsampl*[1 2],1,:);
+subsampl_T_adv_part_HR = reshape(subsampl_T_adv_part_HR,[4 1]);

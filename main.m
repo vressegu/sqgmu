@@ -21,7 +21,7 @@ dynamics = 'SQG';
 % Duration of the simulation (in seconds)
 advection_duration = 3600*24*130;
 %advection_duration = 3600*24*1000;
-% % advection_duration = 3600*24*20; % 20 days
+% advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
     bool_parfor = false
@@ -48,7 +48,7 @@ if nargin == 0
     
     % Resolution
     resolution = 64;
-    % resolution = 128;
+%     resolution = 128;
     % resolution = 256;
     % resolution = 512;
     % resolution = 1024;
@@ -101,8 +101,8 @@ if nargin == 0
         % ~ k2 for k<km ans slope for k>km
         % sigma.type_spectrum = 'BB';
         % sigma.type_spectrum = 'Bidouille';
-%         sigma.type_spectrum = 'EOF';
-        sigma.type_spectrum = 'Euler_EOF';
+        sigma.type_spectrum = 'EOF';
+%         sigma.type_spectrum = 'Euler_EOF';
 %         sigma.type_spectrum = 'SelfSim_from_LS'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
@@ -145,7 +145,8 @@ if nargin == 0
             % sigma.time_smooth.bool = false; 
             sigma.time_smooth.bool = true;                
             % sigma.time_smooth.tau = 24*3600 / 10;        
-            sigma.time_smooth.tau = 24*3600 / 2;            
+%             sigma.time_smooth.tau = 24*3600 / 2;  
+            sigma.time_smooth.tau = (64/resolution) * 24*3600 / 10 ; 
         end
         
         if strcmp(sigma.type_spectrum,'EOF') ...
@@ -163,9 +164,9 @@ if nargin == 0
             % sigma.Delta_T_on_Delta_t = 4500;  
             
             % Number of EOF (use all EOFs if set to inf)
-%             sigma.nb_EOF = 200; % ref 
+            sigma.nb_EOF = 200; % ref 
             % sigma.nb_EOF = 2;
-            sigma.nb_EOF = 8000;
+%             sigma.nb_EOF = 8000;
             % sigma.nb_EOF = inf;
         end
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
@@ -250,11 +251,12 @@ end
 
 % Number of realizations in the ensemble
 % N_ech = 1;
-N_ech = 200;
-% N_ech = 600;
-% ( N_ech=200 enables moments to converge when the parameter resolution is
-%   set to 128 )
-% ( N_ech is automatically set to 1 in deterministic simulations )
+N_ech = 20;
+% N_ech = 200;
+% % N_ech = 600;
+% % ( N_ech=200 enables moments to converge when the parameter resolution is
+% %   set to 128 )
+% % ( N_ech is automatically set to 1 in deterministic simulations )
 if ~sigma.sto
     N_ech = 1;
 else

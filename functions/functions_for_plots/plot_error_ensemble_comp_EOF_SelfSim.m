@@ -405,3 +405,24 @@ legend('Bias Self.Sim.','Bias EOF',...
 
 drawnow;
 eval( ['print -depsc ' folder_simu '/Estim_spectral_error/' day '.eps']);
+
+%% pointwise qq plot
+
+qq_EOF(:,:,:,1) = quantile(T_adv_part_EOF,0.025,4);
+qq_EOF(:,:,:,2) = quantile(T_adv_part_EOF,0.25,4);
+qq_EOF(:,:,:,3) = quantile(T_adv_part_EOF,0.75,4);
+qq_EOF(:,:,:,4) = quantile(T_adv_part_EOF,0.975,4);
+qq_SelfSim(:,:,:,1) = quantile(T_adv_part_SelfSim,0.05,4);
+qq_SelfSim(:,:,:,2) = quantile(T_adv_part_SelfSim,0.25,4);
+qq_SelfSim(:,:,:,3) = quantile(T_adv_part_SelfSim,0.75,4);
+qq_SelfSim(:,:,:,4) = quantile(T_adv_part_SelfSim,0.95,4);
+
+subsampl = floor(mean(model.grid.MX)/4);
+subsampl_qq_EOF = qq_EOF(subsampl*[1 2],subsampl*[1 2],1,:);
+subsampl_qq_EOF = reshape(subsampl_qq_EOF,[4 4]);
+subsampl_qq_SelfSim = qq_SelfSim(subsampl*[1 2],subsampl*[1 2],1,:);
+subsampl_qq_SelfSim = reshape(subsampl_qq_SelfSim,[4 4]);
+subsampl_T_adv_part_HR = T_adv_part_HR(subsampl*[1 2],subsampl*[1 2],1,:);
+subsampl_T_adv_part_HR = reshape(subsampl_T_adv_part_HR,[4 1]);
+
+

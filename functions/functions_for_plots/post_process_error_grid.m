@@ -360,46 +360,46 @@ if nargin == 0
         %             % where f_0 is the Corilis frequency
         %         end
         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-%             if sigma.Smag.bool | ...
-%                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
-%                 sigma.kappamin_on_kappamax = 1/2;
-%                 % sigma.kappamin_on_kappamax = 1/4;
-%                 % sigma.kappamin_on_kappamax = 1/8;
-%             elseif ( HV.bool & (HV.order==8) )
-%                 switch resolution
-%                     case  128
-%                         sigma.kappamin_on_kappamax = 1/2;
-%                     case 64
-%                         pre=1e-2;
-%                         sigma.kappamin_on_kappamax = ...
-%                             (log(1-pre)/log(pre))^(2/HV.order)
-%                         pre_estim_slope=1e-1;
-%                         sigma.kappamin_on_kappamax_estim_slope = ...
-%                             (log(1-pre_estim_slope)/log(pre_estim_slope))...
-%                             ^(2/HV.order)
-%                         %                 sigma.kappamin_on_kappamax = 0.45;
-%                         %                 % sigma.kappamin_on_kappamax = 1/3;
-%                     otherwise
-%                         error('unknown');
-%                 end
-%             else
-%                 warning('kappamin_on_kappamax may be inapropriate');
-%                 sigma.kappamin_on_kappamax = 1/2;
-%                 % sigma.kappamin_on_kappamax = 1/4;
-%                 % sigma.kappamin_on_kappamax = 1/8;
-%             end
-        % pre=1e-2;
-        pre_estim_slope=1e-1;
-        pre_5 = 5e-2;
-        sigma.kappamin_on_kappamax = ...
-            (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
-%         sigma.kappamin_on_kappamax = ...
-%             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
-% %         sigma.kappamin_on_kappamax = ...
-% %             (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
-        sigma.kappamin_on_kappamax_estim_slope = ...
-            (log(1-pre_estim_slope)/log(pre_estim_slope))...
-            ^(2/HV.order);
+            %             if sigma.Smag.bool | ...
+            %                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
+            %                 sigma.kappamin_on_kappamax = 1/2;
+            %                 % sigma.kappamin_on_kappamax = 1/4;
+            %                 % sigma.kappamin_on_kappamax = 1/8;
+            %             elseif ( HV.bool & (HV.order==8) )
+            %                 switch resolution
+            %                     case  128
+            %                         sigma.kappamin_on_kappamax = 1/2;
+            %                     case 64
+            %                         pre=1e-2;
+            %                         sigma.kappamin_on_kappamax = ...
+            %                             (log(1-pre)/log(pre))^(2/HV.order)
+            %                         pre_estim_slope=1e-1;
+            %                         sigma.kappamin_on_kappamax_estim_slope = ...
+            %                             (log(1-pre_estim_slope)/log(pre_estim_slope))...
+            %                             ^(2/HV.order)
+            %                         %                 sigma.kappamin_on_kappamax = 0.45;
+            %                         %                 % sigma.kappamin_on_kappamax = 1/3;
+            %                     otherwise
+            %                         error('unknown');
+            %                 end
+            %             else
+            %                 warning('kappamin_on_kappamax may be inapropriate');
+            %                 sigma.kappamin_on_kappamax = 1/2;
+            %                 % sigma.kappamin_on_kappamax = 1/4;
+            %                 % sigma.kappamin_on_kappamax = 1/8;
+            %             end
+            % pre=1e-2;
+            pre_estim_slope=1e-1;
+            pre_5 = 5e-2;
+            sigma.kappamin_on_kappamax = ...
+                (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
+            %         sigma.kappamin_on_kappamax = ...
+            %             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
+            % %         sigma.kappamin_on_kappamax = ...
+            % %             (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
+            sigma.kappamin_on_kappamax_estim_slope = ...
+                (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                ^(2/HV.order);
             
             sigma.kappaLS_on_kappamax = 1/8;
         else
@@ -795,7 +795,7 @@ if model.sigma.sto
             subgrid_details = [ subgrid_details '_spatial_scheme'];
         end
     elseif ( model.sigma.hetero_modulation ...
-            |  model.sigma.hetero_modulation_V2 ... 
+            |  model.sigma.hetero_modulation_V2 ...
             |  model.sigma.hetero_modulation_Smag )
         subgrid_details = ['dealias_ratio_mask_LS_' ...
             fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
@@ -819,12 +819,12 @@ if model.sigma.sto
                 fct_num2str(1/model.sigma.k_c) ];
         elseif strcmp(model.sigma.type_spectrum,'SelfSim_from_LS') ...
                 if model.sigma.estim_k_LS
-                    subgrid_details = [ subgrid_details ...
-                     '_estim_k_LS'];
+                subgrid_details = [ subgrid_details ...
+                    '_estim_k_LS'];
                 end
                 if model.sigma.time_smooth.bool
                     subgrid_details = [ subgrid_details ...
-                        '_time_smooth_'... 
+                        '_time_smooth_'...
                         num2str(24*3600/model.sigma.time_smooth.tau)];
                 end
         end
@@ -986,11 +986,11 @@ if strcmp(model.sigma.type_spectrum , 'EOF')
             elseif strcmp(model_SelfSim.sigma.type_spectrum,'SelfSim_from_LS')
                 if model_SelfSim.sigma.estim_k_LS
                     subgrid_details = [ subgrid_details ...
-                     '_estim_k_LS'];
+                        '_estim_k_LS'];
                 end
                 if model_SelfSim.sigma.time_smooth.bool
                     subgrid_details = [ subgrid_details ...
-                        '_time_smooth_'... 
+                        '_time_smooth_'...
                         num2str(24*3600/model_SelfSim.sigma.time_smooth.tau)];
                 end
             end
@@ -1062,7 +1062,7 @@ bt1_LR_vect = [];
 
 error_vs_t = [];
 error_vs_t_SelfSim = [];
- v_day = [];
+v_day = [];
 
 t_ini = first_day*24*3600/dt;
 trigger = false;
@@ -1322,8 +1322,113 @@ for t_loop=t_ini:N_t
         if model.advection.N_ech > 1
             if strcmp(model.sigma.type_spectrum , 'EOF')
                 plot_error_ensemble_comp_EOF_SelfSim
+                
+                if day_num-first_day+1 > 1
+                    %% Qantiles
+                    qq_plot_SelfSim(:,:,day_num-first_day+1,:) = subsampl_qq_SelfSim;
+                    qq_plot_EOF(:,:,day_num-first_day+1,:) = subsampl_qq_EOF;
+                    qq_ref(:,:,day_num-first_day+1) = subsampl_T_adv_part_HR;
+                    %                 v_day = [ v_day eval(day)];
+                    
+                    %% Quantiles
+                    %                 qq_plot(:,:,t_loop-t_ini+1) = subsampl_qq;
+                    %                 qq_ref(:,:,t_loop-t_ini+1) = subsampl_T_adv_part_HR;
+                    for p = 1:4
+                        
+                        figure30=figure(30);
+                        close(figure30)
+                        figure30=figure(30);
+                        
+                        subplot(2,1,1)
+                        hold on;
+                        h_0_95 = area( v_day, [ squeeze( qq_plot_EOF(p,1,:) ), ...
+                            squeeze( qq_plot_EOF(p,4,:) - qq_plot_EOF(p,1,:) ) ]);
+                        set (h_0_95(1), 'FaceColor', 'none');
+                        set (h_0_95(2), 'FaceColor', [0.8 0.8 0.8]);
+                        set (h_0_95, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
+                        
+                        h_0_50 = area( v_day, [ squeeze( qq_plot_EOF(p,2,:) ), ...
+                            squeeze( qq_plot_EOF(p,3,:) - qq_plot_EOF(p,2,:) ) ]);
+                        set (h_0_50(1), 'FaceColor', 'none');
+                        set (h_0_50(2), 'FaceColor', [0.8 0.8 0]);
+                        set (h_0_50, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
+                        
+                        % Raise current axis to the top layer, to prevent it
+                        % from being hidden by the grayed area
+                        set (gca, 'Layer', 'top');
+                        
+                        plot(v_day ,squeeze(qq_ref(p,:,:)),'r');
+                        hold off
+                        title(['Reference ans confidence intervals at 95% and at 50%' ...
+                            ' for the EOF method.']);
+                        
+                        subplot(2,1,2)
+                        hold on;
+                        h_0_95 = area( v_day, [ squeeze( qq_plot_SelfSim(p,1,:) ), ...
+                            squeeze( qq_plot_SelfSim(p,4,:) - qq_plot_SelfSim(p,1,:) ) ]);
+                        set (h_0_95(1), 'FaceColor', 'none');
+                        set (h_0_95(2), 'FaceColor', [0.8 0.8 0.8]);
+                        set (h_0_95, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
+                        
+                        h_0_50 = area( v_day, [ squeeze( qq_plot_SelfSim(p,2,:) ), ...
+                            squeeze( qq_plot_SelfSim(p,3,:) - qq_plot_SelfSim(p,2,:) ) ]);
+                        set (h_0_50(1), 'FaceColor', 'none');
+                        set (h_0_50(2), 'FaceColor', [0.8 0.8 0]);
+                        set (h_0_50, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
+                        
+                        % Raise current axis to the top layer, to prevent it
+                        % from being hidden by the grayed area
+                        set (gca, 'Layer', 'top');
+                        
+                        plot(v_day ,squeeze(qq_ref(p,:,:)),'r');
+                        hold off
+                        title(['Reference ans confidence intervals at 95% and at 50%'...
+                            ' for the self similar method.']);
+                        
+                        drawnow;
+                        eval( ['print -depsc ' model.folder.folder_simu ...
+                            '/quantile_along_time_at_pt_' num2str(p) '.eps']);
+                    end
+                end
             else
                 plot_error_ensemble
+                
+                if day_num-first_day+1 > 1
+                    %% Quantiles
+                    qq_plot(:,:,day_num-first_day+1) = subsampl_qq;
+                    qq_ref(:,:,day_num-first_day+1) = subsampl_T_adv_part_HR;
+                    for p = 1:4
+                                              
+                        figure30=figure(30);
+                        close(figure30)
+                        figure30=figure(30);
+                        
+                        hold on;
+                        h_0_95 = area( v_day, [ squeeze( qq_plot(p,1,:) ), ...
+                            squeeze( qq_plot(p,4,:) - qq_plot(p,1,:) ) ]);  
+                        set (h_0_95(1), 'FaceColor', 'none');
+                        set (h_0_95(2), 'FaceColor', [0.8 0.8 0.8]);
+                        set (h_0_95, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
+                        
+                        h_0_50 = area( v_day, [ squeeze( qq_plot(p,2,:) ), ...
+                            squeeze( qq_plot(p,3,:) - qq_plot(p,2,:) ) ]);
+                        set (h_0_50(1), 'FaceColor', 'none');
+                        set (h_0_50(2), 'FaceColor', [0.8 0.8 0]);
+                        set (h_0_50, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
+                        
+                        % Raise current axis to the top layer, to prevent it
+                        % from being hidden by the grayed area
+                        set (gca, 'Layer', 'top');
+                        
+                        plot(v_day ,squeeze(qq_ref(p,:,:)),'r');
+                        hold off
+                        title('Reference ans confidence intervals at 95% and at 50%');
+                        
+                        drawnow;
+                        eval( ['print -depsc ' model.folder.folder_simu ...
+                            '/quantile_along_time_at_pt_' num2str(p) '.eps']);
+                    end
+                end
             end
         end
         
@@ -1335,7 +1440,7 @@ for t_loop=t_ini:N_t
             subplot(1,2,2);ax = axis;
             plot_abs_diff_from_sigma_postprocess_add(model,...
                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
-               %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+            %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
             subplot(1,2,2);axis(ax);
             
             drawnow
