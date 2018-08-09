@@ -1322,12 +1322,12 @@ for t_loop=t_ini:N_t
         if model.advection.N_ech > 1
             if strcmp(model.sigma.type_spectrum , 'EOF')
                 plot_error_ensemble_comp_EOF_SelfSim
+                %% Qantiles
+                qq_plot_SelfSim(:,:,day_num-first_day+1,:) = subsampl_qq_SelfSim;
+                qq_plot_EOF(:,:,day_num-first_day+1,:) = subsampl_qq_EOF;
+                qq_ref(:,:,day_num-first_day+1) = subsampl_T_adv_part_HR;
                 
                 if day_num-first_day+1 > 1
-                    %% Qantiles
-                    qq_plot_SelfSim(:,:,day_num-first_day+1,:) = subsampl_qq_SelfSim;
-                    qq_plot_EOF(:,:,day_num-first_day+1,:) = subsampl_qq_EOF;
-                    qq_ref(:,:,day_num-first_day+1) = subsampl_T_adv_part_HR;
                     %                 v_day = [ v_day eval(day)];
                     
                     %% Quantiles
@@ -1392,20 +1392,20 @@ for t_loop=t_ini:N_t
                 end
             else
                 plot_error_ensemble
+                %% Quantiles
+                qq_plot(:,:,day_num-first_day+1) = subsampl_qq;
+                qq_ref(:,:,day_num-first_day+1) = subsampl_T_adv_part_HR;
                 
                 if day_num-first_day+1 > 1
-                    %% Quantiles
-                    qq_plot(:,:,day_num-first_day+1) = subsampl_qq;
-                    qq_ref(:,:,day_num-first_day+1) = subsampl_T_adv_part_HR;
                     for p = 1:4
-                                              
+                        
                         figure30=figure(30);
                         close(figure30)
                         figure30=figure(30);
                         
                         hold on;
                         h_0_95 = area( v_day, [ squeeze( qq_plot(p,1,:) ), ...
-                            squeeze( qq_plot(p,4,:) - qq_plot(p,1,:) ) ]);  
+                            squeeze( qq_plot(p,4,:) - qq_plot(p,1,:) ) ]);
                         set (h_0_95(1), 'FaceColor', 'none');
                         set (h_0_95(2), 'FaceColor', [0.8 0.8 0.8]);
                         set (h_0_95, 'LineStyle', '-', 'LineWidth', 1, 'EdgeColor', 'none');
