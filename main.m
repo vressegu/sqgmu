@@ -29,7 +29,7 @@ if nargin == 0
     if bool_mat & bool_parfor
         error('No compatible');
     end
-
+    
     % Type of initial condtions
     type_data ='disym_Vortices';
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
@@ -48,7 +48,7 @@ if nargin == 0
     
     % Resolution
     resolution = 64;
-%     resolution = 128;
+    %     resolution = 128;
     % resolution = 256;
     % resolution = 512;
     % resolution = 1024;
@@ -102,7 +102,7 @@ if nargin == 0
         % sigma.type_spectrum = 'BB';
         % sigma.type_spectrum = 'Bidouille';
         sigma.type_spectrum = 'EOF';
-%         sigma.type_spectrum = 'Euler_EOF';
+        %         sigma.type_spectrum = 'Euler_EOF';
 %         sigma.type_spectrum = 'SelfSim_from_LS'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
@@ -139,14 +139,14 @@ if nargin == 0
         sigma.estim_k_LS = false;
         
         if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
-%             % sigma.estim_k_LS = true;     
-%             sigma.estim_k_LS = false;
+            %             % sigma.estim_k_LS = true;
+            %             sigma.estim_k_LS = false;
             
-            % sigma.time_smooth.bool = false; 
-            sigma.time_smooth.bool = true;                
-            % sigma.time_smooth.tau = 24*3600 / 10;        
-%             sigma.time_smooth.tau = 24*3600 / 2;  
-            sigma.time_smooth.tau = (64/resolution) * 24*3600 / 10 ; 
+            % sigma.time_smooth.bool = false;
+            sigma.time_smooth.bool = true;
+            % sigma.time_smooth.tau = 24*3600 / 10;
+            %             sigma.time_smooth.tau = 24*3600 / 2;
+            sigma.time_smooth.tau = (64/resolution) * 24*3600 / 10 ;
         end
         
         if strcmp(sigma.type_spectrum,'EOF') ...
@@ -160,13 +160,13 @@ if nargin == 0
             % sigma.nbDayLearn= 500;
             
             % Time period sampling for the learning data set
-            sigma.Delta_T_on_Delta_t = 8;  
-            % sigma.Delta_T_on_Delta_t = 4500;  
+            sigma.Delta_T_on_Delta_t = 8;
+            % sigma.Delta_T_on_Delta_t = 4500;
             
             % Number of EOF (use all EOFs if set to inf)
-            sigma.nb_EOF = 200; % ref 
+            sigma.nb_EOF = 200; % ref
             % sigma.nb_EOF = 2;
-%             sigma.nb_EOF = 8000;
+            %             sigma.nb_EOF = 8000;
             % sigma.nb_EOF = inf;
         end
         %     %if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
@@ -229,8 +229,8 @@ if nargin == 0
             
             sigma.Smag.kappamax_on_kappad = 0.5; % (better(?))
             % sigma.Smag.kappamax_on_kappad = 1 / 4;
-%             sigma.Smag.kappamax_on_kappad = 1 / ...
-%                 sigma.kappaMaxUnresolved_on_kappaShanon;
+            %             sigma.Smag.kappamax_on_kappad = 1 / ...
+            %                 sigma.kappaMaxUnresolved_on_kappaShanon;
             
             %         % Factor in front of the additional constant dissipation
             %         % Set to 0 for no additional constant dissipation
@@ -251,7 +251,8 @@ end
 
 % Number of realizations in the ensemble
 % N_ech = 1;
-N_ech = 20;
+N_ech = 4;
+% N_ech = 20;
 % N_ech = 200;
 % % N_ech = 600;
 % % ( N_ech=200 enables moments to converge when the parameter resolution is
@@ -262,7 +263,7 @@ if ~sigma.sto
 else
     N_ech
 end
-    
+
 
 if nargin >0
     bool_parfor = false;
@@ -467,10 +468,10 @@ if nargin == 0
                     (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
                 %         sigma.kappamin_on_kappamax = ...
                 %             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
-               %%
-%                 pre=1e-2;
-%                 sigma.kappamin_on_kappamax = ...
-%                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
+                %%
+                %                 pre=1e-2;
+                %                 sigma.kappamin_on_kappamax = ...
+                %                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
                 %%
                 sigma.kappamin_on_kappamax_estim_slope = ...
                     (log(1-pre_estim_slope)/log(pre_estim_slope))...
@@ -600,6 +601,14 @@ model.grid.dealias_method = dealias_method; %de-aliasing method
 %model.Smag.dealias_ratio_mask_LS = dealias_ratio_mask_LS;
 model.plots = plots_bool;
 
+if ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+        strcmp(model.sigma.type_spectrum,'Euler_EOF') ) ...
+        && ( model.sigma.nb_EOF > model.advection.N_ech )
+    warning(['The number of EOF is larger than the ensemble size.' ...
+        ' Some EOFs are hence removed.']);
+    model.sigma.nb_EOF = model.advection.N_ech;
+end
+
 %% Generating initial buoyancy
 [fft_buoy,model] = fct_buoyancy_init(model,resolution);
 
@@ -610,8 +619,8 @@ elseif bool_mat
     [fft_buoy_final, model] = fct_fft_advection_sto_mat(model, fft_buoy);
 else
     [fft_buoy_final, model] = fct_fft_advection_sto(model, fft_buoy);
-%     warning('BIDOUILLE!!!!')
-%     [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
+    %     warning('BIDOUILLE!!!!')
+    %     [fft_buoy_final, model] = fct_fft_advection_sto_for(model, fft_buoy);
 end
 
 

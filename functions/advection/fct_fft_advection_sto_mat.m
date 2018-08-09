@@ -888,6 +888,7 @@ if model.advection.use_save
     name_file = [model.folder.folder_simu '/files/' day '.mat']; clear day
     clear fft_b
     model_ref = model;
+    
     load(name_file)
     %      model.advection.advection_duration =  ...
     %          model_ref.advection.advection_duration;

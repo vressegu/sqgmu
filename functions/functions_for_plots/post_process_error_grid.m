@@ -1359,7 +1359,7 @@ for t_loop=t_ini:N_t
                         
                         plot(v_day ,squeeze(qq_ref(p,:,:)),'r');
                         hold off
-                        title(['Reference ans confidence intervals at 95% and at 50%' ...
+                        title(['Reference VS confidence intervals at 95% and at 50%' ...
                             ' for the EOF method.']);
                         
                         subplot(2,1,2)
@@ -1382,7 +1382,7 @@ for t_loop=t_ini:N_t
                         
                         plot(v_day ,squeeze(qq_ref(p,:,:)),'r');
                         hold off
-                        title(['Reference ans confidence intervals at 95% and at 50%'...
+                        title(['Reference VS confidence intervals at 95% and at 50%'...
                             ' for the self similar method.']);
                         
                         drawnow;
@@ -1422,7 +1422,7 @@ for t_loop=t_ini:N_t
                         
                         plot(v_day ,squeeze(qq_ref(p,:,:)),'r');
                         hold off
-                        title('Reference ans confidence intervals at 95% and at 50%');
+                        title('Reference VS confidence intervals at 95% and at 50%');
                         
                         drawnow;
                         eval( ['print -depsc ' model.folder.folder_simu ...
