@@ -19,6 +19,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Duration of the simulation (in seconds)
+% advection_duration = 3600*24*120;
 advection_duration = 3600*24*130;
 %advection_duration = 3600*24*1000;
 % advection_duration = 3600*24*20; % 20 days
@@ -103,7 +104,7 @@ if nargin == 0
         % sigma.type_spectrum = 'Bidouille';
         sigma.type_spectrum = 'EOF';
         %         sigma.type_spectrum = 'Euler_EOF';
-%         sigma.type_spectrum = 'SelfSim_from_LS'
+        % sigma.type_spectrum = 'SelfSim_from_LS'
         %  Sigma computed from self similarities from the large scales
         % sigma.type_spectrum = type_spectrum;
         
@@ -142,8 +143,8 @@ if nargin == 0
             %             % sigma.estim_k_LS = true;
             %             sigma.estim_k_LS = false;
             
-            % sigma.time_smooth.bool = false;
-            sigma.time_smooth.bool = true;
+            sigma.time_smooth.bool = false;
+%             sigma.time_smooth.bool = true;
             % sigma.time_smooth.tau = 24*3600 / 10;
             %             sigma.time_smooth.tau = 24*3600 / 2;
             sigma.time_smooth.tau = (64/resolution) * 24*3600 / 10 ;
@@ -251,8 +252,8 @@ end
 
 % Number of realizations in the ensemble
 % N_ech = 1;
-N_ech = 4;
-% N_ech = 20;
+% N_ech = 4;
+N_ech = 20;
 % N_ech = 200;
 % % N_ech = 600;
 % % ( N_ech=200 enables moments to converge when the parameter resolution is
@@ -626,6 +627,7 @@ end
 
 %% Post-process plots
 
+last_day_plot_qq = 120;
 %resolution_HR = 512
 % resolution_HR = 1024
 resolution_HR = 8 * resolution
@@ -642,7 +644,7 @@ if nargin == 0
         model.advection.forcing.bool,model.sigma,...
         model.advection.Lap_visco,model.advection.HV,...
         model.advection.Smag,model.advection.N_ech,...
-        first_day);
+        first_day,last_day_plot_qq);
 end
 
 resolution_HR
