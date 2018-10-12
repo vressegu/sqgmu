@@ -1354,9 +1354,14 @@ for t_loop=t_ini:N_t
                     %                 qq_ref(:,:,t_loop-t_ini+1) = subsampl_T_adv_part_HR;
                     for p = 1:4
                         
+                        width = 5;
+                        height = 3.2;
                         figure30=figure(30);
                         close(figure30)
                         figure30=figure(30);
+                        set(figure30,'Units','inches', ...
+                            'Position',[0 0 width height], ...
+                            'PaperPositionMode','auto');
                         
                         subplot(2,1,1)
                         hold on;
@@ -1469,9 +1474,14 @@ for t_loop=t_ini:N_t
                 if day_num-first_day+1 > 1
                     for p = 1:4
                         
+                        width = 5;
+                        height = 3.2;
                         figure30=figure(30);
                         close(figure30)
                         figure30=figure(30);
+                        set(figure30,'Units','inches', ...
+                            'Position',[0 0 width height], ...
+                            'PaperPositionMode','auto');
                         
                         hold on;
                         h_0_95 = area( v_day(iii_day_keep), [ squeeze( qq_plot(p,1,iii_day_keep) ), ...
