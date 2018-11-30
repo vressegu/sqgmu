@@ -231,7 +231,7 @@ if plot_moments
         'Position',[X0(1) X0(2) 2*width height], ...
         'PaperPositionMode','auto');
     subplot(1,2,1)
-    subimage(x,y,mean_T');axis xy;
+%     subimage(x,y,mean_T');axis xy;
     imagesc(x,y,mean_T');axis xy;
     axis equal
     caxis([-1 1]*model.odg_b);
@@ -270,7 +270,7 @@ if plot_moments
         'FontName','Times')
     
     subplot(1,2,2)
-    subimage(x,y,std_T');
+%     subimage(x,y,std_T');
     imagesc(x,y,std_T');axis xy;
     axis equal
     %caxis([0 model.odg_b/(1e-3)*1.5e-4]);
@@ -344,7 +344,7 @@ if plot_moments
     m4=reshape(m4,sm4);
     
     subplot(1,2,1)
-    subimage(x,y,m3');
+%     subimage(x,y,m3');
     imagesc(x,y,m3');axis xy;
     axis equal
     caxis(2*[-1 1]);
@@ -386,7 +386,7 @@ if plot_moments
         'FontName','Times')
     
     subplot(1,2,2)
-    subimage(x,y,log(m4'-3));
+%     subimage(x,y,log(m4'-3));
     imagesc(x,y,log(m4'-3));axis xy;
     axis equal
     if model.folder.colormap_freeze

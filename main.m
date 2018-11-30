@@ -19,9 +19,7 @@ dynamics = 'SQG';
 %dynamics = '2D';
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*130;
-%advection_duration = 3600*24*1000;
-% advection_duration = 3600*24*20; % 20 days
+advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
     bool_parfor = false
@@ -31,7 +29,7 @@ if nargin == 0
     end
     
     % Type of initial condtions
-    type_data ='disym_Vortices';
+    type_data ='Vortices';
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
@@ -47,8 +45,8 @@ if nargin == 0
     % 'Constantin_case2'
     
     % Resolution
-    resolution = 64;
-    %     resolution = 128;
+%     resolution = 64;
+    resolution = 128;
     % resolution = 256;
     % resolution = 512;
     % resolution = 1024;
@@ -60,7 +58,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = true;
+    forcing = false;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -250,11 +248,8 @@ if nargin == 0
 end
 
 % Number of realizations in the ensemble
-% N_ech = 1;
-N_ech = 4;
-% N_ech = 20;
+N_ech = 1;
 % N_ech = 200;
-% % N_ech = 600;
 % % ( N_ech=200 enables moments to converge when the parameter resolution is
 % %   set to 128 )
 % % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -375,7 +370,7 @@ end
 plot_dissip = true;
 
 % Begin simulation from a precomputed field?
-use_save = true
+use_save = false
 % In this case, which day should be used as initialisation
 day_save = 100;
 % day_save = 126;
