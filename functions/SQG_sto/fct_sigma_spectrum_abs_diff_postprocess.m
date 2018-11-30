@@ -155,6 +155,12 @@ abs_diff_w = sum(spectrum_w_a) * d_kappa;
 if ~ model.sigma.sto
     model.sigma.kappamin_on_kappamax = 1/2;
     model.sigma.kappaLS_on_kappamax = 1/8;
+    pre_estim_slope=1e-1;
+    %     pre_5 = 5e-2;
+    model.sigma.kappamin_on_kappamax_estim_slope = ...
+        (log(1-pre_estim_slope)/log(pre_estim_slope))...
+        ^(2/model.advection.HV.order);
+    model.sigma.estim_k_LS = false;
 end
 threshold_k = model.sigma.kappamin_on_kappamax_estim_slope;
 % threshold_k = model.sigma.kappamin_on_kappamax;
@@ -252,114 +258,118 @@ reference_spectrum_a = mult_offset_spectrum_a * reference_spectrum_a;
 
 % Residual absolute diffusivity by scale
 %%
-residual_spectrum_a = ...
-    reference_spectrum_a_estim - spectrum_w_a(2:end);
-% residual_spectrum_a = ...
-%     reference_spectrum_a_estim;
-% warning('No residual spectrum')
-%%
-residual_spectrum_a(residual_spectrum_a<0)=0;
-% residual_spectrum_a = ...
-%     reference_spectrum_a_estim ./ spectrum_w_a(2:end);
-% % residual_spectrum_a = ...
-% %     reference_spectrum_a ./ reference_spectrum_a_estim;
-% % % residual_spectrum_a = ...
-% % %     (mult_offset_spectrum_a / mult_offset_spectrum_a_estim) * ...
-% % %     reference_spectrum_a ./ reference_spectrum_a_estim;
-residual_spectrum_a(1:(iii_k_LS(1)-1))=0;
-residual_spectrum_a(1:2)=0;
-
-%% Spectre of random small-scale velocity
-f_sigma = residual_spectrum_a;
-%f_sigma = f_sigma * d_kappa;
-
-% switch model.sigma.type_spectrum
-%     case 'Band_Pass_w_Slope'
-%         f_sigma = reference_spectrum;
-%
-%         % % Parseval ( * prod(model.grid.MX) )
-%         % % and integrated over the space ( * prod(model.grid.MX) )
-%         % f_sigma = prod(model.grid.MX)^2 * f_sigma;
-%
-% Band-pass filter
-idx1 = (kappa(2:end) <= k0);
-idx3 = (kappa(2:end) > k_inf);
-idx2 = ~ (idx1 | idx3);
-
-unit_approx = fct_unity_approx_(sum(idx2));
-% unit_approx = ones([1,sum(idx2)]);
-% warning('Above line modified for debug !!!!!')
-
-f_sigma(idx1 | idx3)=0;
-f_sigma(idx2) = f_sigma(idx2) .* unit_approx';
-
-%     case 'Low_Pass_w_Slope'
-%         f_sigma = (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2) ;
-%     case  'Low_Pass_streamFct_w_Slope'
-%         f_sigma = kappa(2:end).^2 .* ...
-%             (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2-1) ;
-%     case  'BB'
-%         f_sigma = ones(size(kappa(2:end))) ;
-%     case  'Bidouille'
-%         f_sigma = 1/10 * ones(size(kappa(2:end))) ;
-%     otherwise
-%         error('Unknown spectrum type for the small-scale velocity');
-% end
-
-% To remove the 2 pi which appear when we integrate the spectrum over the
-% wave-vector angles and add the (2 pi)^2 which appear when we go from k to
-% 2*pi*k
-f_sigma = f_sigma * (2*pi);
-
-% Division by prod(model.grid.MX) because of the variance white-in-space
-% noise
-f_sigma = 1/prod(model.grid.MX) * f_sigma;
-
-% Multiplication by prod(model.grid.MX) because the spectrum respresent
-% an energy by unit of space and not the sum over the space
-f_sigma = prod(model.grid.MX) * f_sigma;
-
-% Discretisation to go from continuous to discrete Fourier transform
-f_sigma = 1/prod(model.grid.dX) * f_sigma;
-
-% Division by k^2 to get the spectrum of the streamfunction
-f_sigma = f_sigma ./ ( kappa(2:end) .^2 );
-
-% From omnidirectional spectrum to Fourier tranform square modulus
-% Division by k in dimension 2
-f_sigma = f_sigma ./ ( kappa(2:end) );
-
-% % Influence of discretisation
-% f_sigma = f_sigma * d_kappa ;
-% f_sigma = f_sigma / ( prod(MX.*dX) /(2*pi) ) ;
-
-% From square modulus to modulus
-f_sigma = sqrt( f_sigma );
-
-% From 1D function to 2D function
-f_sigma = interp1(kappa,[0; f_sigma],k);
-
-% % Cleaning
-% if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
-%     f_sigma(k<=k0)=0;
-% end
-f_sigma(k>k_inf)=0;
-f_sigma=reshape(f_sigma,MX);
-
-% Antialiasing
-f_sigma(PX(1)+1,:)=0;
-f_sigma(:,PX(2)+1)=0;
-
-% % Influence of the complex brownian variance
-% f_sigma = 1/sqrt(prod(MX))*f_sigma;
-
-% % Choice to make the variance tensor explicitely independent of the
-% % resolution (i.e. independent of MX and of dX, but dependent on dX.*MX)
-% f_sigma = sqrt(prod(MX))*f_sigma;
-
-% Orthogonal gradient (from streamfunction to velocity)
-sigma_on_sq_dt(:,:,1)= 1i * ( - ky ) .* f_sigma;
-sigma_on_sq_dt(:,:,2)= 1i * ( + kx ) .* f_sigma;
+if model.sigma.sto
+    residual_spectrum_a = ...
+        reference_spectrum_a_estim - spectrum_w_a(2:end);
+    % residual_spectrum_a = ...
+    %     reference_spectrum_a_estim;
+    % warning('No residual spectrum')
+    %%
+    residual_spectrum_a(residual_spectrum_a<0)=0;
+    % residual_spectrum_a = ...
+    %     reference_spectrum_a_estim ./ spectrum_w_a(2:end);
+    % % residual_spectrum_a = ...
+    % %     reference_spectrum_a ./ reference_spectrum_a_estim;
+    % % % residual_spectrum_a = ...
+    % % %     (mult_offset_spectrum_a / mult_offset_spectrum_a_estim) * ...
+    % % %     reference_spectrum_a ./ reference_spectrum_a_estim;
+    residual_spectrum_a(1:(iii_k_LS(1)-1))=0;
+    residual_spectrum_a(1:2)=0;
+    
+    %% Spectre of random small-scale velocity
+    f_sigma = residual_spectrum_a;
+    %f_sigma = f_sigma * d_kappa;
+    
+    % switch model.sigma.type_spectrum
+    %     case 'Band_Pass_w_Slope'
+    %         f_sigma = reference_spectrum;
+    %
+    %         % % Parseval ( * prod(model.grid.MX) )
+    %         % % and integrated over the space ( * prod(model.grid.MX) )
+    %         % f_sigma = prod(model.grid.MX)^2 * f_sigma;
+    %
+    % Band-pass filter
+    idx1 = (kappa(2:end) <= k0);
+    idx3 = (kappa(2:end) > k_inf);
+    idx2 = ~ (idx1 | idx3);
+    
+    unit_approx = fct_unity_approx_(sum(idx2));
+    % unit_approx = ones([1,sum(idx2)]);
+    % warning('Above line modified for debug !!!!!')
+    
+    f_sigma(idx1 | idx3)=0;
+    f_sigma(idx2) = f_sigma(idx2) .* unit_approx';
+    
+    %     case 'Low_Pass_w_Slope'
+    %         f_sigma = (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2) ;
+    %     case  'Low_Pass_streamFct_w_Slope'
+    %         f_sigma = kappa(2:end).^2 .* ...
+    %             (k0^2 + kappa(2:end).^2) .^ (model.sigma.slope_sigma/2-1) ;
+    %     case  'BB'
+    %         f_sigma = ones(size(kappa(2:end))) ;
+    %     case  'Bidouille'
+    %         f_sigma = 1/10 * ones(size(kappa(2:end))) ;
+    %     otherwise
+    %         error('Unknown spectrum type for the small-scale velocity');
+    % end
+    
+    % To remove the 2 pi which appear when we integrate the spectrum over the
+    % wave-vector angles and add the (2 pi)^2 which appear when we go from k to
+    % 2*pi*k
+    f_sigma = f_sigma * (2*pi);
+    
+    % Division by prod(model.grid.MX) because of the variance white-in-space
+    % noise
+    f_sigma = 1/prod(model.grid.MX) * f_sigma;
+    
+    % Multiplication by prod(model.grid.MX) because the spectrum respresent
+    % an energy by unit of space and not the sum over the space
+    f_sigma = prod(model.grid.MX) * f_sigma;
+    
+    % Discretisation to go from continuous to discrete Fourier transform
+    f_sigma = 1/prod(model.grid.dX) * f_sigma;
+    
+    % Division by k^2 to get the spectrum of the streamfunction
+    f_sigma = f_sigma ./ ( kappa(2:end) .^2 );
+    
+    % From omnidirectional spectrum to Fourier tranform square modulus
+    % Division by k in dimension 2
+    f_sigma = f_sigma ./ ( kappa(2:end) );
+    
+    % % Influence of discretisation
+    % f_sigma = f_sigma * d_kappa ;
+    % f_sigma = f_sigma / ( prod(MX.*dX) /(2*pi) ) ;
+    
+    % From square modulus to modulus
+    f_sigma = sqrt( f_sigma );
+    
+    % From 1D function to 2D function
+    f_sigma = interp1(kappa,[0; f_sigma],k);
+    
+    % % Cleaning
+    % if strcmp(model.sigma.type_spectrum,'Band_Pass_w_Slope')
+    %     f_sigma(k<=k0)=0;
+    % end
+    f_sigma(k>k_inf)=0;
+    f_sigma=reshape(f_sigma,MX);
+    
+    % Antialiasing
+    f_sigma(PX(1)+1,:)=0;
+    f_sigma(:,PX(2)+1)=0;
+    
+    % % Influence of the complex brownian variance
+    % f_sigma = 1/sqrt(prod(MX))*f_sigma;
+    
+    % % Choice to make the variance tensor explicitely independent of the
+    % % resolution (i.e. independent of MX and of dX, but dependent on dX.*MX)
+    % f_sigma = sqrt(prod(MX))*f_sigma;
+    
+    % Orthogonal gradient (from streamfunction to velocity)
+    sigma_on_sq_dt(:,:,1)= 1i * ( - ky ) .* f_sigma;
+    sigma_on_sq_dt(:,:,2)= 1i * ( + kx ) .* f_sigma;
+else
+    sigma_on_sq_dt = zeros([model.grid.MX 2]);
+end
 
 
 % Compute the bi-directional spectrum of sigma dBt
@@ -384,6 +394,7 @@ ft_sigma=sum(ft_sigma,3);
 % One has to multiply by prod(model.grid.MX) because of the variance of
 % the white in space noise
 trace_a = 1/prod(model.grid.MX) * sum(ft_sigma(:));
+
 
 if bool_plot
     
@@ -478,7 +489,7 @@ if bool_plot
     taille_police = 12;
     
     X0 = [0 0];
-%     X0 = [10 20];
+    %     X0 = [10 20];
     
     %     figure10=figure(10);
     %     widthtemp = 12 ;
@@ -540,10 +551,10 @@ if bool_plot
         mBound ...
         min(reference_spectrum_a) ...
         min(reference_spectrum_a_estim)]);
-%     ax(3) = min( [ax(3) ...
-%         min(spectrum_a_sigma_plot) ...
-%         min(reference_spectrum_a) ...
-%         min(reference_spectrum_a_estim)]);
+    %     ax(3) = min( [ax(3) ...
+    %         min(spectrum_a_sigma_plot) ...
+    %         min(reference_spectrum_a) ...
+    %         min(reference_spectrum_a_estim)]);
     ax(1:2)=kappa([2 end]);
     if ax(4)>0
         axis(ax)
@@ -557,26 +568,26 @@ if bool_plot
     loglog(model.sigma.kappamin_on_kappamax * kappa(end)*[1 1],...
         [min(reference_spectrum_a_estim) ax(4)],'k-.')
     hold off
-%     set(gca,'XGrid','on','XTickMode','manual');
-%     width = 9;
-%     height = 3;
-%     set(figure10,'Units','inches', ...
-%         'Position',[X0 2*width height], ...
-%         'PaperPositionMode','auto');
-%     set(gca,'YGrid','on')
-%     set(gca,...
-%         'Units','normalized',...
-%         'FontUnits','points',...
-%         'FontWeight','normal',...
-%         'FontSize',taille_police,...
-%         'FontName','Times')
-%     ylabel('$E(\kappa) \tau(\kappa) \bigl ( m^{3}.s^{-1}.{rad}^{-1} \bigr )$',...
+    %     set(gca,'XGrid','on','XTickMode','manual');
+    %     width = 9;
+    %     height = 3;
+    %     set(figure10,'Units','inches', ...
+    %         'Position',[X0 2*width height], ...
+    %         'PaperPositionMode','auto');
+    %     set(gca,'YGrid','on')
+    %     set(gca,...
+    %         'Units','normalized',...
+    %         'FontUnits','points',...
+    %         'FontWeight','normal',...
+    %         'FontSize',taille_police,...
+    %         'FontName','Times')
+    %     ylabel('$E(\kappa) \tau(\kappa) \bigl ( m^{3}.s^{-1}.{rad}^{-1} \bigr )$',...
     ylabel('$A(\kappa) = E(\kappa) \  \tau(\kappa) $',...
         'FontUnits','points',...
         'interpreter','latex',...
         'FontSize',taille_police,...
         'FontName','Times')
-%     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+    %     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
     xlabel('$\kappa $',...
         'FontUnits','points',...
         'FontWeight','normal',...
@@ -632,13 +643,13 @@ if bool_plot
     axis(ax);
     
     
-%     set(gca,'XGrid','on','XTickMode','manual');
-%     width = 4;
-%     height = 3;
-%     set(figure10,'Units','inches', ...
-%         'Position',[X0(1) X0(2) width height], ...
-%         'PaperPositionMode','auto');
-%     set(gca,'YGrid','on')
+    %     set(gca,'XGrid','on','XTickMode','manual');
+    %     width = 4;
+    %     height = 3;
+    %     set(figure10,'Units','inches', ...
+    %         'Position',[X0(1) X0(2) width height], ...
+    %         'PaperPositionMode','auto');
+    %     set(gca,'YGrid','on')
     
     set(gca,...
         'Units','normalized',...
@@ -647,13 +658,13 @@ if bool_plot
         'FontSize',taille_police,...
         'FontName','Times')
     % ylabel('$|\hat{b}(\kappa)|^2$',...
-%     ylabel('$E(\kappa) \bigl ( m^{3}.s^{-2}.{rad}^{-1} \bigr )$',...
+    %     ylabel('$E(\kappa) \bigl ( m^{3}.s^{-2}.{rad}^{-1} \bigr )$',...
     ylabel('$E(\kappa) $',...
         'FontUnits','points',...
         'interpreter','latex',...
         'FontSize',taille_police,...
         'FontName','Times')
-%     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+    %     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
     xlabel('$\kappa $',...
         'FontUnits','points',...
         'FontWeight','normal',...
@@ -666,23 +677,23 @@ if bool_plot
         'interpreter','latex',...
         'FontSize',12,...
         'FontName','Times')
-%         'FontUnits','points',...
-%         'interpreter','latex',...
-%         'FontSize',taille_police,...
-%         'FontName','Times')
-% %     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
-%     xlabel('$\kappa $',...
-%         'FontUnits','points',...
-%         'FontWeight','normal',...
-%         'FontSize',taille_police,...
-%         'interpreter','latex',...
-%         'FontName','Times')
-%     title('Spectrum',...
-%         'FontUnits','points',...
-%         'FontWeight','normal',...
-%         'interpreter','latex',...
-%         'FontSize',12,...
-%         'FontName','Times')
+    %         'FontUnits','points',...
+    %         'interpreter','latex',...
+    %         'FontSize',taille_police,...
+    %         'FontName','Times')
+    % %     xlabel('$\kappa \bigl ( rad.m^{-1} \bigr )$',...
+    %     xlabel('$\kappa $',...
+    %         'FontUnits','points',...
+    %         'FontWeight','normal',...
+    %         'FontSize',taille_police,...
+    %         'interpreter','latex',...
+    %         'FontName','Times')
+    %     title('Spectrum',...
+    %         'FontUnits','points',...
+    %         'FontWeight','normal',...
+    %         'interpreter','latex',...
+    %         'FontSize',12,...
+    %         'FontName','Times')
     
     
     
@@ -740,9 +751,20 @@ if bool_plot
     drawnow
     
     folder_simu = model.folder.folder_simu;
+    mkdir( [folder_simu ...
+        '/AbsDiffByScale_sigma_dB_t_PostProcess']);
     eval( ['print -depsc ' folder_simu ...
         '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
         day '.eps']);
+    
+    
+%     folder_simu = [ pwd model.folder.folder_simu ];
+%     folder_simu( folder_simu == '/' )='\';
+%     mkdir( [folder_simu ...
+%         '\AbsDiffByScale_sigma_dB_t_PostProcess']);
+%     eval( ['print -depsc ' folder_simu ...
+%         '\AbsDiffByScale_sigma_dB_t_PostProcess\'...
+%         day '.eps']);
     
     % slope_w_a_comp_for_estim
     % km_LS
@@ -773,10 +795,10 @@ end
 % function t = fct_unity_approx_old(N_t)
 % % Approximation of unity
 % %
-% 
+%
 % sslop=8;
 % t=ones(1,N_t);
 % t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
 % t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
-% 
+%
 % end

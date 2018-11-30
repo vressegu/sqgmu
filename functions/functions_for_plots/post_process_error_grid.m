@@ -875,7 +875,7 @@ model.folder.colormap_freeze = ...
 
 %% Comparaison of LU parametrisation
 clear subgrid_details
-if strcmp(model.sigma.type_spectrum , 'EOF')
+if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
     model_SelfSim = model;
     model_SelfSim.sigma.type_spectrum = 'SelfSim_from_LS';
     model_SelfSim.sigma.estim_k_LS = false;
@@ -1146,7 +1146,7 @@ for t_loop=t_ini:N_t
         %         end
         
         %% Load selfSim
-        if strcmp(model.sigma.type_spectrum , 'EOF')
+        if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
             model_SelfSim_ref = model_SelfSim;
             name_file_SelfSim = ...
                 [model_SelfSim.folder.folder_simu '/files/' num2str(day) '.mat'];
@@ -1240,7 +1240,7 @@ for t_loop=t_ini:N_t
         
         model.advection.plot_moments = false;
         [spectrum,name_plot] = fct_plot_post_process(model,fft_b,day);
-        if strcmp(model.sigma.type_spectrum , 'EOF')
+        if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
             color_SelfSim = [1 0 1];
             fct_spectrum_multi(model,fft_b_SelfSim,color_SelfSim);
             fct_spectrum_multi(model,fft_b_deter,'m');
@@ -1250,10 +1250,16 @@ for t_loop=t_ini:N_t
                 ['LU Self.Sim.' num2str(resolution)],...
                 ['Deter. ' num2str(resolution)],...
                 ['Deter. ' num2str(resolution_HR')]);
-        else
+        elseif model.sigma.sto
             fct_spectrum_multi(model,fft_b_deter,'m');
             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
             legend('-5/3',['LU ' num2str(resolution)],...
+                ['Deter. ' num2str(resolution)],...
+                ['Deter. ' num2str(resolution_HR')]);
+            %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+        else
+            fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+            legend('-5/3',...
                 ['Deter. ' num2str(resolution)],...
                 ['Deter. ' num2str(resolution_HR')]);
             %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
@@ -1287,7 +1293,7 @@ for t_loop=t_ini:N_t
         figure111=figure(111);
         close(figure111)
         figure111=figure(111);
-        if strcmp(model.sigma.type_spectrum , 'EOF')
+        if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
             % Spectrum discrepancy
             temp(1,1) = nan ;
             % Error
@@ -1321,14 +1327,14 @@ for t_loop=t_ini:N_t
             '/error_along_time.eps']);
         
         
-%         % color_95 = [0.8 0.8 0.8];
-%         % color_50 = [0.8 0.8 0];
-%         color_95 = [0.8 0.8 1];
-%         color_50 = [0 0 1]; 
+        %         % color_95 = [0.8 0.8 0.8];
+        %         % color_50 = [0.8 0.8 0];
+        %         color_95 = [0.8 0.8 1];
+        %         color_50 = [0 0 1];
         color_95 = [0.9 0.9 1];
-        color_50 = [0.6 0.6 1]; 
-%         color_50 = [0.5 0.5 1]; 
-%         color_ref = 'r';
+        color_50 = [0.6 0.6 1];
+        %         color_50 = [0.5 0.5 1];
+        %         color_ref = 'r';
         color_ref = [0.9 0 0];
         LineWidth_ref = 2;
         LineStyle_ref = '-.';
@@ -1538,22 +1544,41 @@ for t_loop=t_ini:N_t
         end
         
         %%
-        if strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
-            fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
-            fct_sigma_spectrum_abs_diff_postprocess(...
-                model,fft_w,true,day);
+        fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
+        fct_sigma_spectrum_abs_diff_postprocess(...
+            model,fft_w,true,day);
+        if model.sigma.sto ...
+                && model.sigma.time_smooth.bool ...
+                && strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
             subplot(1,2,2);ax = axis;
             plot_abs_diff_from_sigma_postprocess_add(model,...
                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
             %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
             subplot(1,2,2);axis(ax);
-            
-            drawnow
-            eval( ['print -depsc ' model.folder.folder_simu ...
-                '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
-                day '.eps']);
         end
-%         keyboard;
+        
+        drawnow
+        eval( ['print -depsc ' model.folder.folder_simu ...
+            '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+            day '.eps']);
+        
+        %%
+        %         if model.sigma.sto && strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
+        %             fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
+        %             fct_sigma_spectrum_abs_diff_postprocess(...
+        %                 model,fft_w,true,day);
+        %             subplot(1,2,2);ax = axis;
+        %             plot_abs_diff_from_sigma_postprocess_add(model,...
+        %                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
+        %             %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+        %             subplot(1,2,2);axis(ax);
+        %
+        %             drawnow
+        %             eval( ['print -depsc ' model.folder.folder_simu ...
+        %                 '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+        %                 day '.eps']);
+        %         end
+        %         keyboard;
     end
 end
 
