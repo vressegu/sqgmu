@@ -23,11 +23,14 @@ type_data ='Constantin_case2' ;
 % 'Zero' : Field equal to zero everywhere
 
 % Resolution
-%resolution = 128;
-%resolution = 512;
+% resolution = 64;
 resolution = 128;
+%resolution = 512;
 %resolution = 1024;
 %resolution = 2048;
+
+% Advection duration
+advection_duration = 3600*24*16; % 20 days
 
 % The number of grid point is resolution^2
 % It has to be an even integer
@@ -43,12 +46,12 @@ forcing = false;
 
 %% Deterministic Smag model
 % Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
-Smag.bool = true;
+Smag.bool = false;
 
 %% Stochastic terms
 
 % Deterministic or random model
-stochastic_simulation = false;
+stochastic_simulation = true;
 sigma.sto = stochastic_simulation;
 % Usual SQG model (stochastic_simulation=false)
 % or SQG_MU model (stochastic_simulation=true)
@@ -72,7 +75,7 @@ if sigma.sto
     sigma.assoc_diff = false;
     
     % Smagorinsky-like control of dissipation
-    sigma.Smag.bool = true;
+    sigma.Smag.bool = false;
     
     %     % Sigma computed from self similarities from the large scales
     %     sigma.SelfSim_from_LS.bool = true;
@@ -85,7 +88,7 @@ if sigma.sto
     
     % if strcmp(type_spectrum,'SelfSim_from_LS')
     % Heterrogeenosu energy flux epsilon
-    sigma.hetero_energy_flux = false;
+    sigma.hetero_energy_flux = true;
     
     % Modulation by local V L (estimated from the velocity and from
     % thegradient of the velocity)
@@ -94,23 +97,95 @@ if sigma.sto
     % Modulation by local V^2
     sigma.hetero_modulation_V2 = false;
     
-    %     %if strcmp(type_spectrum,'SelfSim_from_LS')
-    %     if sigma.hetero_modulation & strcmp(type_spectrum,'SelfSim_from_LS')
-    if sigma.hetero_modulation | sigma.hetero_energy_flux ...
-            | sigma.hetero_modulation_V2
+    % Modulation Smag
+    sigma.hetero_modulation_Smag = false;
+    
+    sigma.estim_k_LS = false;
+    
+    if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
+        %             % sigma.estim_k_LS = true;
+        %             sigma.estim_k_LS = false;
+        
+        sigma.time_smooth.bool = false;
+        %             sigma.time_smooth.bool = true;
+        % sigma.time_smooth.tau = 24*3600 / 10;
+        %             sigma.time_smooth.tau = 24*3600 / 2;
+        sigma.time_smooth.tau = (64/resolution) * 24*3600 / 10 ;
+    end
+    
+    
+    if strcmp(sigma.type_spectrum,'EOF') ...
+            || strcmp(sigma.type_spectrum,'Euler_EOF')
         % Ratio between the Shanon resolution and filtering frequency used to
         % filter the heterogenous diffusion coefficient
         Smag.dealias_ratio_mask_LS = 1/8;
-        % Smag.dealias_ratio_mask_LS = 1/4;
         
+        % Nb day used to learn to EOFs
+        sigma.nbDayLearn= 50;
+        % sigma.nbDayLearn= 500;
+        
+        % Time period sampling for the learning data set
+        sigma.Delta_T_on_Delta_t = 8;
+        % sigma.Delta_T_on_Delta_t = 4500;
+        
+        % Number of EOF (use all EOFs if set to inf)
+        sigma.nb_EOF = 200; % ref
+        % sigma.nb_EOF = 2;
+        %             sigma.nb_EOF = 8000;
+        % sigma.nb_EOF = inf;
+    end
+    
+    %     %if strcmp(type_spectrum,'SelfSim_from_LS')
+    %     if sigma.hetero_modulation & strcmp(type_spectrum,'SelfSim_from_LS')
+    if sigma.hetero_modulation | sigma.hetero_energy_flux ...
+            | sigma.hetero_modulation_V2 | sigma.hetero_modulation_Smag
+        % Ratio between the Shanon resolution and filtering frequency used to
+        % filter the heterogenous diffusion coefficient
+        % %         Smag.dealias_ratio_mask_LS = 1/8;
+        % %         % Smag.dealias_ratio_mask_LS = 1/4;
+        %         Smag.dealias_ratio_mask_LS = 1/8;
+        
+%         v_dealias_ratio_mask_LS = 1./ [ 4 8]';
+%         v_dealias_ratio_mask_LS = 1./ [1 2 4 8]';
+%         v_dealias_ratio_mask_LS = 1./ [1 2]';
+        v_dealias_ratio_mask_LS = 1;
+        
+        % Compute noise modulation from filtered (kappa_min) fields
+        sigma.hetero_energy_flux_prefilter = true;
+        
+        % Filter noise modulations (1/4*kappa_min) fields
+        sigma.hetero_energy_flux_postfilter = true;
     end
     % end
+    
+    if sigma.hetero_energy_flux
+        sigma.hetero_energy_flux_averaging_after = false;
+        
+        %         v_kappa_VLS_on_kappa_LS = (1/4) * 1./ [2 4 8]';
+        %         v_kappa_VLS_on_kappa_LS = (1/4) * 1./ [1 2 4 8]';
+        v_kappa_VLS_on_kappa_LS = (1/4) ;
+        
+        % Maximum value considered
+        sigma.kappaLSforEspi_on_kappamin = 1;
+    else
+        v_kappa_VLS_on_kappa_LS = nan;
+    end
+    
+    % Use a spatial derivation scheme for the herogeneous
+    % disspation
+    Smag.spatial_scheme = false;
     
     % Force sigma to be diveregence free
     sigma.proj_free_div = true;
     
+    %     if ( (sigma.Smag.bool + sigma.hetero_modulation + ...
+    %             sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1 ) ...
+    %             || ( (sigma.Smag.bool + sigma.assoc_diff ) > 1 )
+    %         error('These parametrizations cannot be combined');
+    %     end
     if ( (sigma.Smag.bool + sigma.hetero_modulation + ...
-            sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ) > 1 ) ...
+            sigma.hetero_energy_flux + sigma.hetero_modulation_V2 ...
+            + sigma.hetero_modulation_Smag) > 1 ) ...
             || ( (sigma.Smag.bool + sigma.assoc_diff ) > 1 )
         error('These parametrizations cannot be combined');
     end
@@ -148,41 +223,42 @@ if sigma.sto
     sigma.kappamax_on_kappaShanon = 1;
     
     % Rate between the smallest and the largest wave number of sigma dBt
-    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-        if sigma.Smag.bool | ...
-                Lap_visco.bool | ( HV.bool & (HV.order<=2) )
-            % sigma.kappamin_on_kappamax = 1/2;
-            sigma.kappamin_on_kappamax = 1/4;
-            % sigma.kappamin_on_kappamax = 1/8;
-            
-%             v_kappamin_on_kappamax = 1 ./ [ 2 4 ];
-%             
-%             sigma_ref = sigma;
-%             Smag_ref = Smag;
-%             for r=1:length(v_kappamin_on_kappamax)
-%                 Smag(r) = catstruct(Smag_ref,Smag(1));
-%                 sigma(r) = catstruct(sigma_ref, sigma(1));
-%                 sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
-%             end
-        elseif ( HV.bool & (HV.order==4) )
-            sigma.kappamin_on_kappamax = 1/2;
-        else
-            warning('kappamin_on_kappamax may be inapropriate');
-            sigma.kappamin_on_kappamax = 1/2;
-            % sigma.kappamin_on_kappamax = 1/4;
-            % sigma.kappamin_on_kappamax = 1/8;
-        end
-        
-        sigma.kappaLS_on_kappamax = 1/8;
-    else
-        %kappamin_on_kappamax = 1/32;
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/128;
-        %         sigma.slope_sigma = - 5;
-        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-        
-        sigma.kappaLS_on_kappamax = 1/8;
-    end
+    %     if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+    %         if sigma.Smag.bool | ...
+    %                 Lap_visco.bool | ( HV.bool & (HV.order<=2) )
+    %             % sigma.kappamin_on_kappamax = 1/2;
+    %             sigma.kappamin_on_kappamax = 1/4;
+    %             % sigma.kappamin_on_kappamax = 1/8;
+    %
+    % %             v_kappamin_on_kappamax = 1 ./ [ 2 4 ];
+    % %
+    % %             sigma_ref = sigma;
+    % %             Smag_ref = Smag;
+    % %             for r=1:length(v_kappamin_on_kappamax)
+    % %                 Smag(r) = catstruct(Smag_ref,Smag(1));
+    % %                 sigma(r) = catstruct(sigma_ref, sigma(1));
+    % %                 sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+    % %             end
+    %         elseif ( HV.bool & (HV.order==4) )
+    %             sigma.kappamin_on_kappamax = 1/2;
+    %         else
+    %             warning('kappamin_on_kappamax may be inapropriate');
+    %             sigma.kappamin_on_kappamax = 1/2;
+    %             % sigma.kappamin_on_kappamax = 1/4;
+    %             % sigma.kappamin_on_kappamax = 1/8;
+    %         end
+    %
+    %         sigma.kappaLS_on_kappamax = 1/8;
+    %     else
+    %         %kappamin_on_kappamax = 1/32;
+    %         sigma.kappamin_on_kappamax = 1/2;
+    %         % sigma.kappamin_on_kappamax = 1/128;
+    %         %         sigma.slope_sigma = - 5;
+    %         % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+    %
+    %         sigma.kappaLS_on_kappamax = 1/8;
+    %     end
+    
     
     %%
     
@@ -228,42 +304,43 @@ if sigma.sto
         % Rate between the smallest and the largest wave number of sigma dBt
         v_kappamin_on_kappamax = 1 ./ [ 2 4 ];
         
-%         sigma_ref = sigma;
-%         Smag_ref = Smag;
-%         for r=1:length(v_kappamin_on_kappamax)
-%             Smag(r) = catstruct(Smag_ref,Smag(1));
-%             sigma(r) = catstruct(sigma_ref, sigma(1));
-%             sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
-%         end
+        %         sigma_ref = sigma;
+        %         Smag_ref = Smag;
+        %         for r=1:length(v_kappamin_on_kappamax)
+        %             Smag(r) = catstruct(Smag_ref,Smag(1));
+        %             sigma(r) = catstruct(sigma_ref, sigma(1));
+        %             sigma(r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+        %         end
         
         
-        sigma_ref = sigma;
-        Smag_ref = Smag;
-        for p=1:length(v_dealias_ratio_mask_LS)
-            for q=1:length(v_kappamax_on_kappad)
-                for r=1:length(v_kappamin_on_kappamax)
-                    Smag(p,q,r) = catstruct(Smag_ref,Smag(1,1,1));
-                    %Smag(p,q) = Smag_ref;
-                    Smag(p,q,r).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
-                    sigma(p,q,r) = catstruct(sigma_ref, sigma(1,1,1));
-                    %sigma(p,q) = sigma_ref;
-                    sigma(p,q,r).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
-                    sigma(p,q,r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
-                end
-            end
-        end
-%         sigma_ref = sigma;
-%         Smag_ref = Smag;
-%         for p=1:length(v_dealias_ratio_mask_LS)
-%             for q=1:length(v_kappamax_on_kappad)
-%                 Smag(p,q) = catstruct(Smag_ref,Smag(1,1));
-%                 %Smag(p,q) = Smag_ref;
-%                 Smag(p,q).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
-%                 sigma(p,q) = catstruct(sigma_ref, sigma(1,1));
-%                 %sigma(p,q) = sigma_ref;
-%                 sigma(p,q).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
-%             end
-%         end
+        %         sigma_ref = sigma;
+        %         Smag_ref = Smag;
+        %         for p=1:length(v_dealias_ratio_mask_LS)
+        %             for q=1:length(v_kappamax_on_kappad)
+        %                 for r=1:length(v_kappamin_on_kappamax)
+        %                     Smag(p,q,r) = catstruct(Smag_ref,Smag(1,1,1));
+        %                     %Smag(p,q) = Smag_ref;
+        %                     Smag(p,q,r).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
+        %                     sigma(p,q,r) = catstruct(sigma_ref, sigma(1,1,1));
+        %                     %sigma(p,q) = sigma_ref;
+        %                     sigma(p,q,r).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+        %                     sigma(p,q,r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+        %                 end
+        %             end
+        %         end
+        
+        %         sigma_ref = sigma;
+        %         Smag_ref = Smag;
+        %         for p=1:length(v_dealias_ratio_mask_LS)
+        %             for q=1:length(v_kappamax_on_kappad)
+        %                 Smag(p,q) = catstruct(Smag_ref,Smag(1,1));
+        %                 %Smag(p,q) = Smag_ref;
+        %                 Smag(p,q).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
+        %                 sigma(p,q) = catstruct(sigma_ref, sigma(1,1));
+        %                 %sigma(p,q) = sigma_ref;
+        %                 sigma(p,q).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+        %             end
+        %         end
         %%
         
         
@@ -277,26 +354,35 @@ end
 
 
 % Viscosity
-Lap_visco.bool = true;
+Lap_visco.bool = false;
 
 % % Smagorinsky-like viscosity
 % Smag.bool = false;
 % % HV.bool = false;
 
 % Hyper-viscosity
-HV.bool = false;
+HV.bool = true;
 
+if HV.bool
+    % HV.order=4;
+    HV.order=8;
+end
+
+% Smagorinsky-like diffusivity/viscosity or Hyper-viscosity
+Smag.bool = false;
 
 if Smag(1,1).bool
     if Lap_visco.bool
         % Ratio between the Shanon resolution and filtering frequency used to
         % filter the heterogenous diffusion coefficient
-        v_dealias_ratio_mask_LS = 1./ [1 2 4 8]';
+        v_dealias_ratio_mask_LS = 1./ 8;
+        %         v_dealias_ratio_mask_LS = 1./ [1 2 4 8]';
         
         % For Smagorinsky-like diffusivity/viscosity or Hyper-viscosity,
         % Ratio between the Shanon resolution cut-off ( = pi / sqrt( dx*dy) )
         % and the targeted diffusion scale
-        v_kappamax_on_kappad = [0.3 0.4 0.6:0.1:0.8]' ;
+        v_kappamax_on_kappad = 0.5 ;
+        %         v_kappamax_on_kappad = [0.3 0.4 0.6:0.1:0.8]' ;
         % v_kappamax_on_kappad = 1./ [1 2 4 8]' ;
         
         for p=1:length(v_dealias_ratio_mask_LS)
@@ -340,6 +426,70 @@ if Smag(1,1).bool
     %     end
 end
 
+%%
+
+if sigma.sto
+    
+    switch sigma.type_spectrum
+        case {'SelfSim_from_LS','EOF','Euler_EOF'}
+            
+            pre_estim_slope=1e-1;
+            %%
+            pre_5 = 5e-2;
+            sigma.kappamin_on_kappamax = ...
+                (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
+            %         sigma.kappamin_on_kappamax = ...
+            %             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
+            %%
+            %                 pre=1e-2;
+            %                 sigma.kappamin_on_kappamax = ...
+            %                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
+            %%
+            sigma.kappamin_on_kappamax_estim_slope = ...
+                (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                ^(2/HV.order);
+            
+            sigma.kappaLS_on_kappamax = 1/8;
+            
+        otherwise
+            switch resolution
+                case  128
+                    sigma.kappamin_on_kappamax = 1/2;
+                case 64
+                    sigma.kappamin_on_kappamax = 1/3;
+                otherwise
+                    error('unknown');
+            end
+    end
+    %%
+    %     model.sigma.kappa_VLS_on_kappa_LS
+    sigma_ref = sigma;
+    Smag_ref = Smag;
+    for p=1:length(v_dealias_ratio_mask_LS)
+        for q=1:length(v_kappa_VLS_on_kappa_LS)
+            %         for q=1:length(v_kappamax_on_kappad)
+            %             for r=1:length(v_kappamin_on_kappamax)
+            Smag(p,q) = catstruct(Smag_ref,Smag(1));
+            %Smag(p,q) = Smag_ref;
+            Smag(p,q).dealias_ratio_mask_LS = v_dealias_ratio_mask_LS(p);
+            
+            sigma(p,q) = catstruct(sigma_ref, sigma(1));
+            sigma(p,q).kappa_VLS_on_kappa_LS = v_kappa_VLS_on_kappa_LS(q);
+            %         %sigma(p,q) = sigma_ref;
+            %         %                 sigma(p,q,r).Smag.kappamax_on_kappad = v_kappamax_on_kappad(q);
+            %         %                 sigma(p,q,r).kappamin_on_kappamax = v_kappamin_on_kappamax(r);
+            %         %             end
+            %         %         end
+        end
+        
+        %     sigma_ref = sigma;
+        %     for p=1:length(v_kappa_VLS_on_kappa_LS)
+        %         sigma(p) = catstruct(sigma_ref,sigma(1));
+        %         sigma(p).kappa_VLS_on_kappa_LS = v_kappa_VLS_on_kappa_LS(p);
+        %         end
+    end
+end
+
 %% Main
 s_Smag = size(Smag);
 Smag = Smag(:);
@@ -351,27 +501,28 @@ if ~ sigma(1).sto
         sigma(j)=sigma(1);
     end
 end
-% for j=1:ll
-parfor j=1:ll
+for j=1:ll
+    % parfor j=1:ll
     main(stochastic_simulation,type_data,resolution,forcing, ...
-        sigma(j),Lap_visco,HV,Smag(j));
+        sigma(j),Lap_visco,HV,Smag(j),advection_duration);
 end
-
+keyboard;
 %% PLots
 
 for j=1:ll
-%parfor j=1:ll
+    %parfor j=1:ll
     plot_post_process_2(stochastic_simulation,type_data,resolution,forcing, ...
         sigma(j),Lap_visco,HV,Smag(j));
 end
 
 %% Compared to reference
 nb_days =30
-resolution_HR = 1024;
+resolution_HR = 8 * resolution;
+% resolution_HR = 1024;
 
 error_vs_t = nan([nb_days,2,ll]);
 for j=1:ll
-%parfor j=1:ll
+    %parfor j=1:ll
     error_vs_t(:,:,j) = post_process_error_grid(...
         stochastic_simulation,type_data,resolution,resolution_HR,...
         forcing,sigma(j),Lap_visco,HV,Smag(j));
