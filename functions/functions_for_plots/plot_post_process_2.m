@@ -190,20 +190,20 @@ if nargin == 0
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
     % % with Vy = ampli_forcing * odg_b *  sin( 2 freq_f pi y/L_y)
+    % end
+    
+    % Type de forcing
+    % forcing_type = 'Kolmogorov';
+    forcing_type = 'Spring';
+    
+    % Amplitude of the forcing
+    ampli_forcing = 10;
+    % ampli_forcing = 1;
+    
+    % Frequency of the forcing
+    freq_f = [3 2];
+    % freq_f = [0 1];
 end
-
-% Type de forcing
-% forcing_type = 'Kolmogorov';
-forcing_type = 'Spring';
-
-% Amplitude of the forcing
-ampli_forcing = 10;
-% ampli_forcing = 1;
-
-% Frequency of the forcing
-freq_f = [3 2];
-% freq_f = [0 1];
-
 
 %% Deterministic subgrid tensor
 
@@ -327,86 +327,186 @@ dealias_method = 'exp';
 % Boundaries conditions
 dirichlet = false;
 
-% Variance tensor a_H
-if stochastic_simulation
-    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-        sigma.k_c = 0;
-    else
-        switch dynamics
-            case 'SQG'
-                sigma.k_c = 1/(3e2); % 1/(300 meters)
-            case '2D'
-                error(...
-                    'The turbulence 2D is not stable under the action of noise');
-                %             k_c = 1/(eps); % 1/(100 meters)
-            otherwise
-                error('Unknown type of dynamics');
+
+if nargin == 0
+    % Variance tensor a_H
+    if stochastic_simulation
+        if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+            sigma.k_c = 0;
+        else
+            switch dynamics
+                case 'SQG'
+                    sigma.k_c = 1/(3e2); % 1/(300 meters)
+                case '2D'
+                    error(...
+                        'The turbulence 2D is not stable under the action of noise');
+                    %             k_c = 1/(eps); % 1/(100 meters)
+                otherwise
+                    error('Unknown type of dynamics');
+            end
+            % a_H is calculated latter in the code using
+            % a_H = 2 * f_0 / k_c^2
+            % where f_0 is the Corilis frequency
         end
-        % a_H is calculated latter in the code using
-        % a_H = 2 * f_0 / k_c^2
-        % where f_0 is the Corilis frequency
-    end
-else
-    % If the simulation is deterministic, a_H = 0 and only one simulation
-    % is performed
-    sigma.k_c = inf; % And then a_H = 0
-    N_ech=1;
-    plot_moments = false;
-end
-
-% Spectrum slope of sigma dBt
-switch dynamics
-    case 'SQG'
-        sigma.slope_sigma = - 5/3;
-    case '2D'
-        sigma.slope_sigma = - 3;
-    otherwise
-        error('Unknown type of dynamics');
-end
-if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
-    sigma.slope_sigma = 0;
-    % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
-    %     sigma.slope_sigma = nan;
-end
-
-% <<<<<<< HEAD
-% % Rate between the smallest and the largest wave number of sigma dBt
-% if sigma.sto & strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-%     sigma.kappamin_on_kappamax = 1/2;
-%     % sigma.kappamin_on_kappamax = 1/4;
-%     % sigma.kappamin_on_kappamax = 1/8;
-%
-%     sigma.kappaLS_on_kappamax = 1/8;
-% else
-%     %kappamin_on_kappamax = 1/32;
-%     sigma.kappamin_on_kappamax = 1/2;
-%     % sigma.kappamin_on_kappamax = 1/128;
-%     %         sigma.slope_sigma = - 5;
-%     % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-% =======
-if sigma.sto
-    % Rate between the smallest and the largest wave number of sigma dBt
-    if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/4;
-        % sigma.kappamin_on_kappamax = 1/8;
-        
-        sigma.kappaLS_on_kappamax = 1/8;
     else
-        %kappamin_on_kappamax = 1/32;
-        sigma.kappamin_on_kappamax = 1/2;
-        % sigma.kappamin_on_kappamax = 1/128;
-        %         sigma.slope_sigma = - 5;
-        % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
-        
-        sigma.kappaLS_on_kappamax = 1/8;
+        % If the simulation is deterministic, a_H = 0 and only one simulation
+        % is performed
+        sigma.k_c = inf; % And then a_H = 0
+        N_ech=1;
+        plot_moments = false;
     end
-    % >>>>>>> 66e0d274c3dc3d35c2b1138c12b022fd3a0806f5
     
-    % Rate between the largest wave number of sigma dBt and the largest wave
-    % number of the simulation
-    sigma.kappamax_on_kappaShanon = 1;
+    % Spectrum slope of sigma dBt
+    switch dynamics
+        case 'SQG'
+            sigma.slope_sigma = - 5/3;
+        case '2D'
+            sigma.slope_sigma = - 3;
+        otherwise
+            error('Unknown type of dynamics');
+    end
+    if  sigma.sto & strcmp(sigma.type_spectrum,'BB')
+        sigma.slope_sigma = 0;
+        % elseif strcmp(sigma.type_spectrum,'SelfSim_from_LS')
+        %     sigma.slope_sigma = nan;
+    end
+    
+    % <<<<<<< HEAD
+    % % Rate between the smallest and the largest wave number of sigma dBt
+    % if sigma.sto & strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+    %     sigma.kappamin_on_kappamax = 1/2;
+    %     % sigma.kappamin_on_kappamax = 1/4;
+    %     % sigma.kappamin_on_kappamax = 1/8;
+    %
+    %     sigma.kappaLS_on_kappamax = 1/8;
+    % else
+    %     %kappamin_on_kappamax = 1/32;
+    %     sigma.kappamin_on_kappamax = 1/2;
+    %     % sigma.kappamin_on_kappamax = 1/128;
+    %     %         sigma.slope_sigma = - 5;
+    %     % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+    % =======
+    % if sigma.sto
+    %     % Rate between the smallest and the largest wave number of sigma dBt
+    %     if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+    %         sigma.kappamin_on_kappamax = 1/2;
+    %         % sigma.kappamin_on_kappamax = 1/4;
+    %         % sigma.kappamin_on_kappamax = 1/8;
+    %
+    %         sigma.kappaLS_on_kappamax = 1/8;
+    %     else
+    %         %kappamin_on_kappamax = 1/32;
+    %         sigma.kappamin_on_kappamax = 1/2;
+    %         % sigma.kappamin_on_kappamax = 1/128;
+    %         %         sigma.slope_sigma = - 5;
+    %         % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+    %
+    %         sigma.kappaLS_on_kappamax = 1/8;
+    %     end
+    %     % >>>>>>> 66e0d274c3dc3d35c2b1138c12b022fd3a0806f5
+    %
+    %     % Rate between the largest wave number of sigma dBt and the largest wave
+    %     % number of the simulation
+    %     sigma.kappamax_on_kappaShanon = 1;
+    % end
+    % if nargin == 0
+    % Rate between the smallest and the largest wave number of sigma dBt
+    if sigma.sto
+        switch sigma.type_spectrum
+            case {'SelfSim_from_LS','EOF','Euler_EOF'}
+                
+                pre_estim_slope=1e-1;
+                %%
+                pre_5 = 5e-2;
+                sigma.kappamin_on_kappamax = ...
+                    (log(1-pre_5)/log(pre_estim_slope))^(2/HV.order);
+                %         sigma.kappamin_on_kappamax = ...
+                %             (log(1-pre_estim_slope)/log(pre_estim_slope))^(2/HV.order);
+                %%
+                %                 pre=1e-2;
+                %                 sigma.kappamin_on_kappamax = ...
+                %                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order);
+                %%
+                sigma.kappamin_on_kappamax_estim_slope = ...
+                    (log(1-pre_estim_slope)/log(pre_estim_slope))...
+                    ^(2/HV.order);
+                
+                sigma.kappaLS_on_kappamax = 1/8;
+                
+            otherwise
+                switch resolution
+                    case  128
+                        sigma.kappamin_on_kappamax = 1/2;
+                    case 64
+                        sigma.kappamin_on_kappamax = 1/3;
+                    otherwise
+                        error('unknown');
+                end
+        end
+        
+        %         if strcmp(sigma.type_spectrum , 'SelfSim_from_LS')
+        %             if sigma.Smag.bool | ...
+        %                     Lap_visco.bool | ( HV.bool & (HV.order<=4) )
+        %                 sigma.kappamin_on_kappamax = 1/2;
+        %                 % sigma.kappamin_on_kappamax = 1/4;
+        %                 % sigma.kappamin_on_kappamax = 1/8;
+        %             elseif ( HV.bool & (HV.order==8) )
+        %                 switch resolution
+        %                     case  128
+        %                 % sigma.kappamin_on_kappamax = 1/2;
+        %                 pre=1e-2;
+        %                 pre_estim_slope=1e-1;
+        %                 sigma.kappamin_on_kappamax = ...
+        %                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
+        %                 sigma.kappamin_on_kappamax_estim_slope = ...
+        %                     (log(1-pre_estim_slope)/log(pre_estim_slope))...
+        %                     ^(2/HV.order)
+        %                     case 64
+        %                 pre=1e-2;
+        %                 pre_estim_slope=1e-1;
+        %                 sigma.kappamin_on_kappamax = ...
+        %                     (log(1-pre)/log(pre_estim_slope))^(2/HV.order)
+        %                 sigma.kappamin_on_kappamax_estim_slope = ...
+        %                     (log(1-pre_estim_slope)/log(pre_estim_slope))...
+        %                     ^(2/HV.order)
+        % %                 sigma.kappamin_on_kappamax = 0.45;
+        % %                 % sigma.kappamin_on_kappamax = 1/3;
+        %                     otherwise
+        %                         error('unknown');
+        %                 end
+        %             else
+        %                 warning('kappamin_on_kappamax may be inapropriate');
+        %                 sigma.kappamin_on_kappamax = 1/2;
+        %                 % sigma.kappamin_on_kappamax = 1/4;
+        %                 % sigma.kappamin_on_kappamax = 1/8;
+        %             end
+        %
+        %             sigma.kappaLS_on_kappamax = 1/8;
+        %         else
+        %             switch resolution
+        %                 case  128
+        %                     sigma.kappamin_on_kappamax = 1/2;
+        %                 case 64
+        %                     sigma.kappamin_on_kappamax = 1/3;
+        %                 otherwise
+        %                     error('unknown');
+        %             end
+        %
+        % %             %kappamin_on_kappamax = 1/32;
+        % %             sigma.kappamin_on_kappamax = 1/2;
+        % %             % sigma.kappamin_on_kappamax = 1/128;
+        % %             %         sigma.slope_sigma = - 5;
+        % %             % warning('THIS PARAMETER NEEDS TO BE CHANGED -- TEST');
+        %
+        %             sigma.kappaLS_on_kappamax = 1/8;
+        %         end
+        
+        % Rate between the largest wave number of sigma dBt and the largest wave
+        % number of the simulation
+        sigma.kappamax_on_kappaShanon = 1;
+    end
 end
+
 
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
 switch dynamics
@@ -783,7 +883,10 @@ if model.sigma.sto
         if model.advection.Smag.spatial_scheme
             subgrid_details = [ subgrid_details '_spatial_scheme'];
         end
-    elseif ( model.sigma.hetero_modulation |  model.sigma.hetero_modulation_V2)
+    elseif ( model.sigma.hetero_modulation ...
+            |  model.sigma.hetero_modulation_V2 ...
+            |  model.sigma.hetero_modulation_Smag ...
+            | model.sigma.hetero_energy_flux )
         subgrid_details = ['dealias_ratio_mask_LS_' ...
             fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
         if  model.sigma.proj_free_div
@@ -892,7 +995,7 @@ for t_loop=t_ini:N_t
     day_num = (floor(t_loop*dt_loop/24/3600));
     
     if day_num > day_last_plot
-    % if (t_loop - t_last_plot)*dt >= 3600*24*1
+        % if (t_loop - t_last_plot)*dt >= 3600*24*1
         day_num = (floor(t_loop*dt_loop/24/3600));
         day = num2str(day_num);
         day
@@ -1086,15 +1189,15 @@ for t_loop=t_ini:N_t
             a0_SS=model.sigma.a0_SS
         end
         
-%         if model.advection.cov_and_abs_diff
-%             abs_diff = sum(cov_w(t_ref_cov:end))*model.advection.dt_adv;
-%             figure(36)
-%             plot(model.advection.dt_adv*(0:(N_t-1))/3600/24,cov_w);
-%             hold on;
-%             plot(t_ref_cov*[1 1]*model.advection.dt_adv/3600/24,...
-%                 max(abs(cov_w(~isnan(cov_w))))*[-1 1],'r');
-%             hold off
-%         end
+        %         if model.advection.cov_and_abs_diff
+        %             abs_diff = sum(cov_w(t_ref_cov:end))*model.advection.dt_adv;
+        %             figure(36)
+        %             plot(model.advection.dt_adv*(0:(N_t-1))/3600/24,cov_w);
+        %             hold on;
+        %             plot(t_ref_cov*[1 1]*model.advection.dt_adv/3600/24,...
+        %                 max(abs(cov_w(~isnan(cov_w))))*[-1 1],'r');
+        %             hold off
+        %         end
         
         % Dissipation by scale
         if plot_epsilon_k

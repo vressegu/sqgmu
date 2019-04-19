@@ -23,10 +23,11 @@ if nargin == 0
 end
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*30;
+advection_duration = 3600*24*1;
 % advection_duration = 3600*24*1000;
 % % advection_duration = 3600*24*20; % 20 days
 
+% first_day = 100;
 first_day = 0;
 
 % Number of realizations in the ensemble
@@ -37,7 +38,8 @@ N_ech=200;
 
 if nargin == 0
     % Type of initial condtions
-    type_data ='disym_Vortices' ;
+    type_data ='Vortices' ;
+    % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
     %    Memin E., Chapron B.)
@@ -48,16 +50,18 @@ if nargin == 0
     % 'Spectrum' : Gaussian random field with a spectrum slope deined by
     %   the variable slop_b_ini (default value  = -5/3)
     % 'Zero' : Field equal to zero everywhere
+    %     type_data ='Constantin_case2' ;
+    %     type_data ='disym_Vortices' ;
     
     % Resolution
     %resolution = 128
     resolution = 512
     %resolution = 128
-    % resolution = 1024
+%     resolution = 1024
     %resolution = 2048
     
-    % resolution_LR = 128
-     resolution_LR = 64
+    resolution_LR = 128
+%     resolution_LR = 64
     
     % The number of grid point is resolution^2
     % It has to be an even integer
@@ -65,7 +69,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = true;
+    forcing = false;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)
@@ -169,9 +173,10 @@ plot_moments = false;
 plot_dissip = false;
 
 % Begin simulation from a precomputed field?
-use_save = false;
+use_save = true;
 % In this case, which day should be used as initialisation
-day_save = 7;
+day_save = 100;
+% day_save = 7;
 
 dealias_method = 'exp';
 % [WIP] Method for mandatory de-aliasing of non-linear terms in
@@ -454,6 +459,9 @@ model_HR.folder = model_HR_ref.folder;
 dt=model_HR.advection.dt_adv;
 N_t = ceil(model_HR.advection.advection_duration/dt);
 
+
+
+
 %x = model_LR.grid.dX(1)*(0:model.grid.MX(1)-1);
 % % if model.mirror
 % %     y = model.grid.dX(2)*(0:model.grid.MX(2)/2-1);
@@ -475,15 +483,26 @@ dt_loop = dt;
 
 t_ini = first_day*24*3600/dt;
 
+%%
+
+
+t_loop = t_ini - 1;
+while t_loop*dt_loop <= advection_duration
+    % while t_loop*dt_loop <= model.advection.advection_duration
+    t_loop = t_loop +1;
+    % for t_loop=t_ini:N_t
+    %%
+
 %
-% trigger = false;
-% %t_ini=1700000
-for t_loop=t_ini:N_t
-    %     %     %% Plot
-    %     % t_loop=1;
-    %     if (t_loop - t_last_plot)*dt >= 3600*24*1
-    %         day = num2str(floor(t_loop*dt/24/3600));
-    % t_loop=1;
+% % trigger = false;
+% % %t_ini=1700000
+% for t_loop=t_ini:N_t
+%     %     %     %% Plot
+%     %     % t_loop=1;
+%     %     if (t_loop - t_last_plot)*dt >= 3600*24*1
+%     %         day = num2str(floor(t_loop*dt/24/3600));
+%     % t_loop=1;
+    
     day_num = (floor(t_loop*dt_loop/24/3600));
     
     if day_num > day_last_plot
@@ -491,8 +510,8 @@ for t_loop=t_ini:N_t
         day_num = (floor(t_loop*dt/24/3600));
         
         
-%         warning('GROSSE BIDOUILLE')
-%         day_num = 100;
+        %         warning('GROSSE BIDOUILLE')
+        %         day_num = 100;
         
         day = num2str(day_num);
         day
@@ -554,6 +573,79 @@ for t_loop=t_ini:N_t
             model_HR.sigma.sto = (model_HR.sigma.a0>0);
         end
         
+        %%
+        
+        % Colormap
+        load('BuYlRd.mat');
+        model_HR.folder.colormap = BuYlRd; clear BuYlRd
+        
+        % Version of matlab
+        vers = version;
+        year = str2double(vers(end-5:end-2));
+        subvers = vers(end-1);
+        model_HR.folder.colormap_freeze = ...
+            (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
+
+%         if model.advection.N_ech > 1
+%             model.advection.plot_moments = true;
+%             fct_plot_post_process(model,fft_b,day);
+%             pause(0.1);
+%         end
+        
+%         fct_plot_post_process(model_deter,fft_b_deter,day);
+%         %         fct_plot_post_process(model_HR,fft_buoy_part_ref,day);
+        
+%         model_HR.advection.plot_moments = false;
+        [spectrum,name_plot] = fct_plot_post_process(model_HR,fft_b,day);
+%         if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
+%             color_SelfSim = [1 0 1];
+%             fct_spectrum_multi(model,fft_b_SelfSim,color_SelfSim);
+%             fct_spectrum_multi(model,fft_b_deter,'m');
+%             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+%             legend('-5/3',...
+%                 ['LU EOF' num2str(resolution)],...
+%                 ['LU Self.Sim.' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution_HR')]);
+%         elseif model.sigma.sto
+%             fct_spectrum_multi(model,fft_b_deter,'m');
+%             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+%             legend('-5/3',['LU ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution_HR')]);
+%             %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+%         else
+%             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+%             legend('-5/3',...
+%                 ['Deter. ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution_HR')]);
+%             %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+%         end
+        eval( ['print -depsc ' model_HR.folder.folder_simu '/Spectrum/' day '.eps']);
+        %         if model.advection.plot_dissip
+        %             fct_plot_dissipation(model,fft_buoy_part,sigma_on_sq_dt,day);
+        %         end
+        
+        
+        %% Spectrum and ADSD
+        fft_w = SQG_large_UQ(model_HR, fft_b(:,:,:,1));
+        fct_sigma_spectrum_abs_diff_postprocess(...
+            model_HR,fft_w,true,day);
+%         if model_HR.sigma.sto ...
+%                 && model_HR.sigma.time_smooth.bool ...
+%                 && strcmp( model_HR.sigma.type_spectrum, 'SelfSim_from_LS')
+%             subplot(1,2,2);ax = axis;
+%             plot_abs_diff_from_sigma_postprocess_add(model_HR,...
+%                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
+%             %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+%             subplot(1,2,2);axis(ax);
+%         end
+        
+        drawnow
+        eval( ['print -depsc ' model_HR.folder.folder_simu ...
+            '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+            day '.eps']);
+        
         %model.odg_b = model.odg_b*3;
         %
         %         fct_plot(model,fft_buoy_part,day)
@@ -610,6 +702,77 @@ for t_loop=t_ini:N_t
         %% Save files
         save( [model_LR.folder.folder_simu '/files/' day '.mat'], ...
             'model_LR','time','fft_buoy_part_ref','spectrum_ref');
+        
+        
+        
+        %%
+        
+        % Colormap
+        load('BuYlRd.mat');
+        model_HR.folder.colormap = BuYlRd; clear BuYlRd
+        
+        % Version of matlab
+        vers = version;
+        year = str2double(vers(end-5:end-2));
+        subvers = vers(end-1);
+        model_HR.folder.colormap_freeze = ...
+            (  year < 2014 || ( year == 2014 && strcmp(subvers,'a') ) );
+
+        
+%         model_HR.advection.plot_moments = false;
+        fct_plot_post_process(model_LR,fft_buoy_part_ref,day);
+%         if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
+%             color_SelfSim = [1 0 1];
+%             fct_spectrum_multi(model,fft_b_SelfSim,color_SelfSim);
+%             fct_spectrum_multi(model,fft_b_deter,'m');
+%             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+%             legend('-5/3',...
+%                 ['LU EOF' num2str(resolution)],...
+%                 ['LU Self.Sim.' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution_HR')]);
+%         elseif model.sigma.sto
+%             fct_spectrum_multi(model,fft_b_deter,'m');
+%             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+%             legend('-5/3',['LU ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution_HR')]);
+%             %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+%         else
+%             fct_spectrum_multi(model,fft_buoy_part_ref,'r');
+%             legend('-5/3',...
+%                 ['Deter. ' num2str(resolution)],...
+%                 ['Deter. ' num2str(resolution_HR')]);
+%             %legend('-5/3','LU 128','Deter. 128','Deter. 1024')
+%         end
+        eval( ['print -depsc ' model_LR.folder.folder_simu '/Spectrum/' day '.eps']);
+        %         if model.advection.plot_dissip
+        %             fct_plot_dissipation(model,fft_buoy_part,sigma_on_sq_dt,day);
+        %         end
+        
+        
+        %% Spectrum and ADSD
+        fft_w = SQG_large_UQ(model_LR, fft_buoy_part_ref(:,:,:,1));
+        fct_sigma_spectrum_abs_diff_postprocess(...
+            model_LR,fft_w,true,day);
+%         if model_HR.sigma.sto ...
+%                 && model_HR.sigma.time_smooth.bool ...
+%                 && strcmp( model_HR.sigma.type_spectrum, 'SelfSim_from_LS')
+%             subplot(1,2,2);ax = axis;
+%             plot_abs_diff_from_sigma_postprocess_add(model_HR,...
+%                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
+%             %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+%             subplot(1,2,2);axis(ax);
+%         end
+        
+        drawnow
+        eval( ['print -depsc ' model_LR.folder.folder_simu ...
+            '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+            day '.eps']);
+        
+        %model.odg_b = model.odg_b*3;
+        %
+        %         fct_plot(model,fft_buoy_part,day)
         
     end
 end

@@ -1,9 +1,12 @@
 function error_vs_t = post_process_error_grid(stochastic_simulation,...
     type_data,resolution,resolution_HR,forcing,sigma,Lap_visco,HV,Smag,...
-    N_ech,first_day,last_day_plot_qq)
+    N_ech,first_day,advection_duration,day_save)
+%     N_ech,first_day,last_day_plot_qq)
 %Lap_visco,HV,Smag,day_choose)
 % plot the same thing that fct_fft_advection_sto
 %
+
+last_day_plot_qq = floor(advection_duration/3600/24);
 
 
 if nargin == 0
@@ -322,10 +325,16 @@ end
 % Plot dissipations terms
 plot_dissip = true;
 
-% Begin simulation from a precomputed field?
-use_save = false;
-% In this case, which day should be used as initialisation
-day_save = 7;
+if nargin == 0
+    % Begin simulation from a precomputed field?
+    use_save = false;
+    % In this case, which day should be used as initialisation
+    if use_save
+        day_save = 7;
+    else
+        day_save = 0;
+    end
+end
 
 dealias_method = 'exp';
 % [WIP] Method for mandatory de-aliasing of non-linear terms in
@@ -511,8 +520,10 @@ model.advection.HV = HV;
 model.advection.cov_and_abs_diff = cov_and_abs_diff;
 model.advection.Lap_visco = Lap_visco;
 model.advection.Smag = Smag;
-model.advection.use_save = use_save;
-model.advection.day_save = day_save;
+if nargin == 0
+    model.advection.use_save = use_save;
+    model.advection.day_save = day_save;
+end
 model.grid.dealias_method = dealias_method; %de-aliasing method
 %model.Smag.dealias_ratio_mask_LS = dealias_ratio_mask_LS;
 model.plots = plots_bool;
@@ -701,7 +712,6 @@ end
 model_deter.folder.folder_simu = [ model_deter.folder.folder_simu ...
     '/' num2str(model_deter.grid.MX(1)) 'x' num2str(model_deter.grid.MX(2)) ];
 
-
 %% Folder to save plots and files
 clear subgrid_details
 if model.advection.HV.bool
@@ -732,13 +742,69 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
         add_subgrid_deter = [add_subgrid_deter '_epsi_without_noise'];
     end
 elseif model.sigma.sto & model.sigma.hetero_modulation
-    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation'];
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation'];  
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 elseif model.sigma.sto & model.sigma.hetero_modulation_V2
-    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];  
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end   
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 elseif model.sigma.sto & model.sigma.hetero_energy_flux
     add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
+    if model.sigma.hetero_energy_flux_v2
+        add_subgrid_deter = [add_subgrid_deter '_v2'];
+    end
+    if model.sigma.hetero_energy_flux_averaging_after
+        add_subgrid_deter = [add_subgrid_deter '_1_3rd_before_norm'];
+    end
+    if isfield(model.sigma,'kappa_VLS_on_kappa_LS')
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_kappa_LS_on_kappa_VLS_' ...
+            num2str(1/model.sigma.kappa_VLS_on_kappa_LS)];
+    end
+    if isfield(model.sigma,'kappaLSforEspi_on_kappamin')
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_kappamin_on_kappaLSforEspi__' ...
+            num2str(1/model.sigma.kappaLSforEspi_on_kappamin)];
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 elseif model.sigma.sto & model.sigma.hetero_modulation_Smag
-    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_Smag'];
+    add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_Smag'];    
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 end
 if model.sigma.sto & model.sigma.no_noise
     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
@@ -796,7 +862,8 @@ if model.sigma.sto
         end
     elseif ( model.sigma.hetero_modulation ...
             |  model.sigma.hetero_modulation_V2 ...
-            |  model.sigma.hetero_modulation_Smag )
+            |  model.sigma.hetero_modulation_Smag  ...
+            | model.sigma.hetero_energy_flux )
         subgrid_details = ['dealias_ratio_mask_LS_' ...
             fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
         if  model.sigma.proj_free_div
@@ -1037,13 +1104,16 @@ model.advection.step='finite_variation';
 % t_ini=1;
 
 folder_ref = model.folder.folder_simu;
-name_file = [model.folder.folder_simu '/files/' num2str(first_day) '.mat'];
+name_file = [model.folder.folder_simu '/files/' num2str(day_save) '.mat'];
 load(name_file)
 model.folder.folder_simu = folder_ref;
+if ~isfield(model.sigma,'sto')
+    model.sigma.sto = ~isinf( model.sigma.k_c);
+end
 
 dt=model.advection.dt_adv;
-% model.advection.advection_duration=advection_duration;
-N_t = ceil(model.advection.advection_duration/dt);
+% % model.advection.advection_duration=advection_duration;
+% N_t = ceil(model.advection.advection_duration/dt);
 
 % x = model.grid.dX(1)*(0:model.grid.MX(1)-1);
 % % if model.mirror
@@ -1069,7 +1139,13 @@ t_ini = first_day*24*3600/dt;
 trigger = false;
 dt_loop = dt;
 %t_ini=1700000
-for t_loop=t_ini:N_t
+
+t_loop = t_ini - 1;
+while t_loop*dt_loop <= advection_duration
+    % while t_loop*dt_loop <= model.advection.advection_duration
+    t_loop = t_loop +1;
+    % for t_loop=t_ini:N_t
+    
     %     %% Plot
     % t_loop=1;
     day_num = (floor(t_loop*dt_loop/24/3600));
@@ -1169,15 +1245,30 @@ for t_loop=t_ini:N_t
         end
         
         %% Load
+            
         model_ref = model;
         name_file = [model.folder.folder_simu '/files/' num2str(day) '.mat'];
         clear fft_b fft_buoy_part;
+
         if exist( name_file,'file')==2
             % clear fft_b fft_buoy_part;
+            if eval(day) == first_day
+                model_ref_post_process = model;
+            end
             load(name_file);
+            if eval(day) == first_day
+                model = model_ref_post_process;
+            end
             model.folder.folder_simu = folder_ref;
             if ~(exist('fft_b','var')==1)
-                fft_b = fft_buoy_part;
+                if (exist('fft_buoy_part','var')==1)
+                    fft_b = fft_buoy_part;
+                    
+                elseif (exist('fft_buoy_part_ref','var')==1)
+                    fft_b = fft_buoy_part_ref; clear fft_buoy_part_ref
+                else
+                    error('Cannot find buoyancy field')
+                end
             end
         else
             warning('Cannot find the following file');
@@ -1313,7 +1404,8 @@ for t_loop=t_ini:N_t
             error_vs_t_SelfSim = [ error_vs_t_SelfSim ; temp ];
             hold on;
             %figure;
-            plot(v_day ,[error_vs_t(:,2:4) error_vs_t_SelfSim(:,2:4)]');
+            plot(v_day ,[error_vs_t(:,2:4)  error_vs_t_SelfSim(:,2:4)]');
+%             plot(v_day ,[error_vs_t(:,2:4) error_vs_t_SelfSim(:,2:4)]');
             %hold off;
             
             legend('Bias EOF','RMSE EOF','Min. dist. EOF',...
@@ -1407,13 +1499,19 @@ for t_loop=t_ini:N_t
                             'FontWeight','normal',...
                             'FontSize',taille_police,...
                             'FontName','Times')
-                        title(['Ref. VS 95%- and 50%-CI' ...
-                            ' for the EOF method'],...
-                            'FontUnits','points',...
-                            'FontWeight','normal',...
-                            'interpreter','latex',...
-                            'FontSize',12,...
-                            'FontName','Times')
+%                         title(['EOF method'],...
+%                             'FontUnits','points',...
+%                             'FontWeight','normal',...
+%                             'interpreter','latex',...
+%                             'FontSize',12,...
+%                             'FontName','Times')
+%                         title(['Ref. VS 95%- and 50%-CI' ...
+%                             ' for the EOF method'],...
+%                             'FontUnits','points',...
+%                             'FontWeight','normal',...
+%                             'interpreter','latex',...
+%                             'FontSize',12,...
+%                             'FontName','Times')
                         ax_IC = axis; ax_IC(1:2)=[first_day last_day_plot_qq];axis(ax_IC);
                         
                         
@@ -1456,13 +1554,19 @@ for t_loop=t_ini:N_t
                             'FontWeight','normal',...
                             'FontSize',taille_police,...
                             'FontName','Times')
-                        title(['Ref. VS 95%- and 50%-CI' ...
-                            ' for the self similar method'],...
-                            'FontUnits','points',...
-                            'FontWeight','normal',...
-                            'interpreter','latex',...
-                            'FontSize',12,...
-                            'FontName','Times')
+%                         title(['Self similar method'],...
+%                             'FontUnits','points',...
+%                             'FontWeight','normal',...
+%                             'interpreter','latex',...
+%                             'FontSize',12,...
+%                             'FontName','Times')
+%                         title(['Ref. VS 95%- and 50%-CI' ...
+%                             ' for the self similar method'],...
+%                             'FontUnits','points',...
+%                             'FontWeight','normal',...
+%                             'interpreter','latex',...
+%                             'FontSize',12,...
+%                             'FontName','Times')
                         ax_IC = axis; ax_IC(1:2)=[first_day last_day_plot_qq];axis(ax_IC);
                         
                         drawnow;
@@ -1527,12 +1631,12 @@ for t_loop=t_ini:N_t
                             'FontWeight','normal',...
                             'FontSize',taille_police,...
                             'FontName','Times')
-                        title(['Ref. VS 95%- and 50%-CI'],...
-                            'FontUnits','points',...
-                            'FontWeight','normal',...
-                            'interpreter','latex',...
-                            'FontSize',12,...
-                            'FontName','Times')
+%                         title(['Ref. VS 95%- and 50%-CI'],...
+%                             'FontUnits','points',...
+%                             'FontWeight','normal',...
+%                             'interpreter','latex',...
+%                             'FontSize',12,...
+%                             'FontName','Times')
                         ax_IC = axis; ax_IC(1:2)=[first_day last_day_plot_qq];axis(ax_IC);
                         
                         drawnow;
@@ -1547,43 +1651,74 @@ for t_loop=t_ini:N_t
         fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
         fct_sigma_spectrum_abs_diff_postprocess(...
             model,fft_w,true,day);
-        if model.sigma.sto ...
-                && model.sigma.time_smooth.bool ...
-                && strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
-            subplot(1,2,2);ax = axis;
-            plot_abs_diff_from_sigma_postprocess_add(model,...
-                fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
-            %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
-            subplot(1,2,2);axis(ax);
-        end
-        
-        drawnow
-        eval( ['print -depsc ' model.folder.folder_simu ...
-            '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
-            day '.eps']);
-        
-        %%
-        %         if model.sigma.sto && strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
-        %             fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
-        %             fct_sigma_spectrum_abs_diff_postprocess(...
-        %                 model,fft_w,true,day);
+        %         if model.sigma.sto ...
+        %                 && ( ...
+        %               ( strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS') ...
+        %                  && model.sigma.time_smooth.bool ) ...
+        %               || ( strcmp( model.sigma.type_spectrum, 'EOF' ) )......
+        %               || ( strcmp( model.sigma.type_spectrum, 'Euler_EOF' ) )...
+        %               )
         %             subplot(1,2,2);ax = axis;
         %             plot_abs_diff_from_sigma_postprocess_add(model,...
         %                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
         %             %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
         %             subplot(1,2,2);axis(ax);
-        %
-        %             drawnow
-        %             eval( ['print -depsc ' model.folder.folder_simu ...
-        %                 '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
-        %                 day '.eps']);
         %         end
-        %         keyboard;
+        %
+        %         if model.sigma.sto ...
+        %                 && strcmp( model.sigma.type_spectrum, 'Band_Pass_w_Slope')
+        %              fct_sigma_spectrum(model,fft_w,nan,day);
+        %         end
+        if model.sigma.sto
+            switch model.sigma.type_spectrum
+                case 'SelfSim_from_LS'
+                    if model.sigma.time_smooth.bool
+                        subplot(1,2,2);ax = axis;
+                        plot_abs_diff_from_sigma_postprocess_add(model,...
+                            fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
+                        %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+                        subplot(1,2,2);axis(ax);
+                    end
+                case {'EOF' ,'Euler_EOF'}
+                    subplot(1,2,2);ax = axis;
+                    plot_abs_diff_from_sigma_postprocess_add(model,...
+                     fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+                    subplot(1,2,2);axis(ax);
+                case  'Band_Pass_w_Slope'
+                    fct_sigma_spectrum(model,fft_w,nan,day);
+            end
+            
+            drawnow
+            eval( ['print -depsc ' model.folder.folder_simu ...
+                '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+                day '.eps']);
+            
+            %%
+            %         if model.sigma.sto && strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS')
+            %             fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
+            %             fct_sigma_spectrum_abs_diff_postprocess(...
+            %                 model,fft_w,true,day);
+            %             subplot(1,2,2);ax = axis;
+            %             plot_abs_diff_from_sigma_postprocess_add(model,...
+            %                 fft2(sigma_dBt_on_sq_dt), [0.0 0.7 0.0]);
+            %             %  fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+            %             subplot(1,2,2);axis(ax);
+            %
+            %             drawnow
+            %             eval( ['print -depsc ' model.folder.folder_simu ...
+            %                 '/AbsDiffByScale_sigma_dB_t_PostProcess/'...
+            %                 day '.eps']);
+            %         end
+            %         keyboard;
+            
+        end
+        
+        %% Plot variance tensor
+        fct_plot_VarTensor(model,day);
     end
-end
-
-keyboard;
-% Square root
-% error_vs_t = sqrt( error_vs_t);
-
+    
+    % keyboard;
+    % % Square root
+    % % error_vs_t = sqrt( error_vs_t);
+    
 end
