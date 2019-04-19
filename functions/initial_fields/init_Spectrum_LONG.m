@@ -1,12 +1,23 @@
-function buoy_init = init_Spectrum(model)
+function buoy_init = init_Spectrum_LONG(model, varargin)
+% function buoy_init = init_Spectrum(model [, k0, alpha])
 % Generate a buoyancy field from a spectrum
 %
+% Arguments:
+%   - model: the simulation model, see set_model.m 
+%   - [optional] k0: the max wavenumber of the spectrum.
+%   - [optional] alpha: an initial field of buoyancy, to adjust the
+%   spectrum level.
+%
+% Modified by P. DERIAN 2016-11-14%
+%   - added optional k0 parameter.
 
-% Get parameters
-slope = model.slope_b_ini;
-% if strcmp(model.dynamics,'2D')
-%     slope = slope + 2;
-% end
+
+%% Get parameters
+% from model
+slope = model.init.slope_b_ini;
+if nargin < 2
+    slope = - 5/3;
+end
 odg_b = model.odg_b;
 MX=model.grid.MX;
 dX=model.grid.dX;
@@ -16,7 +27,7 @@ PX=MX/2;
 if any( mod(MX,2)~=0)
     error('the number of grid points by axis need to be even');
 end
-kxref=1/(model.grid.MX(1))*[ 0:(PX(1)-1) 0 (1-PX(1)):-1] ;
+kxref=1/(model.grid.MX(1))*[ 0:(PX(1)-1) 0 (1-PX(1)):-1];
 kyref=1/(model.grid.MX(2))*[ 0:(PX(2)-1) 0 (1-PX(2)):-1];
 kxref=2*pi/model.grid.dX(1)*kxref;
 kyref=2*pi/model.grid.dX(2)*kyref;
@@ -35,10 +46,22 @@ kidx=2*pi*d_kappa*kidx;
 
 %% 1D Spectrum
 
-% Largest wave number
-k0 = kidx(1);
-% Smallest wave number
-k_inf = kidx(end)/2;
+% Largest wave number (optionally set by user)
+% [TODO] enable as a ratio k0/kmin?
+if ~isempty(varargin)
+    % check it makes sense
+    if numel(varargin)>2 || ~isscalar(varargin{1})
+        % error
+        error('sqgmu:init_Spectrum():InputError', 'expecting at most 2 optional parameters, first one (k0) is to be a scalar.');
+    end
+    k0 = varargin{1};
+    k_inf = kidx(end);
+else
+   % use largest available 
+   k0 = kidx(1);
+   % Smallest wave number
+    k_inf = kidx(end)/2;
+end
 
 % Spectrum
 Gamma_buoy = kidx(2:end) .^ slope ;
@@ -55,6 +78,13 @@ nrj_b = ( 1/prod(model.grid.MX) )^2 * sum(Gamma_buoy);
 % The come from the discrete form of parseval theorem and from the
 % spatial averaging
 Gamma_buoy = Gamma_buoy * (odg_b)^2 / nrj_b;
+% [TODO] clean
+if numel(varargin)>1 && numel(varargin)<3
+    alpha = varargin{2};
+    Gamma_buoy = Gamma_buoy.*alpha;
+end
+
+
 
 %% 2D Fourier transform modulus
 
@@ -84,15 +114,9 @@ f_buoy(:,PX(2)+1)=0;
 f_buoy = 1/sqrt(prod(MX))*f_buoy;
 
 %% Sampling
-
-% Make the randomness reproductible
-stream = RandStream.getGlobalStream;
-reset(stream);
-
 noise = fft2(randn(model.grid.MX));
 fft_buoy = bsxfun(@times,f_buoy,noise);
 buoy_init = real(ifft2(fft_buoy));
-
 end
 
 function t = fct_unity_approx_(N_t)
@@ -108,11 +132,4 @@ t(1:sslop)=(tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) )+1)/2;
 t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
 end
 
-
-% function t = fct_unity_approx_(N_t)
-% % Approximation of unity
-% %
-% sslop=4;
-% t=ones(1,N_t);
-% t(end-sslop+1:end)=(-tanh(-3 + 6/(sslop-1)*(0:(sslop-1)) ) +1)/2;
-% end
+    
