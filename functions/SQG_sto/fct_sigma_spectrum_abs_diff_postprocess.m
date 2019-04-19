@@ -152,7 +152,8 @@ abs_diff_w = sum(spectrum_w_a) * d_kappa;
 % Get the large-scale "length scale" km_LS and the spectral window for the
 % linear regression
 % threshold_k = 1/2;
-if ~ model.sigma.sto
+if ~ model.sigma.sto || ...
+        ~ strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     model.sigma.kappamin_on_kappamax = 1/2;
     model.sigma.kappaLS_on_kappamax = 1/8;
     pre_estim_slope=1e-1;
@@ -258,7 +259,7 @@ reference_spectrum_a = mult_offset_spectrum_a * reference_spectrum_a;
 
 % Residual absolute diffusivity by scale
 %%
-if model.sigma.sto
+if model.sigma.sto && strcmp(model.sigma.type_spectrum,'SelfSim_from_LS')
     residual_spectrum_a = ...
         reference_spectrum_a_estim - spectrum_w_a(2:end);
     % residual_spectrum_a = ...

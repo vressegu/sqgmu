@@ -33,12 +33,68 @@ if ( ( model.advection.HV.bool | model.advection.Lap_visco.bool) & ...
     end
 elseif model.sigma.sto & model.sigma.hetero_modulation
     add_subgrid_deter = [add_subgrid_deter '_hetero_modulation'];
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 elseif model.sigma.sto & model.sigma.hetero_modulation_V2
     add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_V2'];
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 elseif model.sigma.sto & model.sigma.hetero_energy_flux
     add_subgrid_deter = [add_subgrid_deter '_hetero_energy_flux'];
+    if model.sigma.hetero_energy_flux_v2
+        add_subgrid_deter = [add_subgrid_deter '_v2'];
+    end
+    if model.sigma.hetero_energy_flux_averaging_after
+        add_subgrid_deter = [add_subgrid_deter '_1_3rd_before_norm'];
+    end
+    if isfield(model.sigma,'kappa_VLS_on_kappa_LS')
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_kappa_LS_on_kappa_VLS_' ...
+            num2str(1/model.sigma.kappa_VLS_on_kappa_LS)];
+    end
+    if isfield(model.sigma,'kappaLSforEspi_on_kappamin')
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_kappamin_on_kappaLSforEspi__' ...
+            num2str(1/model.sigma.kappaLSforEspi_on_kappamin)];
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 elseif model.sigma.sto & model.sigma.hetero_modulation_Smag
     add_subgrid_deter = [add_subgrid_deter '_hetero_modulation_Smag'];
+    if  isfield(model.sigma,'hetero_energy_flux_prefilter') && ...
+            model.sigma.hetero_energy_flux_prefilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_prefilter'];        
+    end
+    if  isfield(model.sigma,'hetero_energy_flux_postfilter') && ...
+            model.sigma.hetero_energy_flux_postfilter
+        add_subgrid_deter = [add_subgrid_deter ...
+            '_postfilter'];
+    end
 end
 if model.sigma.sto & model.sigma.no_noise
     add_subgrid_deter = [add_subgrid_deter '_no_noise'];
@@ -96,7 +152,8 @@ if model.sigma.sto
         end
     elseif ( model.sigma.hetero_modulation ...
             |  model.sigma.hetero_modulation_V2 ...
-            |  model.sigma.hetero_modulation_Smag )
+            |  model.sigma.hetero_modulation_Smag ...
+            | model.sigma.hetero_energy_flux )
         subgrid_details = ['dealias_ratio_mask_LS_' ...
             fct_num2str(model.advection.Smag.dealias_ratio_mask_LS)];
         if  model.sigma.proj_free_div
@@ -897,13 +954,15 @@ if model.advection.use_save
     
     if (exist('fft_b','var')==1)
     elseif (exist('fft_buoy_part','var')==1)
-        fft_b = fft_buoy_part;
+        fft_b = fft_buoy_part; clear fft_buoy_part
     elseif (exist('fft_T_adv_part','var')==1)
-        fft_b = fft_T_adv_part;
+        fft_b = fft_T_adv_part; clear fft_T_adv_part
     elseif (exist('fft_T_adv_part','var')==1)
-        fft_b = fft_T_adv_part;
+        fft_b = fft_T_adv_part; clear fft_T_adv_part
     elseif (exist('fft_tracer_part','var')==1)
-        fft_b = fft_tracer_part;
+        fft_b = fft_tracer_part; clear fft_tracer_part
+    elseif (exist('fft_buoy_part_ref','var')==1)
+        fft_b = fft_buoy_part_ref; clear fft_buoy_part_ref
     else
         error('Cannot find buoyancy field')
     end
@@ -980,6 +1039,7 @@ end
 %     end
 % end
 
+%%
 
 while time < model.advection.advection_duration
     %% Time-correlated velocity
@@ -1186,11 +1246,35 @@ while time < model.advection.advection_duration
             %end
         elseif model.sigma.hetero_modulation | ...
                 model.sigma.hetero_modulation_V2
+            if ( isfield(model.sigma,'hetero_energy_flux_prefilter')  ...
+                    &&    model.sigma.hetero_energy_flux_prefilter ) ...
+                    || (isfield(model.sigma,'hetero_energy_flux_postfilter')  ...
+                    &&    model.sigma.hetero_energy_flux_postfilter)
+                error('not coded yet')
+            end
             coef_modulation = ...
                 fct_coef_estim_AbsDiff_heterogeneous(model,fft_w);
         elseif model.sigma.hetero_modulation_Smag
             % Heterogeneous dissipation coefficient
-            coef_modulation = fct_coef_diff(model,fft_b);
+            if isfield(model.sigma,'hetero_energy_flux_prefilter')  ...
+                    &&    model.sigma.hetero_energy_flux_prefilter
+                % Pre-filtering
+                fft_b_for_modulation = bsxfun(@times, ...
+                    model.grid.k_aa_sigma_hetero_energy_flux.mask, ...
+                    fft_b);
+            else
+                fft_b_for_modulation = fft_b;                
+            end
+            coef_modulation = fct_coef_diff(model,fft_b_for_modulation);
+            clear fft_b_for_modulation
+            
+            if isfield(model.sigma,'hetero_energy_flux_postfilter')  ...
+                    &&    model.sigma.hetero_energy_flux_postfilter
+                % Post-filtering
+                coef_modulation = real(ifft2(bsxfun(@times, ...
+                    model.grid.k_aa_sigma_hetero_energy_flux_post.mask, ...
+                    fft2(coef_modulation))));             
+            end
             m_coef_modulation = mean(mean(coef_modulation,1),2);
             coef_modulation = bsxfun( @times, ...
                 1./m_coef_modulation, coef_modulation);
@@ -1236,30 +1320,30 @@ while time < model.advection.advection_duration
                     error('Unknow case');
                 end
             end
-            %                 if model_sampl(sampl).sigma.a0_SS > eps
-            %                     if model_sampl(sampl).sigma.Smag.epsi_without_noise
-            %                         model_sampl(sampl).advection.coef_diff = 1;
-            %                     else
-            %                         % Taking into account the noise in the energy budget
-            %                         model_sampl(sampl).advection.coef_diff = ...
-            %                             (1 + model_sampl(sampl).sigma.a0_LS / ...
-            %                             model_sampl(sampl).sigma.a0_SS) ;
-            %                     end
-            %                 elseif strcmp(model_sampl(sampl).sigma.type_spectrum,'SelfSim_from_LS')
-            %                     % The absolute diffusivity diagnosed from the large-scale
-            %                     % kinematic spectrum is too weak. It suggests that there
-            %                     % are few small scales and no subgrid terms is needed.
-            %                     % Moreover, setting subgris terms to zero prevent numerical
-            %                     % errors.
-            %                     model_sampl(sampl).advection.coef_diff = 0;
-            %                 else
-            %                     error('Unknow case');
-            %                 end
-            model.advection.coef_diff = ...
-                bsxfun( @times, ...
-                model.advection.coef_diff,...
-                coef_modulation) ;
-            %end
+%             %                 if model_sampl(sampl).sigma.a0_SS > eps
+%             %                     if model_sampl(sampl).sigma.Smag.epsi_without_noise
+%             %                         model_sampl(sampl).advection.coef_diff = 1;
+%             %                     else
+%             %                         % Taking into account the noise in the energy budget
+%             %                         model_sampl(sampl).advection.coef_diff = ...
+%             %                             (1 + model_sampl(sampl).sigma.a0_LS / ...
+%             %                             model_sampl(sampl).sigma.a0_SS) ;
+%             %                     end
+%             %                 elseif strcmp(model_sampl(sampl).sigma.type_spectrum,'SelfSim_from_LS')
+%             %                     % The absolute diffusivity diagnosed from the large-scale
+%             %                     % kinematic spectrum is too weak. It suggests that there
+%             %                     % are few small scales and no subgrid terms is needed.
+%             %                     % Moreover, setting subgris terms to zero prevent numerical
+%             %                     % errors.
+%             %                     model_sampl(sampl).advection.coef_diff = 0;
+%             %                 else
+%             %                     error('Unknow case');
+%             %                 end
+%             model.advection.coef_diff = ...
+%                 bsxfun( @times, ...
+%                 model.advection.coef_diff,...
+%                 coef_modulation) ;
+%             %end
             
             if model.sigma.Smag.SS_vel_homo
                 coef_modulation = mean(mean(coef_modulation,2),1);
@@ -1268,7 +1352,12 @@ while time < model.advection.advection_duration
         else
             coef_modulation = 1;
         end
-        
+        %% Variance tensor
+        model.advection.coef_diff = ...
+            bsxfun( @times, ...
+            model.advection.coef_diff,...
+            coef_modulation) ;
+        %%
         if model.sigma.assoc_diff
             
             % for sampl=1:N_ech
@@ -1537,8 +1626,30 @@ while time < model.advection.advection_duration
                     coef_diff = ...
                         model.advection.Smag.coef_Smag * coef_diff ;
                 elseif model.sigma.hetero_modulation_Smag
+                    if isfield(model.sigma,'hetero_energy_flux_prefilter')  ...
+                            &&    model.sigma.hetero_energy_flux_prefilter
+                        % Pre-filtering
+                        fft_b_for_modulation = bsxfun(@times, ...
+                            model.grid.k_aa_sigma_hetero_energy_flux.mask, ...
+                            fft_b);
+                    else
+                        fft_b_for_modulation = fft_b;
+                    end
                     [coef_diff_aa,coef_diff] = fct_coef_diff(model,...
-                        fft_b(:,:,:,id_part));
+                        fft_b_for_modulation(:,:,:,id_part));
+                    
+                    
+                    if isfield(model.sigma,'hetero_energy_flux_postfilter')  ...
+                            &&    model.sigma.hetero_energy_flux_postfilter
+                        % Post-filtering
+                        coef_modulation = real(ifft2(bsxfun(@times, ...
+                            model.grid.k_aa_sigma_hetero_energy_flux_post.mask, ...
+                            fft2(coef_modulation))));
+                        coef_diff_aa = real(ifft2(bsxfun(@times, ...
+                            model.grid.k_aa_sigma_hetero_energy_flux_post.mask, ...
+                            fft2(coef_diff_aa))));
+                    end
+            
                     coef_diff_aa = coef_diff_aa / mean(coef_diff_aa(:));
                     coef_diff = coef_diff / mean(coef_diff(:));
                 elseif model.sigma.Smag.bool
@@ -1567,11 +1678,33 @@ while time < model.advection.advection_duration
                     
                 elseif model.sigma.hetero_modulation ...
                         | model.sigma.hetero_modulation_V2
+                    if isfield(model.sigma,'hetero_energy_flux_prefilter')  ...
+                            &&    model.sigma.hetero_energy_flux_prefilter
+                        % Pre-filtering
+                        fft_b_for_modulation = bsxfun(@times, ...
+                            model.grid.k_aa_sigma_hetero_energy_flux.mask, ...
+                            fft_b);
+                    else
+                        fft_b_for_modulation = fft_b;
+                    end
+                    
+                    fft_w_for_modulation = SQG_large_UQ(model, fft_b_for_modulation);
                     %                     coef_diff_aa = ...
                     %                         model.sigma.a0(id_part)/2  ;
                     [coef_diff_aa,coef_diff] = ...
                         fct_coef_estim_AbsDiff_heterogeneous(...
-                        model,fft_w(:,:,:,id_part));
+                        model,fft_w_for_modulation(:,:,:,id_part));
+                    
+                    if isfield(model.sigma,'hetero_energy_flux_postfilter')  ...
+                            &&    model.sigma.hetero_energy_flux_postfilter
+                        % Post-filtering
+                        coef_modulation = real(ifft2(bsxfun(@times, ...
+                            model.grid.k_aa_sigma_hetero_energy_flux_post.mask, ...
+                            fft2(coef_modulation))));
+                        coef_diff_aa = real(ifft2(bsxfun(@times, ...
+                            model.grid.k_aa_sigma_hetero_energy_flux_post.mask, ...
+                            fft2(coef_diff_aa))));
+                    end
             
                     coef_diff_aa = ...
                         model.sigma.a0(id_part)/2 * coef_diff_aa ;

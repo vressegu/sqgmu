@@ -354,9 +354,13 @@ set(name_plot,'LineWidth',LineWidth,...
 %             plot(kappa_LR *[1 1],ax(3:4),'g')
 hold off;
 set(gca,'XGrid','on','XTickMode','manual');
-width = 12;
-%width = 9;
-height = 3;
+width = 4;
+height = 2;
+% width = 8;
+% height = 2;
+% % width = 12;
+% % %width = 9;
+% % height = 3;
 set(figure18,'Units','inches', ...
     'Position',[X0(1) X0(2) width height], ...
     'PaperPositionMode','auto');

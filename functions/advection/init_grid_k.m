@@ -159,6 +159,97 @@ if bool_heterogeneous_model
     maskxy_LS(:,ZM(2)) = 0.;
 end
 
+
+%%  Anti-aliased grid at larger scale than sigma dBt
+if model.sigma.sto && ...
+        ( model.sigma.hetero_modulation | model.sigma.hetero_energy_flux ...
+         | model.sigma.hetero_modulation_V2 | model.sigma.hetero_modulation_Smag ) ...
+         && model.sigma.hetero_energy_flux_prefilter
+%      ratio_pre_filter = model.sigma.kappamin_on_kappamax ;
+     ratio_pre_filter = model.sigma.kappamin_on_kappamax / 1.5 ;
+%      ratio_pre_filter = model.sigma.kappamin_on_kappamax / 2 ;
+%     model.sigma.hetero_energy_flux
+    if strcmp(model.grid.dealias_method, '2/3')
+        % usual 2/3 rule: zero-out the 1/3 highest freqs
+        maskx_sigma_hetero_energy_flux = double( abs(nx) < (2./3.)*PX(1)*ratio_pre_filter );
+        masky_sigma_hetero_energy_flux = double( abs(ny) < (2./3.)*PX(2)*ratio_pre_filter );
+    elseif strcmp(model.grid.dealias_method, 'exp')
+        % see "New Numerical Results for the Surface Quasi-Geostrophic
+        % Equation", Constantin et al., J. Sci. Comput. (2012).
+        nx_normalized_sigma_hetero_energy_flux = (2./model.grid.MX(1)).*abs(nx) / ratio_pre_filter;
+        ny_normalized_sigma_hetero_energy_flux = (2./model.grid.MX(2)).*abs(ny) / ratio_pre_filter;
+        
+        maskx_sigma_hetero_energy_flux = exp(-alpha*( nx_normalized_sigma_hetero_energy_flux ).^order);
+        masky_sigma_hetero_energy_flux = exp(-alpha*( ny_normalized_sigma_hetero_energy_flux ).^order);
+        maskx_sigma_hetero_energy_flux = maskx_sigma_hetero_energy_flux .* (nx_normalized_sigma_hetero_energy_flux<=1);
+        masky_sigma_hetero_energy_flux = masky_sigma_hetero_energy_flux .* (ny_normalized_sigma_hetero_energy_flux<=1);
+        %%
+        n_normalized_sigma_hetero_energy_flux = sqrt(nx_normalized_sigma_hetero_energy_flux.^2 + (ny_normalized_sigma_hetero_energy_flux').^2);
+        mask_sigma_hetero_energy_flux = exp(-alpha*( n_normalized_sigma_hetero_energy_flux ).^(order) );
+        mask_sigma_hetero_energy_flux = mask_sigma_hetero_energy_flux .* (n_normalized_sigma_hetero_energy_flux<=1);
+        %%
+    elseif strcmp(model.grid.dealias_method, 'lowpass')
+        % from legacy SQGMU code by V. Resseguier.
+        maskx_sigma_hetero_energy_flux = fct_unity_approx5(model.grid.MX(1)*ratio_pre_filter);
+        masky_sigma_hetero_energy_flux = fct_unity_approx5(model.grid.MX(1)*ratio_pre_filter);
+    else
+        error('SQGMU:init_grid_k:invalidParameter', ...
+            'Unknown de-aliasing method "%s"', model.grid.dealias_method);
+    end
+    maskxy_sigma_hetero_energy_flux = maskx_sigma_hetero_energy_flux'*masky_sigma_hetero_energy_flux;
+    %%
+    maskxy_sigma_hetero_energy_flux = mask_sigma_hetero_energy_flux;
+    %%
+    maskxy_sigma_hetero_energy_flux(ZM(1),:) = 0.; %de-alias the single high freq
+    maskxy_sigma_hetero_energy_flux(:,ZM(2)) = 0.;
+end
+
+
+
+%%  Filtering at much larger scale than sigma dBt
+if model.sigma.sto && ...
+        ( model.sigma.hetero_modulation | model.sigma.hetero_energy_flux ...
+         | model.sigma.hetero_modulation_V2 | model.sigma.hetero_modulation_Smag ) ...
+         && model.sigma.hetero_energy_flux_postfilter
+%      ratio_post_filter = model.sigma.kappamin_on_kappamax ;
+     ratio_post_filter = model.sigma.kappamin_on_kappamax / 2 ;
+%      ratio_post_filter = model.sigma.kappamin_on_kappamax / 4 ;
+%     model.sigma.hetero_energy_flux
+    if strcmp(model.grid.dealias_method, '2/3')
+        % usual 2/3 rule: zero-out the 1/3 highest freqs
+        maskx_sigma_hetero_energy_flux = double( abs(nx) < (2./3.)*PX(1)*ratio_post_filter  );
+        masky_sigma_hetero_energy_flux = double( abs(ny) < (2./3.)*PX(2)*ratio_post_filter );
+    elseif strcmp(model.grid.dealias_method, 'exp')
+        % see "New Numerical Results for the Surface Quasi-Geostrophic
+        % Equation", Constantin et al., J. Sci. Comput. (2012).
+        nx_normalized_sigma_hetero_energy_flux = (2./model.grid.MX(1)).*abs(nx) / ratio_post_filter;
+        ny_normalized_sigma_hetero_energy_flux = (2./model.grid.MX(2)).*abs(ny) / ratio_post_filter;
+        
+        maskx_sigma_hetero_energy_flux = exp(-alpha*( nx_normalized_sigma_hetero_energy_flux ).^order);
+        masky_sigma_hetero_energy_flux = exp(-alpha*( ny_normalized_sigma_hetero_energy_flux ).^order);
+        maskx_sigma_hetero_energy_flux = maskx_sigma_hetero_energy_flux .* (nx_normalized_sigma_hetero_energy_flux<=1);
+        masky_sigma_hetero_energy_flux = masky_sigma_hetero_energy_flux .* (ny_normalized_sigma_hetero_energy_flux<=1);
+        %%
+        n_normalized_sigma_hetero_energy_flux = sqrt(nx_normalized_sigma_hetero_energy_flux.^2 + (ny_normalized_sigma_hetero_energy_flux').^2);
+        mask_sigma_hetero_energy_flux = exp(-alpha*( n_normalized_sigma_hetero_energy_flux ).^(order) );
+        mask_sigma_hetero_energy_flux = mask_sigma_hetero_energy_flux .* (n_normalized_sigma_hetero_energy_flux<=1);
+        %%
+    elseif strcmp(model.grid.dealias_method, 'lowpass')
+        % from legacy SQGMU code by V. Resseguier.
+        maskx_sigma_hetero_energy_flux = fct_unity_approx5(model.grid.MX(1)*ratio_post_filter);
+        masky_sigma_hetero_energy_flux = fct_unity_approx5(model.grid.MX(1)*ratio_post_filter);
+    else
+        error('SQGMU:init_grid_k:invalidParameter', ...
+            'Unknown de-aliasing method "%s"', model.grid.dealias_method);
+    end
+    maskxy_sigma_hetero_energy_flux_post = maskx_sigma_hetero_energy_flux'*masky_sigma_hetero_energy_flux;
+    %%
+    maskxy_sigma_hetero_energy_flux_post = mask_sigma_hetero_energy_flux;
+    %%
+    maskxy_sigma_hetero_energy_flux_post(ZM(1),:) = 0.; %de-alias the single high freq
+    maskxy_sigma_hetero_energy_flux_post(:,ZM(2)) = 0.;
+end
+
 % figure(1);plot(kx(:,1),maskx,'.');
 % figure(2);plot(kx(:,1),maskx_LS,'.');
 % figure(1);plot(ky(1,:),masky,'.');
@@ -189,6 +280,26 @@ if bool_heterogeneous_model
     model.grid.k_aa_LS.k2 = (maskxy_LS.^2).*k2;
     %model.grid.k_aa.k2 = maskxy.*k2;
     model.grid.k_aa_LS.mask = maskxy_LS;
+end
+if model.sigma.sto && ...
+        ( model.sigma.hetero_modulation | model.sigma.hetero_energy_flux ...
+         | model.sigma.hetero_modulation_V2 | model.sigma.hetero_modulation_Smag ) ...
+         && model.sigma.hetero_energy_flux_prefilter
+%     model.grid.k_aa_sigma_hetero_energy_flux.ikx = 1i.*maskxy_sigma_hetero_energy_flux.*kx; %precomputations for de-aliased gradient
+%     model.grid.k_aa_sigma_hetero_energy_flux.iky = 1i.*maskxy_sigma_hetero_energy_flux.*ky;
+%     model.grid.k_aa_sigma_hetero_energy_flux.k2 = (maskxy_sigma_hetero_energy_flux.^2).*k2;
+%     %model.grid.k_aa.k2 = maskxy.*k2;
+    model.grid.k_aa_sigma_hetero_energy_flux.mask = maskxy_sigma_hetero_energy_flux;
+end
+if model.sigma.sto && ...
+        ( model.sigma.hetero_modulation | model.sigma.hetero_energy_flux ...
+         | model.sigma.hetero_modulation_V2 | model.sigma.hetero_modulation_Smag ) ...
+         && model.sigma.hetero_energy_flux_prefilter
+%     model.grid.k_aa_sigma_hetero_energy_flux.ikx = 1i.*maskxy_sigma_hetero_energy_flux.*kx; %precomputations for de-aliased gradient
+%     model.grid.k_aa_sigma_hetero_energy_flux.iky = 1i.*maskxy_sigma_hetero_energy_flux.*ky;
+%     model.grid.k_aa_sigma_hetero_energy_flux.k2 = (maskxy_sigma_hetero_energy_flux.^2).*k2;
+%     %model.grid.k_aa.k2 = maskxy.*k2;
+    model.grid.k_aa_sigma_hetero_energy_flux_post.mask = maskxy_sigma_hetero_energy_flux_post;
 end
 
 end

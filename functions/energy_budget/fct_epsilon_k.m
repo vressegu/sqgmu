@@ -39,6 +39,13 @@ kappa= d_kappa * ( 0:(P_kappa-1) ) ;
 k = model.grid.k.k;
 kx_plot = k(:,1); kx_plot(ZM(1)) = d_kappa * P_kappa ;
 
+%% Filtering of intial buoyancy
+if model.sigma.hetero_energy_flux_prefilter
+    fft_b = bsxfun(@times, ...
+        model.grid.k_aa_sigma_hetero_energy_flux.mask, ...
+        fft_b);
+end
+
 %% Time-correlated velocity
 fft_w = SQG_large_UQ(model, fft_b);
 w=real(ifft2(fft_w));
@@ -105,10 +112,11 @@ for i_kappa = 1:P_kappa
     steep_filter(:,ZM(2)) = 0.;
     
     b_LS = real(ifft2( steep_filter .* fft_b ));
-    fft_gradb_aa_SS = bsxfun( @times, (1 - steep_filter) , fft_gradb_aa ) ;
-    fft_gradb_aa_SS(ZM(1),:,:,:) = 0.; %de-alias the single high freq
-    fft_gradb_aa_SS(:,ZM(2),:,:) = 0.;
-    gradb_aa_SS =  real(ifft2(fft_gradb_aa_SS ));
+%     fft_gradb_aa_SS = bsxfun( @times, (1 - steep_filter) , fft_gradb_aa ) ;
+%     fft_gradb_aa_SS(ZM(1),:,:,:) = 0.; %de-alias the single high freq
+%     fft_gradb_aa_SS(:,ZM(2),:,:) = 0.;
+%     gradb_aa_SS =  real(ifft2(fft_gradb_aa_SS ));
+    gradb_aa_SS =  real(ifft2(fft_gradb_aa ));
     
     %% Advection term
     
@@ -129,9 +137,10 @@ for i_kappa = 1:P_kappa
     % Averaged Spatially local flux at scale kappa
     if  kappa_local > model.sigma.km_LS ...
              &  kappa_local <= ...
-             ( model.sigma.kappamin_on_kappamax * kappa(end) - d_kappa)
-%              &  kappa_local < model.sigma.kappamin_on_kappamax * kappa(end)
-%      %        &  kappa_local < model.sigma.kappaLS_on_kappamax * kappa(end)
+             (model.sigma.kappaLSforEspi_on_kappamin * model.sigma.kappamin_on_kappamax * kappa(end) - d_kappa)
+%              ( model.sigma.kappamin_on_kappamax * kappa(end) - d_kappa)
+% %              &  kappa_local < model.sigma.kappamin_on_kappamax * kappa(end)
+% %      %        &  kappa_local < model.sigma.kappaLS_on_kappamax * kappa(end)
         nb_term_PI_loc_sum = nb_term_PI_loc_sum + 1;
         PI_loc_sum = PI_loc_sum + PI_loc;
         % PI_loc_smoothK = PI_loc_sum / nb_term_PI_loc_sum;
@@ -233,13 +242,36 @@ epsilon_smoothK(:,:,5) = epsilon(:,:,5);
 
 % % kappa_VLS = 1/16*kappa(end);
 % kappa_VLS = 1/32*kappa(end);
-kappa_VLS = 1/4*model.advection.Smag.dealias_ratio_mask_LS*kappa(end);
+
+% kappa_VLS = model.sigma.kappa_VLS_on_kappa_LS ...
+%     * model.advection.Smag.dealias_ratio_mask_LS * kappa(end);
+% % kappa_VLS = 1/4*model.advection.Smag.dealias_ratio_mask_LS*kappa(end);
+
+if model.sigma.hetero_energy_flux_v2
+    kappa_VLS = model.sigma.kappa_VLS_on_kappa_LS ...
+        * model.sigma.kappamin_on_kappamax * kappa(end);
+else
+    kappa_VLS = model.sigma.kappa_VLS_on_kappa_LS ...
+        * model.advection.Smag.dealias_ratio_mask_LS * kappa(end);
+end
 alpha = 1.;
 order = 19.;
 VLS_steep_filter = exp(-alpha*( 1/kappa_VLS ...
     .* k ).^order );
 VLS_steep_filter(ZM(1),:) = 0.; %de-alias the single high freq
 VLS_steep_filter(:,ZM(2)) = 0.;
+
+%%
+
+if isfield(model.sigma,'hetero_energy_flux_postfilter')  ...
+        &&    model.sigma.hetero_energy_flux_postfilter
+    mask_post_filter = model.grid.k_aa_sigma_hetero_energy_flux_post.mask;
+    % mask_post_filter = mask_aa_LS;
+    PI_loc_smoothK = real(ifft2( bsxfun(@times, fft2(PI_loc_smoothK), ...
+        mask_post_filter) ));
+end
+
+%%
 
 %PI_loc_smoothKX = PI_loc_smoothK;
 
@@ -269,9 +301,22 @@ for q=1:5
         PI_loc_smoothKX(:,:,q));
 end
 
-coef_AbsDif = bsxfun(@times,...
-    1./mean(mean(PI_loc_smoothKX_pos.^(1/3),2),1), ...
-    PI_loc_smoothKX_pos.^(1/3) );
+
+%% Coefficient for the Absolute diffusivity by scale
+if model.sigma.hetero_energy_flux_averaging_after
+    %     PI_loc_smoothKX_pos = PI_loc_smoothKX_pos .^ (1/3) ;
+    coef_AbsDif = bsxfun(@times,...
+        1./mean(mean(PI_loc_smoothKX_pos.^(1/3),2),1), ...
+        PI_loc_smoothKX_pos.^(1/3) );
+else
+    coef_AbsDif = (bsxfun(@times,...
+        1./mean(mean(PI_loc_smoothKX_pos,2),1), ...
+        PI_loc_smoothKX_pos )) .^(1/3) ;
+end
+
+% coef_AbsDif = bsxfun(@times,...
+%     1./mean(mean(PI_loc_smoothKX_pos.^(1/3),2),1), ...
+%     PI_loc_smoothKX_pos.^(1/3) );
 
 %% Debug of fct_epsilon_k_onLine
 

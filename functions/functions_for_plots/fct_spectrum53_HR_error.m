@@ -118,10 +118,11 @@ ax=axis;
 % ax(4)=max([spectrum; ]);
 % ax(3)=6e-2*(kidx(2)/kidx(end))*min([max(spectrum);]);
 
-ax(1:2)=kidx(2)*[1 128/2];
-% ax(1:2)=kidx(2)*[1 256/2];
-% % ax(1:2)=kidx(2)*[1 512/2];
-% % % ax(1:2)=kidx([2 end]);
+ax(1:2)= [kidx(2) kidx(end)];
+% ax(1:2)=kidx(2)*[1 128/2];
+% % ax(1:2)=kidx(2)*[1 256/2];
+% % % ax(1:2)=kidx(2)*[1 512/2];
+% % % % ax(1:2)=kidx([2 end]);
 if max(spectrum(2:end))>ax(4)
     ax(4)=max(spectrum(2:end));
 end
