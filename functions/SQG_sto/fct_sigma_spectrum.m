@@ -1,4 +1,5 @@
-function [sigma_on_sq_dt,f_sigma,trace_a_on_dt,spectrum_sigma] = fct_sigma_spectrum(model,ft_w,ft2)
+function [sigma_on_sq_dt,f_sigma,trace_a_on_dt,spectrum_sigma] = ...
+    fct_sigma_spectrum(model,ft_w,ft2,day)
 % - sigma_on_sq_dt is the Fourier transform of the kernel \tilde sigma up to a multiplicative
 % constant
 % - f_sigma is the Fourier transform of the associted streamfunction
@@ -20,9 +21,12 @@ ft_w=mean(abs(ft_w).^2,4);
 
 % Fourier transform norm
 ft_w=sum(ft_w,3);
-if nargin >2
+if nargin >2 && all(~isnan(ft2(:)))
     ft2=mean(abs(ft2).^2,4);
     ft2=sum(ft2,3);
+end
+if nargin < 3
+    day = '00';
 end
 
 % Get parameters
@@ -71,7 +75,7 @@ idx = idx & sparse( bsxfun(@lt,k, [ kappa(2:end) kappa(end)+d_kappa ] ) );
 %% Spectrum
 % Integration over the rings of iso wave number
 spectrum_w = idx' * ft_w(:);
-if nargin>2
+if nargin>2 && all(~isnan(ft2(:)))
     spectrum_w2 = idx' * ft2(:);
 end
 
@@ -81,14 +85,14 @@ end
 % of the spectrum over the wave number yields the energy of the
 % velocity averaged (not just integrated) over the space
 spectrum_w = 1/prod(model.grid.MX)^2 * spectrum_w;
-if nargin>2
+if nargin>2 && all(~isnan(ft2(:)))
     spectrum_w2 = 1/prod(model.grid.MX)^2 * spectrum_w2;
 end
 
 % Division by the wave number step
 d_kappa = kappa(2)-kappa(1);
 spectrum_w = spectrum_w / d_kappa;
-if nargin>2
+if nargin>2 && all(~isnan(ft2(:)))
     spectrum_w2 = spectrum_w2 / d_kappa;
 end
 
@@ -288,7 +292,9 @@ reference_spectrum = reference_spectrum * mult_offset;
 
 taille_police = 12;
 X0 = [10 20];
-
+hold off;
+figure10=figure(10);
+close(figure10)
 figure10=figure(10);
 widthtemp = 12;
 heighttemp = 6;
@@ -301,7 +307,7 @@ name_plot=loglog(kappa(2:end),spectrum_w(2:end))
     set(name_plot,'LineWidth',LineWidth,...
         'MarkerSize',MarkerSize,...
         'Color',Color2);
-if nargin>2
+if nargin>2 && all(~isnan(ft2(:)))
     loglog(kappa(2:end),spectrum_w2(2:end),'c')
 end
 name_plot=loglog(kappa(2:end),spectrum_sigma_plot(2:end));
@@ -320,7 +326,8 @@ if ax(4)>0
     axis(ax)
 end
 set(gca,'XGrid','on','XTickMode','manual');
-width = 9;
+width = 4.5;
+% width = 9;
 height = 3;
 set(figure10,'Units','inches', ...
     'Position',[X0 width height], ...
@@ -354,7 +361,8 @@ title('Initial spectrum of $w$ and $\sigma dB_t$',...
 drawnow
 
 folder_simu = model.folder.folder_simu;
-eval( ['print -depsc ' folder_simu '/spectrum_sigma_dB_t.eps']);
+eval( ['print -depsc ' folder_simu '/spectrum_sigma_dB_t/' day '.eps']);
+% eval( ['print -depsc ' folder_simu '/spectrum_sigma_dB_t.eps']);
 
 end
 
