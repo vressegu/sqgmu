@@ -2,7 +2,7 @@ function [sigma_on_sq_dt,f_sigma,trace_a,....
     slope_w_a_comp_for_estim,mult_offset_spectrum_a_estim,...
     km_LS, ...
     spectrum_a_sigma] = ...
-    fct_sigma_spectrum_abs_diff_postprocess(model,ft_w,bool_plot,day)
+    fct_sigma_spectrum_abs_diff_postprocess(model,ft_w,bool_plot,day,Color3)
 % - sigma_on_sq_dt is the Fourier transform of the kernel \tilde sigma up to a multiplicative
 % constant
 % - f_sigma is the Fourier transform of the associted streamfunction
@@ -17,8 +17,10 @@ LineWidth = 1.3;
 MarkerSize = 8;
 Color1=[0.8 0.1 0.1];
 %             Color1=[0.8 0.0 0.1];
-Color2=[0.1 0.0 0.8];
-Color3=[0.0 0.5 0.0];
+    Color2=[0.1 0.0 0.8];
+if nargin < 5
+    Color3=[0.0 0.5 0.0];
+end
 %         Color3=[0.0 0.8 0.2];
 
 
@@ -704,11 +706,11 @@ if bool_plot
     
     subplot(1,2,2)
     set(gca,'XGrid','on','XTickMode','manual');
-    %set(gca,'YGrid','on')
+    set(gca,'YGrid','on')
     drawnow
     subplot(1,2,1)
     set(gca,'XGrid','on','XTickMode','manual');
-    %set(gca,'YGrid','on')
+    set(gca,'YGrid','on')
     drawnow
     
     %%

@@ -23,9 +23,10 @@ if nargin == 0
 end
 
 % Duration of the simulation (in seconds)
-advection_duration = 3600*24*1;
+% advection_duration = 3600*24*1;
 % advection_duration = 3600*24*1000;
-% % advection_duration = 3600*24*20; % 20 days
+advection_duration = 3600*24*120; % 20 days
+% advection_duration = 3600*24*30
 
 % first_day = 100;
 first_day = 0;
@@ -38,7 +39,7 @@ N_ech=200;
 
 if nargin == 0
     % Type of initial condtions
-    type_data ='Vortices' ;
+    type_data ='disym_Vortices' ;
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
@@ -60,8 +61,8 @@ if nargin == 0
 %     resolution = 1024
     %resolution = 2048
     
-    resolution_LR = 128
-%     resolution_LR = 64
+%     resolution_LR = 128
+    resolution_LR = 64
     
     % The number of grid point is resolution^2
     % It has to be an even integer
@@ -69,7 +70,7 @@ if nargin == 0
     % Forcing
     
     % Forcing or not
-    forcing = false;
+    forcing = true;
     % If yes, there is a forcing
     % F = ampli_forcing * odg_b * 1/T_caract * sin( 2 freq_f pi y/L_y)
     % % If yes, there is an additionnal velocity V = (0 Vy)

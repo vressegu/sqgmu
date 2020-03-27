@@ -1,6 +1,6 @@
 function main(stochastic_simulation,type_data,resolution,forcing, ...
-    sigma,Lap_visco,HV,Smag,advection_duration)
-% Main function to Launch the code
+    sigma,Lap_visco,HV,Smag)
+% Main function to Launch thte code
 %
 
 %%%%%%%%%%%%%%%%%%%%
@@ -10,13 +10,6 @@ if nargin == 0
     init;
 end
 
-% Choose to plot
-% if nargin > 0
-%     plots_bool = false;
-% else
-    plots_bool = true;
-% end
-
 %% Main parameters to choose
 
 %% Type of flow
@@ -25,30 +18,18 @@ end
 dynamics = 'SQG';
 %dynamics = '2D';
 
-
-bool_parfor = false
-bool_mat = true
-if bool_mat & bool_parfor
-    error('No compatible');
-end
+% Duration of the simulation (in seconds)
+advection_duration = 3600*24*20; % 20 days
 
 if nargin == 0
-    
-    % Duration of the simulation (in seconds)
-%     advection_duration = 3600*24*1;
-    % advection_duration = 3600*24*130;
-    %advection_duration = 3600*24*1000;
-%     advection_duration = 3600*24*16; % 20 days
-    advection_duration = 3600*24*20; % 20 days
-    
-%     bool_parfor = false
-%     bool_mat = true
-%     if bool_mat & bool_parfor
-%         error('No compatible');
-%     end
+    bool_parfor = false
+    bool_mat = true
+    if bool_mat & bool_parfor
+        error('No compatible');
+    end
     
     % Type of initial condtions
-    type_data ='Spectrum';
+    type_data ='Vortices';
     % 'disym_Vortices' : 2 large dysymmetric  anticyclones and cyclones
     % 'Vortices' : 2 large anticyclones and 2 large cyclones
     %   (used in "Geophysical flow under location uncertainty", Resseguier V.,
@@ -65,10 +46,10 @@ if nargin == 0
     
     % Resolution
 %     resolution = 64;
-%         resolution = 128;
+    resolution = 128;
     % resolution = 256;
-    resolution = 512;
-%     resolution = 1024;
+    % resolution = 512;
+    % resolution = 1024;
     % resolution = 2048;
     
     % The number of grid point is resolution^2
@@ -102,14 +83,14 @@ freq_f = [3 2];
 if nargin == 0
     
     % Deterministic or random model
-    stochastic_simulation = false;
+    stochastic_simulation = true;
     sigma.sto = stochastic_simulation;
     % Usual SQG model (stochastic_simulation=false)
     % or SQG_MU model (stochastic_simulation=true)
     
     if sigma.sto
         % Type of spectrum for sigma dBt
-%         sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
+        % sigma.type_spectrum = 'Band_Pass_w_Slope'; % as in GAFD part II
         % sigma.type_spectrum = 'Low_Pass_w_Slope';
         % Spectrum cst for k<km ans slope for k>km
         % sigma.type_spectrum = 'Low_Pass_streamFct_w_Slope';
@@ -141,19 +122,7 @@ if nargin == 0
         
         % if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
         % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux = false; % Best = true
-        
-        % if strcmp(sigma.type_spectrum,'SelfSim_from_LS')
-        % Heterrogeenosu energy flux epsilon
-        sigma.hetero_energy_flux_v2 = false; % Best = true (too)
-        
-%         if sigma.hetero_energy_flux_v2 
-%             if ~ sigma.hetero_energy_flux
-%                 error('sigma.hetero_energy_flux_v2 is always associated with sigma.hetero_energy_flux');
-%             else
-%                 sigma.hetero_energy_flux_averaging_after = true;
-%             end
-%         end
+        sigma.hetero_energy_flux = false;
         
         % Modulation by local V L (estimated from the velocity and from
         % thegradient of the velocity)
@@ -171,8 +140,8 @@ if nargin == 0
             %             % sigma.estim_k_LS = true;
             %             sigma.estim_k_LS = false;
             
+            % sigma.time_smooth.bool = false;
             sigma.time_smooth.bool = false;
-            %             sigma.time_smooth.bool = true;
             % sigma.time_smooth.tau = 24*3600 / 10;
             %             sigma.time_smooth.tau = 24*3600 / 2;
             sigma.time_smooth.tau = (64/resolution) * 24*3600 / 10 ;
@@ -205,43 +174,12 @@ if nargin == 0
             % Ratio between the Shanon resolution and filtering frequency used to
             % filter the heterogenous diffusion coefficient
             % Smag.dealias_ratio_mask_LS = 1/8;
-%             Smag.dealias_ratio_mask_LS = 1/4;
-%             Smag.dealias_ratio_mask_LS = 1/2;
-            Smag.dealias_ratio_mask_LS = 1; % default value
-            
-            % Compute mudulation from filtered (kappa_min) fields
-            sigma.hetero_energy_flux_prefilter = true;
-            
-            % Filter noise modulations (1/4*kappa_min) fields
-            sigma.hetero_energy_flux_postfilter = true;
+            % Smag.dealias_ratio_mask_LS = 1/4;
+            % Smag.dealias_ratio_mask_LS = 1/2;
+            Smag.dealias_ratio_mask_LS = 1;
             
         end
         % end
-        
-        if sigma.hetero_energy_flux
-            % Normalize before taking the power 1/3
-            sigma.hetero_energy_flux_averaging_after = true;
-            
-            % To filter negative part of the energy flux
-            
-%             sigma.kappa_VLS_on_kappa_LS = sigma.kappamin_on_kappamax / 2
-            sigma.kappa_VLS_on_kappa_LS = 1/8;
-%             sigma.kappa_VLS_on_kappa_LS = 1/12;
-%             sigma.kappa_VLS_on_kappa_LS = 1/16;
-%             sigma.kappa_VLS_on_kappa_LS = 1/4;
-%             sigma.kappa_VLS_on_kappa_LS = 1/4;
-            
-            % Maximum value considered 
-            sigma.kappaLSforEspi_on_kappamin = 1;
-        end
-        
-        if sigma.hetero_energy_flux_v2 
-            if ~ sigma.hetero_energy_flux
-                error('sigma.hetero_energy_flux_v2 is always associated with sigma.hetero_energy_flux');
-%             else
-%                 sigma.hetero_energy_flux_averaging_after = true;
-            end
-        end
         
         % Use a spatial derivation scheme for the herogeneous
         % disspation
@@ -312,9 +250,6 @@ end
 % Number of realizations in the ensemble
 N_ech = 1;
 % N_ech = 200;
-% N_ech = sigma.nb_EOF;
-% N_ech = 2;
-% % N_ech = 600;
 % % ( N_ech=200 enables moments to converge when the parameter resolution is
 % %   set to 128 )
 % % ( N_ech is automatically set to 1 in deterministic simulations )
@@ -412,6 +347,12 @@ if nargin == 0
 end
 
 %% Optional parameters
+% Choose to plot
+if nargin > 0
+    plots_bool = false;
+else
+    plots_bool = true;
+end
 
 % Compute velocity covariance and absolute diffusivity
 cov_and_abs_diff = false;
@@ -431,7 +372,6 @@ plot_dissip = true;
 % Begin simulation from a precomputed field?
 use_save = false
 % In this case, which day should be used as initialisation
-% day_save = 15;
 day_save = 100;
 % day_save = 126;
 if use_save
@@ -611,7 +551,6 @@ end
 % Spectrum slope of the initial condition (if type_data = 'Spectrum' )
 switch dynamics
     case 'SQG'
-%         slope_b_ini = 5/3;
         slope_b_ini = - 5/3;
     case '2D'
         slope_b_ini = - 3;
@@ -657,18 +596,13 @@ model.grid.dealias_method = dealias_method; %de-aliasing method
 %model.Smag.dealias_ratio_mask_LS = dealias_ratio_mask_LS;
 model.plots = plots_bool;
 
-if model.sigma.sto
-    if ( strcmp(model.sigma.type_spectrum,'EOF') || ...
-            strcmp(model.sigma.type_spectrum,'Euler_EOF') ) ...
-            && ( model.sigma.nb_EOF > model.advection.N_ech )
-        warning(['The number of EOF is larger than the ensemble size.' ...
-            ' Some EOFs are hence removed.']);
-        model.sigma.nb_EOF = model.advection.N_ech;
-    end
+if ( strcmp(model.sigma.type_spectrum,'EOF') || ...
+        strcmp(model.sigma.type_spectrum,'Euler_EOF') ) ...
+        && ( model.sigma.nb_EOF > model.advection.N_ech )
+    warning(['The number of EOF is larger than the ensemble size.' ...
+        ' Some EOFs are hence removed.']);
+    model.sigma.nb_EOF = model.advection.N_ech;
 end
-
-%% Random generator
-rng('default'); %  The default settings are the Mersenne Twister with seed 0.
 
 %% Generating initial buoyancy
 [fft_buoy,model] = fct_buoyancy_init(model,resolution);
@@ -687,30 +621,23 @@ end
 
 %% Post-process plots
 
-last_day_plot_qq = 120;
 %resolution_HR = 512
 % resolution_HR = 1024
-% resolution_HR = 16 * resolution
-% resolution_HR = 4 * resolution
 resolution_HR = 8 * resolution
 if ~ use_save
     first_day = 0;
-    day_save = 0;
 else
-    first_day = 100;
-%     first_day = 101;
+    first_day = 101;
     % first_day = day_save;
-    day_save = 101;
 end
 
-if plots_bool
+if nargin == 0
     post_process_error_grid(model.sigma.sto,...
         model.type_data,resolution,resolution_HR,...
         model.advection.forcing.bool,model.sigma,...
         model.advection.Lap_visco,model.advection.HV,...
         model.advection.Smag,model.advection.N_ech,...
-        first_day,advection_duration,day_save);
-%         first_day,last_day_plot_qq);
+        first_day,last_day_plot_qq);;
 end
 
 resolution_HR

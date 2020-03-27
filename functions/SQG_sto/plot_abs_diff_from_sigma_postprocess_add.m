@@ -1,11 +1,16 @@
 function plot_abs_diff_from_sigma_postprocess_add(model,...
-    fft_sigma_dBt_on_sq_dt,color)
+    fft_sigma_dBt_on_sq_dt,color,LineStyle_,Marker_)
 % - fft_sigma_dBt_on_sq_dt is the Fourier transform of 
 % the kernel \tilde sigma up to a multiplicative constant
 %
 
 %%
-
+if nargin < 4
+    LineStyle_ = '-';
+end
+if nargin < 5
+    Marker_ = 'none';
+end
 
 % id_part = 1;
 % 
@@ -252,7 +257,7 @@ hold on;
 name_plot = loglog(kappa(2:end),spectrum_a_sigma_plot(2:end));
 set(name_plot,'LineWidth',LineWidth,...
     'MarkerSize',MarkerSize,...
-    'Color',color);
+    'Color',color,'LineStyle',LineStyle_,'Marker',Marker_);
 
 %     loglog(kappa(2:end),spectrum_a_sigma (2:end) + ...
 %         spectrum_a_sigma_plot(2:end),'g')

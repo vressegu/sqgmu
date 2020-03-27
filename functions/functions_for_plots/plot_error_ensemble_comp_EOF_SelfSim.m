@@ -216,7 +216,6 @@ title('\hspace{1.5cm} Bias EOF',...
     'FontSize',12,...
     'FontName','Times')
 
-
 eval( ['print -depsc ' folder_simu '/spatial_bias/' day '.eps']);
 
 
@@ -259,6 +258,16 @@ title('\hspace{1.5cm} Bias EOF',...
     'interpreter','latex',...
     'FontSize',12,...
     'FontName','Times')
+
+mes_pt = [ [500e3 250e3] ; [250e3 500e3] ];
+hold on;
+plot( mes_pt(:,1), mes_pt(:,2),'ok','LineWidth',6 );
+plot( mes_pt(:,1), mes_pt(:,2),'og','LineWidth',3 );
+% plot( mes_pt(:,1), mes_pt(:,2),'.k','MarkerSize',40 );
+% plot( mes_pt(:,1), mes_pt(:,2),'.g','MarkerSize',30 );
+hold off;
+% keyboard;
+
 subplot(1,3,2)
 imagesc(model.grid.x,model.grid.y,(abs(estim_error_EOF')/odgT));
 axis xy;axis equal;caxis(ax);colorbar

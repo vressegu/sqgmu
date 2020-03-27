@@ -1331,6 +1331,15 @@ while t_loop*dt_loop <= advection_duration
         
         model.advection.plot_moments = false;
         [spectrum,name_plot] = fct_plot_post_process(model,fft_b,day);
+        
+        model_mean=model;
+        model_mean.folder.folder_simu = [ model_mean.folder.folder_simu ...
+            '/mean'];
+        fct_create_folder_plots(model_mean)
+        fct_plot_post_process(model_mean,mean(fft_b,4),day);
+%         fct_plot_post_process(model_mean,mean(fft_b,4),['mean_' day]);
+%         clear model_mean;
+        
         if model.sigma.sto && strcmp(model.sigma.type_spectrum , 'EOF')
             color_SelfSim = [1 0 1];
             fct_spectrum_multi(model,fft_b_SelfSim,color_SelfSim);
@@ -1435,7 +1444,8 @@ while t_loop*dt_loop <= advection_duration
         % iii_day_keep = first_day : last_day_plot;
         iii_day_keep = ( v_day <= last_day_plot_qq );
         
-        if model.advection.N_ech > 1
+        if model.sigma.sto
+%         if model.advection.N_ech > 1
             
             if strcmp(model.sigma.type_spectrum , 'EOF')
                 plot_error_ensemble_comp_EOF_SelfSim
@@ -1651,6 +1661,10 @@ while t_loop*dt_loop <= advection_duration
         fft_w = SQG_large_UQ(model, fft_b(:,:,:,1));
         fct_sigma_spectrum_abs_diff_postprocess(...
             model,fft_w,true,day);
+%         model_mean.sigma.type_spectrum = 'mean';
+%         fct_sigma_spectrum_abs_diff_postprocess(...
+%             model_mean,mean(fft_w,4),true,day);
+
         %         if model.sigma.sto ...
         %                 && ( ...
         %               ( strcmp( model.sigma.type_spectrum, 'SelfSim_from_LS') ...
@@ -1670,6 +1684,10 @@ while t_loop*dt_loop <= advection_duration
         %              fct_sigma_spectrum(model,fft_w,nan,day);
         %         end
         if model.sigma.sto
+%             day_plot_chos = 100;
+%             if (eval(day) == day_plot_chos)
+%                 keyboard;
+%             end
             switch model.sigma.type_spectrum
                 case 'SelfSim_from_LS'
                     if model.sigma.time_smooth.bool
@@ -1680,9 +1698,38 @@ while t_loop*dt_loop <= advection_duration
                         subplot(1,2,2);axis(ax);
                     end
                 case {'EOF' ,'Euler_EOF'}
+%                     if (eval(day) == day_plot_chos)                        
+%                         figure10=figure(10);close(figure10);
+%                         figure(3);figure(5);figure(6);figure(7);
+%                         figure(8);figure(9);figure(8);figure(9);
+%                         uiopen('C:\Users\valentin.resseguier\Desktop\day5_Comp_ADSD.fig',1)
+%                         type_plot = [0.8500, 0.3250, 0.0980];
+%                         %                 type_plot = [0.9290, 0.6940, 0.1250];
+%                         %                     type_plot = [0.8500, 0.3250, 0.0980];
+%                         %                     type_plot = [0.4940, 0.1840, 0.5560];
+%                         %                     type_plot = [0.3010, 0.7450, 0.9330];
+%                     else
+                        type_plot = [0.0 0.5 0.0];
+%                     end
                     subplot(1,2,2);ax = axis;
+                    %                     plot_abs_diff_from_sigma_postprocess_add(model,...
+                    %                      fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+
                     plot_abs_diff_from_sigma_postprocess_add(model,...
-                     fft2(sigma_dBt_on_sq_dt), [0.0 0.5 0.0]);
+                        fft2(sigma_dBt_on_sq_dt), type_plot );
+%                     pl = findobj(gca,'Type','line');
+%                     if (eval(day) == day_plot_chos)
+%                         keyboard;
+%                         lgd=legend(pl([10 9 5 4 3 2 1 ]),...
+%                             {'w',...
+%                             '$\sigma d B_t /dt \  $   Self.Sim.',...
+%                             '$\sigma d B_t /dt \ $   8000 EOF',...
+%                             '$\sigma d B_t /dt \ $   2000 EOF',...
+%                             '$\sigma d B_t /dt \ $   200 EOF',...
+%                             '$\sigma d B_t /dt \ $   20 EOF',...
+%                             '$\sigma d B_t /dt \ $   2 EOF'},...
+%                             'Interpreter','latex');
+%                     end
                     subplot(1,2,2);axis(ax);
                 case  'Band_Pass_w_Slope'
                     fct_sigma_spectrum(model,fft_w,nan,day);

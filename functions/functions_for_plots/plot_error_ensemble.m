@@ -22,11 +22,11 @@ plot_moments = model.advection.plot_moments;
 map = model.folder.colormap;
 
 T_adv_part_HR = real(ifft2(fft_buoy_part_ref));
-% if  plot_random_IC
+if  plot_random_IC
     T_adv_part_classic = real(ifft2(fft_b_classic));
-% else
-%     T_adv_part_classic = nan(size(fft_b));
-% end
+else
+    T_adv_part_classic = nan(size(fft_b));
+end
 T_adv_part = real(ifft2(fft_b));
 mean_T = mean(T_adv_part,4);
 mean_T_classic = mean(T_adv_part_classic,4);
@@ -66,6 +66,10 @@ scale = 1.5*max(abs(error_classic(:))/odgT);
 ax = ( [min(abs([error_classic(:); estim_error(:) ])/odgT) ...
     max(abs([error_classic(:); estim_error(:) ])/odgT)]);
 ax(2)=ax(2)/2;
+
+ax = [0 0.05];
+% ax = [0 0.1];
+% ax = [0 0.15];
 
 %% One realisation
 width = 3.7;

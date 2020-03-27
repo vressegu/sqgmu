@@ -51,11 +51,12 @@ if model.sigma.sto ... % Stochastic case
                     mkdir([folder_simu '/AbsDiffByScale_sigma_dB_t_PostProcess']);
                 end
                 
-                if nargin > 1
-                    comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC,...
-                        model.sigma.type_spectrum);
-                end
                 % elseif strcmp(model.sigma.type_spectrum,'EOF')
+        end
+        
+        if nargin > 1
+            comp_large_IC_perturb(folder_simu,random_IC_large,plot_random_IC,...
+                model.sigma.type_spectrum);
         end
 end
     function comp_large_IC_perturb(folder_simu,random_IC_large,...
