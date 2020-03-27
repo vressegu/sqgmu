@@ -22,6 +22,7 @@ map = model.folder.colormap;
 X0=[0 0];
 VarTensor = 2 * model.advection.coef_diff(:,:,:,id_part);
 VarTensor = bsxfun( @times, ones(model.grid.MX), VarTensor) ;
+VarTensor = sum(VarTensor,3);
 % T_adv_part = real(ifft2( fft_b_adv_part(:,:,1,id_part) ));
 
 % if ( (eval(day) == 0) && ...
