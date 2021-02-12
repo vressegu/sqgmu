@@ -20,5 +20,5 @@ Several parameters can be changed easily in the beginning of the script main.m.
 ## Resources / contact
 
 * [Fluminance team @ Inria Rennes](http://www.irisa.fr/fluminance)
-* [V. Resseguier](http://www.irisa.fr/fluminance/team/Valentin.Resseguier.html)
+* [V. Resseguier](https://sites.google.com/view/valentinresseguier/projects)
 * [P. Derian](http://www.pierrederian.net)
